@@ -135,37 +135,37 @@ export const TaskManiaView = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl p-8 text-white shadow-xl"
+        className="bg-[#172554] rounded-2xl p-6 sm:p-8 text-white shadow-sm border border-[#1E293B]"
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+          <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm text-[#A78BFA]">
             <Briefcase size={28} />
           </div>
           <div>
-            <h2 className="text-3xl font-black">TaskMania</h2>
-            <p className="text-orange-100">Solve real industry challenges and get hired</p>
+            <h2 className="text-2xl sm:text-3xl font-black">TaskMania</h2>
+            <p className="text-slate-300 text-xs sm:text-sm">Solve real industry challenges and get hired</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <p className="text-2xl font-bold">
               {tasks.filter(t => !(typeof t.deadlineTs === 'number' && Date.now() > t.deadlineTs)).length}
             </p>
-            <p className="text-sm text-orange-100">Active Tasks</p>
+            <p className="text-xs text-slate-300">Active Tasks</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <p className="text-2xl font-bold">{submittedTasks.length}</p>
-            <p className="text-sm text-orange-100">Applied</p>
+            <p className="text-xs text-slate-300">Applied</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <p className="text-2xl font-bold">{tasks.filter(t => t.paid).length}</p>
-            <p className="text-sm text-orange-100">Paid Tasks</p>
+            <p className="text-xs text-slate-300">Paid Tasks</p>
           </div>
         </div>
       </motion.div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+      <div className="bg-white rounded-2xl p-5 shadow-xs border border-[#E2E8F0]">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -175,7 +175,7 @@ export const TaskManiaView = () => {
               placeholder="Search tasks, companies, or technologies..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all"
+              className="w-full pl-12 pr-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5] transition-all"
             />
           </div>
 
@@ -185,7 +185,7 @@ export const TaskManiaView = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="pl-11 pr-8 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all appearance-none bg-white cursor-pointer min-w-[180px]"
+              className="pl-11 pr-8 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5] transition-all appearance-none cursor-pointer min-w-[180px]"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>

@@ -1,351 +1,353 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { 
-  ShieldCheck, 
-  Zap, 
-  Star, 
-  TrendingUp, 
-  Target, 
-  Award, 
-  ExternalLink, 
-  Share2, 
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  ShieldCheck,
+  Sparkles,
+  Award,
+  ExternalLink,
+  Share2,
   Download,
   Briefcase,
   Code,
-  Quote,
-  CheckCircle,
-  MapPin,
-  Github,
-  Linkedin
-} from 'lucide-react';
+  CheckCircle2,
+  Check,
+  ChevronLeft,
+  Building,
+  GraduationCap,
+  Calendar,
+  FileText,
+  BarChart2,
+} from "lucide-react";
+import Avatar from "../shared/Avatar";
+import api from "../../services/api";
 
-const mockSkills = [
-  { name: 'React.js', level: 'Advanced', score: 92, verified: true, category: 'Technical' },
-  { name: 'TypeScript', level: 'Intermediate', score: 85, verified: true, category: 'Technical' },
-  { name: 'Node.js', level: 'Intermediate', score: 78, verified: false, category: 'Technical' },
-  { name: 'Figma', level: 'Advanced', score: 88, verified: true, category: 'Tools' },
-  { name: 'Git & GitHub', level: 'Advanced', score: 95, verified: true, category: 'Tools' },
-  { name: 'Public Speaking', level: 'Intermediate', score: 82, verified: true, category: 'Soft Skills' },
-  { name: 'Team Leadership', level: 'Advanced', score: 90, verified: true, category: 'Soft Skills' },
-];
+export const VirtualCVView = ({ user, onBackToFeed }) => {
+  const [resumeData, setResumeData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-const mockExperience = [
-  {
-    id: '1',
-    company: 'TechFlow Systems',
-    role: 'Frontend Developer Intern',
-    duration: 'Jun 2024 - Present',
-    description: 'Leading the migration of core dashboard components to React 19 and improving performance by 40%.',
-    type: 'Internship',
-    verified: true
-  },
-  {
-    id: '2',
-    company: 'Freelance',
-    role: 'UI Designer',
-    duration: 'Jan 2024 - May 2024',
-    description: 'Designed and developed 5+ landing pages for local startups using Tailwind CSS and Framer Motion.',
-    type: 'Freelance',
-    verified: false
-  }
-];
+  useEffect(() => {
+    const fetchVirtualResume = async () => {
+      const uid = user?._id || user?.id;
+      if (!uid) return;
+      try {
+        setLoading(true);
+        const res = await api.get(`/virtual-resume/${uid}`);
+        if (res.data?.data) {
+          setResumeData(res.data.data);
+        }
+      } catch (err) {
+        console.warn("Could not load backend virtual resume, using profile data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVirtualResume();
+  }, [user]);
 
-const mockProjects = [
-  {
-    id: '1',
-    title: 'EcoTrack Dashboard',
-    description: 'A carbon footprint monitoring tool with real-time data visualization.',
-    skills: ['React', 'D3.js', 'Firebase'],
-    impact: 'Reduced data processing time by 60%',
-    thumbnail: 'https://picsum.photos/seed/project1/400/250'
-  },
-  {
-    id: '2',
-    title: 'VIBE Community Hub',
-    description: 'The central social platform for student engagement and mentorship.',
-    skills: ['Next.js', 'Tailwind', 'Three.js'],
-    impact: 'Onboarded 500+ students in first week',
-    thumbnail: 'https://picsum.photos/seed/project2/400/250'
-  }
-];
+  const displayName = user?.name || "Student";
+  const displayAvatar = user?.ImageUrl || user?.avatar;
+  const institute = user?.Profile?.InstituteName || "VIBE Institute of Technology";
+  const branch = user?.Profile?.Branch || user?.Profile?.branch || "Computer Science";
+  const year = user?.Profile?.YearOfStudy || user?.Profile?.currentYear || "3rd Year";
 
-export const VirtualCVView = ({ user }) => {
-  return (
-    <div className="space-y-12 pb-24">
-      {/* 1. CV Header */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-amber-600 to-rose-500 rounded-[3rem] p-8 md:p-12 text-white shadow-2xl"
-      >
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-400/20 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
-        
-        <div className="relative flex flex-col md:flex-row items-center gap-10">
-          <div className="relative">
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute -inset-4 border border-white/20 rounded-full"
-            />
-            <div className="w-40 h-40 rounded-full border-4 border-white shadow-2xl overflow-hidden relative z-10">
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-white text-orange-600 p-2 rounded-xl shadow-lg z-20">
-              <ShieldCheck size={24} />
-            </div>
-          </div>
-          <div className="flex-1 text-center md:text-left space-y-4">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight">{user.name}</h1>
-                <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/30">
-                  Verified Student
-                </span>
-              </div>
-              <p className="text-xl text-orange-100 font-medium">B.Tech in Computer Science Engineering • 3rd Year</p>
-              <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-orange-200 font-bold uppercase tracking-wider">
-                <span className="flex items-center gap-1.5"><MapPin size={14} /> Gujarat, India</span>
-                <span className="flex items-center gap-1.5 text-emerald-300"><CheckCircle size={14} /> Available for Internship</span>
-              </div>
-            </div>
+  // Merged skills: prioritize backend skills if present, or profile skills, or standard academic skill categories
+  const backendSkills = resumeData?.skills || [];
+  const defaultSkills = [
+    { name: "React.js", category: "Technical", level: "Advanced", verified: true },
+    { name: "JavaScript / TypeScript", category: "Technical", level: "Advanced", verified: true },
+    { name: "Node.js & Express", category: "Technical", level: "Intermediate", verified: true },
+    { name: "Data Structures & Algorithms", category: "Technical", level: "Intermediate", verified: true },
+    { name: "Git & Version Control", category: "Tools", level: "Advanced", verified: true },
+    { name: "Figma & UI/UX Design", category: "Tools", level: "Intermediate", verified: false },
+    { name: "Problem Solving", category: "Soft Skills", level: "Advanced", verified: true },
+    { name: "Team Collaboration", category: "Soft Skills", level: "Advanced", verified: true },
+  ];
 
-            {/* Social Links & Actions */}
-            <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
-              <div className="flex gap-2">
-                <a 
-                  href="https://github.com" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white hover:text-orange-600 transition-all"
-                >
-                  <Github size={22} />
-                </a>
-                <a 
-                  href="https://linkedin.com" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 hover:bg-white hover:text-orange-600 transition-all"
-                >
-                  <Linkedin size={22} />
-                </a>
-              </div>
-              <div className="h-10 w-px bg-white/20 self-center hidden md:block" />
-              <button className="flex items-center gap-2 bg-white text-orange-600 px-8 py-3.5 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">
-                <Share2 size={18} /> Share Profile
-              </button>
-              <button className="flex items-center gap-2 bg-orange-500/30 backdrop-blur-md border border-white/30 px-8 py-3.5 rounded-2xl font-black shadow-lg hover:bg-orange-500/50 transition-all">
-                <Download size={18} /> Export CV
-              </button>
-            </div>
-          </div>
+  const displayedSkills =
+    backendSkills.length > 0
+      ? backendSkills.map((s) => ({
+          name: s,
+          category: "Technical",
+          level: "Verified",
+          verified: true,
+        }))
+      : defaultSkills;
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 text-center min-w-[160px]">
-            <span className="text-xs font-black uppercase tracking-widest text-orange-100 block mb-1">Credibility Score</span>
-            <div className="text-5xl font-black text-white mb-2">940</div>
-            <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: '94%' }}
-                className="h-full bg-white"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.section>
+  // Real or simulated experience/tasks
+  const displayedExperience =
+    resumeData?.experience && resumeData.experience.length > 0
+      ? resumeData.experience.map((exp, idx) => ({
+          id: String(idx),
+          role: exp.taskTitle || "Industry Challenge",
+          company: "VIBE Partner Organization",
+          duration: exp.completedAt ? new Date(exp.completedAt).toLocaleDateString() : "Recent",
+          description: exp.problemStatement || "Completed real industry task requirements with verified submission.",
+          verified: true,
+          techStack: Array.isArray(exp.techStack) ? exp.techStack : [],
+        }))
+      : [
+          {
+            id: "1",
+            role: "Full-Stack Development Contributor",
+            company: "Academic Project & Industry Tasks",
+            duration: "2025 - Present",
+            description: "Developed modern web application modules using React and Node.js with component-based architecture.",
+            verified: true,
+            techStack: ["React", "Tailwind CSS", "REST APIs"],
+          },
+        ];
 
-      {/* 2. Performance Snapshot */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={Briefcase} label="Internships" value="3" color="orange" />
-        <StatCard icon={Target} label="Task Accuracy" value="98%" color="emerald" />
-        <StatCard icon={Star} label="Mentor Rating" value="4.9" color="amber" />
-        <StatCard icon={TrendingUp} label="Skill Index" value="8.4" color="orange" />
-      </section>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* 3. Skills Matrix */}
-        <div className="lg:col-span-1 space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-              <Zap size={24} />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900">Skills Matrix</h3>
-          </div>
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      alert("CV link copied to clipboard!");
+    }
+  };
 
-          <div className="space-y-8 bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-xl">
-            {['Technical', 'Tools', 'Soft Skills'].map((cat) => (
-              <div key={cat} className="space-y-4">
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{cat}</h4>
-                <div className="space-y-4">
-                  {mockSkills.filter(s => s.category === cat).map((skill) => (
-                    <div key={skill.name} className="space-y-2">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="font-bold text-gray-700 flex items-center gap-1.5">
-                          {skill.name}
-                          {skill.verified && <ShieldCheck size={14} className="text-orange-500" />}
-                        </span>
-                        <span className="text-xs font-black text-orange-600">{skill.score}%</span>
-                      </div>
-                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${skill.score}%` }}
-                          transition={{ duration: 1 }}
-                          className="h-full bg-orange-600 rounded-full"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 4 & 5. Experience & Projects */}
-        <div className="lg:col-span-2 space-y-12">
-          {/* Experience Timeline */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                  <Briefcase size={24} />
-                </div>
-                <h3 className="text-2xl font-black text-gray-900">Experience</h3>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {mockExperience.map((exp, idx) => (
-                <motion.div 
-                  key={exp.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-xl flex gap-6 group"
-                >
-                  <div className="hidden sm:flex flex-col items-center">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg ${exp.verified ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                      {exp.company[0]}
-                    </div>
-                    {idx < mockExperience.length - 1 && <div className="w-0.5 h-full bg-gray-100 my-4" />}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">{exp.role}</h4>
-                        <div className="flex items-center gap-2 text-orange-600 font-bold text-sm">
-                          {exp.company}
-                          {exp.verified && <span className="bg-orange-50 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-tighter">Verified By Vibe</span>}
-                        </div>
-                      </div>
-                      <span className="text-xs font-black text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full">{exp.duration}</span>
-                    </div>
-                    <p className="text-gray-500 leading-relaxed text-sm">{exp.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-          {/* Projects Showcase */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-                <Code size={24} />
-              </div>
-              <h3 className="text-2xl font-black text-gray-900">Featured Projects</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {mockProjects.map((project, idx) => (
-                <div 
-                  key={project.id}
-                  className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl overflow-hidden group"
-                >
-                  <div className="h-48 relative overflow-hidden">
-                    <img src={project.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                      <button className="bg-white text-gray-900 p-3 rounded-2xl shadow-xl">
-                        <ExternalLink size={20} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-8 space-y-4">
-                    <h4 className="text-xl font-black text-gray-900">{project.title}</h4>
-                    <p className="text-gray-500 text-sm line-clamp-2">{project.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {project.skills.map(s => (
-                        <span key={s} className="px-3 py-1 bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-wider rounded-lg">{s}</span>
-                      ))}
-                    </div>
-                    <div className="pt-4 border-t border-gray-50 flex items-center gap-2 text-xs font-bold text-emerald-600">
-                      <TrendingUp size={14} /> {project.impact}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 8. Feedback Section */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
-            <Quote size={24} />
-          </div>
-          <h3 className="text-2xl font-black text-gray-900">Mentor Highlights</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-xl flex gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-orange-100 shrink-0 overflow-hidden">
-              <img src="https://picsum.photos/seed/mentor1/200" alt="Mentor" className="w-full h-full object-cover" />
-            </div>
-            <div className="space-y-3">
-              <p className="text-gray-600 italic leading-relaxed">"Parth consistently delivers high-quality work. His attention to detail in UI performance is exceptional for a student."</p>
-              <div>
-                <h5 className="font-black text-gray-900 text-sm">Prof. Anjali Sharma</h5>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">HOD, Computer Engineering</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-xl flex gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-amber-100 shrink-0 overflow-hidden">
-              <img src="https://picsum.photos/seed/mentor2/200" alt="Mentor" className="w-full h-full object-cover" />
-            </div>
-            <div className="space-y-3">
-              <p className="text-gray-600 italic leading-relaxed">"Impressive growth in his React skills. He managed to solve complex state management issues during the hackathon."</p>
-              <div>
-                <h5 className="font-black text-gray-900 text-sm">Rahul Verma</h5>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Lead Engineer @ TechFlow</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-const StatCard = ({ icon: Icon, label, value, color }) => {
-  const colors = {
-    orange: 'bg-orange-50 text-orange-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    amber: 'bg-amber-50 text-amber-600',
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
-    <div 
-      className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white shadow-xl flex items-center gap-6"
-    >
-      <div className={`p-4 rounded-2xl ${colors[color] || colors.orange} shadow-sm`}>
-        <Icon size={28} />
-      </div>
-      <div>
-        <span className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">{label}</span>
-        <span className="text-3xl font-black text-gray-900 tracking-tight">{value}</span>
-      </div>
+    <div className="max-w-[1150px] mx-auto w-full space-y-6 pb-12">
+      {/* Back to Feed button */}
+      {onBackToFeed && (
+        <div className="flex items-center">
+          <button
+            onClick={onBackToFeed}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#6D3DF5] transition-colors"
+          >
+            <ChevronLeft size={16} />
+            <span>Back to Home Feed</span>
+          </button>
+        </div>
+      )}
+
+      {/* 1. Header Card: Student Profile & Action Controls */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col md:flex-row items-center justify-between gap-6"
+      >
+        <div className="flex flex-col sm:flex-row items-center gap-5 w-full md:w-auto text-center sm:text-left">
+          <div className="relative flex-shrink-0">
+            <Avatar
+              name={displayName}
+              src={displayAvatar}
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-2 ring-[#F1F5F9] shadow-sm"
+              initialsClassName="text-2xl font-bold text-white"
+            />
+            <div className="absolute -bottom-1 -right-1 bg-[#6D3DF5] text-white p-1.5 rounded-lg shadow-sm" title="VIBE Verified Profile">
+              <ShieldCheck size={16} />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+                {displayName}
+              </h1>
+              <span className="text-[11px] font-bold text-[#6D3DF5] bg-[#F3EEFF] px-2.5 py-0.5 rounded-full border border-[#E9D5FF]">
+                Student CV
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-[#475569] font-medium flex items-center justify-center sm:justify-start gap-1.5">
+              <GraduationCap size={15} className="text-[#6D3DF5]" />
+              <span>{branch} • {year}</span>
+            </p>
+            <p className="text-xs text-[#64748B] flex items-center justify-center sm:justify-start gap-1.5">
+              <Building size={14} className="text-[#94A3B8]" />
+              <span>{institute}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-center">
+          <button
+            onClick={handleCopyLink}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-xl text-xs font-bold transition-all shadow-xs"
+          >
+            <Share2 size={14} />
+            <span>Share CV</span>
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+          >
+            <Download size={14} />
+            <span>Download CV</span>
+          </button>
+        </div>
+      </motion.section>
+
+      {/* 2. AI CV Analysis Scorecard & Insights */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-5"
+      >
+        {/* ATS Readiness Score */}
+        <div className="bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+              ATS Readiness
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center">
+              <Sparkles size={15} />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[#0F172A]">92%</span>
+            <span className="text-xs font-bold text-[#059669]">Excellent</span>
+          </div>
+          <div className="w-full bg-[#F1F5F9] rounded-full h-2 mt-3 overflow-hidden">
+            <div className="bg-[#6D3DF5] h-2 rounded-full w-[92%]" />
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-2">
+            Tailored for tech roles and verified industry internship tasks.
+          </p>
+        </div>
+
+        {/* Verified Competencies */}
+        <div className="bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+              Verified Skills
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center">
+              <CheckCircle2 size={15} />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[#0F172A]">
+              {displayedSkills.filter((s) => s.verified).length}
+            </span>
+            <span className="text-xs text-[#64748B]">out of {displayedSkills.length} total</span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-3">
+            Verified by faculty review and completed task submissions.
+          </p>
+        </div>
+
+        {/* AI Recommendations */}
+        <div className="bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+              Key Recommendations
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center">
+              <BarChart2 size={15} />
+            </div>
+          </div>
+          <ul className="space-y-1.5 text-xs text-[#334155] mt-1">
+            <li className="flex items-start gap-1.5">
+              <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
+              <span>Highlight live project links & GitHub repos</span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
+              <span>Connect with a faculty mentor for code reviews</span>
+            </li>
+          </ul>
+        </div>
+      </motion.section>
+
+      {/* 3. Skills Matrix Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center">
+            <Code size={18} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-[#0F172A]">Skills & Competencies</h2>
+            <p className="text-xs text-[#64748B]">
+              Verified technical, tooling, and communication abilities
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+          {displayedSkills.map((skill, idx) => (
+            <div
+              key={idx}
+              className="p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex items-center justify-between gap-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#0F172A] truncate">{skill.name}</p>
+                <p className="text-[10px] text-[#64748B]">{skill.level}</p>
+              </div>
+              {skill.verified && (
+                <div className="w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0" title="Verified Skill">
+                  <Check size={12} strokeWidth={3} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* 4. Experience & Projects Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center">
+            <Briefcase size={18} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-[#0F172A]">Project & Internship Experience</h2>
+            <p className="text-xs text-[#64748B]">
+              Real industry challenges solved through VIBE
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          {displayedExperience.map((exp) => (
+            <div
+              key={exp.id}
+              className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm text-[#0F172A]">
+                    {exp.role}
+                  </h3>
+                  <p className="text-xs text-[#6D3DF5] font-semibold">{exp.company}</p>
+                </div>
+                <span className="text-[11px] text-[#94A3B8] font-medium">
+                  {exp.duration}
+                </span>
+              </div>
+              <p className="text-xs text-[#334155] leading-relaxed">
+                {exp.description}
+              </p>
+              {exp.techStack.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {exp.techStack.map((tech, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-white border border-[#E2E8F0] text-[#64748B] rounded-md text-[10px] font-medium"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </motion.section>
     </div>
   );
 };

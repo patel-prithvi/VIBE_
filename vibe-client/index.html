@@ -63,6 +63,11 @@
       theme: {
         extend: {
           colors: {
+            vibePrimary: 'var(--vibe-primary)',
+            vibePrimaryHover: 'var(--vibe-primary-hover)',
+            vibePrimaryLight: 'var(--vibe-primary-light)',
+            vibeNavyBrand: 'var(--vibe-navy)',
+            vibeBorderColor: 'var(--vibe-border)',
             vibePurple: '#7540F5',
             vibePurpleHover: '#6025EB',
             vibePurpleLight: '#A45AFF',
@@ -104,103 +109,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
   <style>
-    :root {
-      --navy: #1D3C5A;
-      --ink: #12283F;
-      --steel: #4B7EA3;
-      --powder: #D3E3EE;
-      --mist: #E6EEF5;
-      --chip: #D8E5EF;
-      --white: #FFFFFF;
-      --text: #5E6A76;
-      --muted: #728494;
-      --border: #C9D8E4;
-      --accent: #A5632E;
-      --notify: #2F6DB5;
-    }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--mist);
-      color: var(--text);
       margin: 0;
       overflow-x: hidden;
-    }
-
-    ::selection {
-      background: var(--navy);
-      color: var(--white);
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--mist);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--steel);
-    }
-
-    /* PWA Install Button Styles */
-    .install-button {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--navy);
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 12px 24px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(29, 60, 90, 0.3);
-      transition: all 0.3s ease;
-      z-index: 1000;
-      display: none;
-    }
-
-    .install-button:hover {
-      background: var(--ink);
-      transform: scale(1.05);
-      box-shadow: 0 6px 16px rgba(29, 60, 90, 0.4);
-    }
-
-    .install-button.show {
-      display: block;
-      animation: slideIn 0.3s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateX(100px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        transform: translate(-50%, -100%);
-        opacity: 0;
-      }
-
-      to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-      }
     }
   </style>
   <script type="importmap">

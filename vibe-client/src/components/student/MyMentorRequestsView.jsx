@@ -8,16 +8,19 @@ import {
   MessageSquare,
   Award,
   Clock,
-  Filter,
   Search,
   ExternalLink,
   AlertCircle,
   Loader2,
   Building2,
+  Users,
+  ArrowLeft,
+  Video,
 } from "lucide-react";
-import api from '../../services/api';
+import Avatar from "../shared/Avatar";
+import api from "../../services/api";
 
-export const MyMentorRequestsView = () => {
+export const MyMentorRequestsView = ({ onBackToFeed }) => {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,39 +35,43 @@ export const MyMentorRequestsView = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setError("");
       const response = await api.get("/mentor-requests/my-requests");
       if (response.data && response.data.data) {
-        // Map backend data to frontend structure
-        const mappedRequests = response.data.data.map(req => ({
+        const mappedRequests = response.data.data.map((req) => ({
           id: req._id,
           faculty: {
-            name: req.faculty.name,
-            email: req.faculty.email,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(req.faculty.name)}&background=random`,
-            accountType: req.faculty.accountType,
-            institute: req.faculty.Profile?.InstituteName || "N/A",
-            expertise: Array.isArray(req.faculty.Profile?.ExpertiseDomains) 
-                ? req.faculty.Profile.ExpertiseDomains.join(", ") 
-                : req.faculty.Profile?.ExpertiseDomains || "N/A",
+            name: req.faculty?.name || "Faculty Mentor",
+            email: req.faculty?.email || "",
+            avatar: req.faculty?.ImageUrl || req.faculty?.avatar,
+            accountType: req.faculty?.accountType || "faculty",
+            institute: req.faculty?.Profile?.InstituteName || "VIBE Faculty",
+            expertise: Array.isArray(req.faculty?.Profile?.ExpertiseDomains)
+              ? req.faculty.Profile.ExpertiseDomains.join(", ")
+              : req.faculty?.Profile?.ExpertiseDomains || "Academic Mentorship",
           },
           task: {
-            title: req.task.title,
-            company: req.task.companyName,
-            category: req.task.category,
-            deadline: new Date(req.task.lastDateToSubmit).toLocaleDateString(),
-            id: req.task._id,
+            title: req.task?.title || "Mentorship Topic",
+            company: req.task?.companyName || "VIBE Task",
+            category: req.task?.category || "General",
+            deadline: req.task?.lastDateToSubmit
+              ? new Date(req.task.lastDateToSubmit).toLocaleDateString()
+              : "Flexible",
+            id: req.task?._id,
           },
           requestDate: new Date(req.createdAt).toLocaleDateString(),
           message: req.message,
-          status: req.status,
+          status: req.status || "pending",
           skills: req.skills || [],
           meetLink: req.meetLink || "",
         }));
         setRequests(mappedRequests);
+      } else {
+        setRequests([]);
       }
     } catch (err) {
       console.error("Error fetching my mentor requests:", err);
-      setError("Failed to fetch mentor requests. Please try again.");
+      setError("Failed to fetch mentor requests. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -79,167 +86,220 @@ export const MyMentorRequestsView = () => {
     return matchesFilter && matchesSearch;
   });
 
-  const getStatusColor = (status) => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
-        return "bg-amber-50 text-amber-600 border-amber-100";
+        return "bg-[#FFFBEB] text-[#D97706] border-[#FDE68A]";
       case "accepted":
-        return "bg-green-50 text-green-600 border-green-100";
+        return "bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]";
       case "rejected":
-        return "bg-red-50 text-red-600 border-red-100";
+        return "bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]";
       default:
-        return "bg-gray-50 text-gray-600 border-gray-100";
+        return "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]";
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Mentor Requests</h1>
-          <p className="text-gray-500">Track and view the status of your mentorship requests</p>
+    <div className="w-full min-w-0 space-y-5">
+      {/* 1. Page Header */}
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center flex-shrink-0">
+            <Users size={22} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-[#0F172A] tracking-tight">
+              Mentorship Requests
+            </h1>
+            <p className="text-xs text-[#64748B] mt-0.5">
+              Track your connections, guidance sessions, and mentor updates
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex">
-            {["all", "pending", "accepted", "rejected"].map((f) => (
+
+        {onBackToFeed && (
+          <button
+            onClick={onBackToFeed}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] transition-colors self-start sm:self-auto"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Feed</span>
+          </button>
+        )}
+      </div>
+
+      {/* 2. Controls: Search & Status Filters */}
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search
+            size={18}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+          />
+          <input
+            type="text"
+            placeholder="Search by mentor name, topic, or institution..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 [scrollbar-width:none]">
+          {["all", "pending", "accepted", "rejected"].map((f) => {
+            const isActive = filter === f;
+            return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
-                  filter === f
-                    ? "bg-orange-500 text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all shrink-0 ${
+                  isActive
+                    ? "bg-[#6D3DF5] text-white shadow-xs"
+                    : "bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-[#E2E8F0]"
                 }`}
               >
                 {f}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search by mentor name, task or company..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Content */}
+      {/* 3. Content */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Loading requests...</p>
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-16 text-center shadow-xs flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-8 h-8 text-[#6D3DF5] animate-spin" />
+          <p className="text-xs font-semibold text-[#64748B]">Loading mentor requests...</p>
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-red-900 mb-2">Error Loading Requests</h3>
-          <p className="text-red-600 mb-6">{error}</p>
+        <div className="bg-white rounded-2xl border border-[#FEE2E2] p-8 text-center shadow-xs flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#EF4444]">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[#172554]">Error Loading Requests</h3>
+            <p className="text-xs text-[#64748B] mt-1 max-w-sm">{error}</p>
+          </div>
           <button
             onClick={fetchRequests}
-            className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all"
+            className="px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
           >
             Try Again
           </button>
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
-          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MessageSquare size={32} className="text-gray-300" />
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-16 text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-3">
+          <div className="w-16 h-16 rounded-2xl bg-[#F8FAFC] text-[#94A3B8] border border-[#E2E8F0] flex items-center justify-center mx-auto">
+            <MessageSquare size={28} />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No requests found</h3>
-          <p className="text-gray-500">
-            {filter === "all"
-              ? "You haven't requested any mentors yet."
-              : `No ${filter} requests found.`}
-          </p>
+          <div>
+            <h3 className="text-base font-bold text-[#0F172A]">No requests found</h3>
+            <p className="text-xs text-[#64748B] max-w-sm mx-auto mt-1 leading-relaxed">
+              {filter === "all"
+                ? "You haven't sent any mentorship requests yet. Connect with recommended faculty mentors from your dashboard feed."
+                : `No requests with status '${filter}' were found.`}
+            </p>
+          </div>
+          {onBackToFeed && (
+            <button
+              onClick={onBackToFeed}
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#172554] hover:bg-[#0F172A] text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+            >
+              Explore Mentors on Home Feed
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredRequests.map((request) => (
             <motion.div
               layout
               key={request.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden"
+              className="bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-all overflow-hidden flex flex-col justify-between"
             >
               {/* Card Header */}
-              <div className="p-5 border-b border-gray-50 flex justify-between items-start">
-                <div className="flex gap-4">
-                  <img
+              <div className="p-4 sm:p-5 border-b border-[#F1F5F9] flex justify-between items-start gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar
+                    name={request.faculty.name}
                     src={request.faculty.avatar}
-                    alt={request.faculty.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-orange-100"
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-[#F1F5F9] flex-shrink-0"
+                    initialsClassName="text-xs font-bold text-white"
                   />
-                  <div>
-                    <h3 className="font-bold text-gray-900">{request.faculty.name}</h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Clock size={12} /> {request.requestDate}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm text-[#0F172A] truncate">
+                      {request.faculty.name}
+                    </h3>
+                    <p className="text-xs text-[#64748B] truncate">
+                      {request.faculty.institute}
+                    </p>
+                    <p className="text-[11px] text-[#94A3B8] flex items-center gap-1 mt-0.5">
+                      <Clock size={11} />
+                      <span>{request.requestDate}</span>
                     </p>
                   </div>
                 </div>
+
                 <div
-                  className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(
-                    request.status,
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-wider shrink-0 ${getStatusBadge(
+                    request.status
                   )}`}
                 >
-                  {request.status.toUpperCase()}
+                  {request.status}
                 </div>
               </div>
 
               {/* Card Body */}
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-3 flex-1">
                 <div>
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">
-                    Task Details
-                  </p>
-                  <h4 className="font-bold text-gray-800 line-clamp-1">
+                  <span className="text-[10px] font-bold text-[#6D3DF5] uppercase tracking-wider">
+                    Topic
+                  </span>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#0F172A] line-clamp-1 mt-0.5">
                     {request.task.title}
                   </h4>
-                  <p className="text-sm text-gray-500">{request.task.company}</p>
+                  <p className="text-xs text-[#64748B]">{request.task.company}</p>
                 </div>
 
                 {request.status === "accepted" && request.meetLink && (
-                  <div className="bg-green-50/50 rounded-xl p-4 border border-green-100">
-                    <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1">
-                      <CheckCircle size={14} /> Meeting Link
+                  <div className="bg-[#ECFDF5] rounded-xl p-3 border border-[#A7F3D0]">
+                    <p className="text-[10px] font-bold text-[#059669] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <CheckCircle size={12} /> Session Link
                     </p>
-                    <a href={request.meetLink} target="_blank" rel="noopener noreferrer" className="text-sm text-green-600 font-medium hover:underline flex items-center gap-2">
-                      {request.meetLink} <ExternalLink size={14} />
+                    <a
+                      href={request.meetLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#059669] font-bold hover:underline flex items-center gap-1.5 truncate"
+                    >
+                      <Video size={13} />
+                      <span className="truncate">{request.meetLink}</span>
+                      <ExternalLink size={12} className="shrink-0" />
                     </a>
                   </div>
                 )}
 
-                {!request.meetLink && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <MessageSquare size={12} /> Your Message
-                  </p>
-                  <p className="text-sm text-gray-700 italic line-clamp-3">
-                    "{request.message || "No message provided."}"
-                  </p>
-                </div>
+                {request.message && (
+                  <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#F1F5F9]">
+                    <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <MessageSquare size={11} /> Your Message
+                    </p>
+                    <p className="text-xs text-[#334155] italic line-clamp-2">
+                      "{request.message}"
+                    </p>
+                  </div>
                 )}
-                
               </div>
 
               {/* Card Footer */}
-              <div className="p-4 bg-gray-50/50 border-t border-gray-50 flex gap-3">
+              <div className="p-3.5 bg-[#F8FAFC] border-t border-[#F1F5F9]">
                 <button
                   onClick={() => setSelectedRequest(request)}
-                  className="w-full px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2 px-3 bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
                 >
-                  <Eye size={16} /> Details
+                  <Eye size={14} />
+                  <span>View Details</span>
                 </button>
               </div>
             </motion.div>
@@ -250,109 +310,114 @@ export const MyMentorRequestsView = () => {
       {/* Details Modal */}
       <AnimatePresence>
         {selectedRequest && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedRequest(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
-                <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
-                <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(
-                        selectedRequest.status,
-                    )} mx-4`}
-                >
-                    {selectedRequest.status.toUpperCase()}
+              <div className="p-5 border-b border-[#F1F5F9] flex justify-between items-center bg-[#F8FAFC]">
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-base font-bold text-[#0F172A]">Request Details</h2>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border uppercase tracking-wider ${getStatusBadge(
+                      selectedRequest.status
+                    )}`}
+                  >
+                    {selectedRequest.status}
+                  </span>
                 </div>
                 <button
                   onClick={() => setSelectedRequest(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors ml-auto"
+                  className="p-1 text-[#64748B] hover:text-[#0F172A] rounded-lg hover:bg-white"
                 >
-                  <XCircle size={20} className="text-gray-500" />
+                  <XCircle size={18} />
                 </button>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
                 {/* Faculty Info */}
-                <div className="flex gap-4 items-center p-4 bg-gray-50 rounded-2xl">
-                  <img
+                <div className="flex gap-3.5 items-center p-3.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
+                  <Avatar
+                    name={selectedRequest.faculty.name}
                     src={selectedRequest.faculty.avatar}
-                    alt={selectedRequest.faculty.name}
-                    className="w-16 h-16 rounded-full border-2 border-white shadow-sm"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-xs"
+                    initialsClassName="text-sm font-bold text-white"
                   />
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-[#0F172A] truncate">
                       {selectedRequest.faculty.name}
                     </h3>
-                    <p className="text-sm text-gray-500 capitalize">{selectedRequest.faculty.accountType}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Building2 size={12} className="text-orange-500" /> {selectedRequest.faculty.institute}
-                      </p>
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Award size={12} className="text-orange-500" /> {selectedRequest.faculty.expertise}
-                      </p>
-                    </div>
+                    <p className="text-xs text-[#64748B]">
+                      {selectedRequest.faculty.institute}
+                    </p>
+                    <p className="text-[11px] text-[#6D3DF5] font-medium mt-0.5">
+                      Expertise: {selectedRequest.faculty.expertise}
+                    </p>
                   </div>
                 </div>
 
-                {/* Task Info */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar size={18} className="text-orange-500" /> Task Information
+                {/* Topic Info */}
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                    <Calendar size={14} className="text-[#6D3DF5]" /> Mentorship Topic
                   </h4>
-                  <div className="border border-gray-100 rounded-2xl p-4">
-                    <h5 className="font-bold text-gray-800">{selectedRequest.task.title}</h5>
-                    <p className="text-sm text-gray-500 mb-3">{selectedRequest.task.company}</p>
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="px-2 py-1 bg-orange-50 text-orange-600 rounded-md capitalize">
+                  <div className="border border-[#E2E8F0] rounded-xl p-3.5 bg-white">
+                    <h5 className="font-bold text-xs sm:text-sm text-[#0F172A]">
+                      {selectedRequest.task.title}
+                    </h5>
+                    <p className="text-xs text-[#64748B] mt-0.5">
+                      {selectedRequest.task.company}
+                    </p>
+                    <div className="flex items-center justify-between text-[11px] font-medium mt-2 pt-2 border-t border-[#F1F5F9]">
+                      <span className="px-2 py-0.5 bg-[#F3EEFF] text-[#6D3DF5] rounded-md font-semibold capitalize">
                         {selectedRequest.task.category}
                       </span>
-                      <span className="text-gray-400">Deadline: {selectedRequest.task.deadline}</span>
+                      <span className="text-[#94A3B8]">
+                        Requested: {selectedRequest.requestDate}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Meet Link */}
+                {/* Meeting Link */}
                 {selectedRequest.status === "accepted" && selectedRequest.meetLink && (
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <ExternalLink size={18} className="text-orange-500" /> Meeting Link
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                      <Video size={14} className="text-[#059669]" /> Online Session Link
                     </h4>
-                    <div className="border border-green-100 bg-green-50/30 rounded-2xl p-4">
-                      <a href={selectedRequest.meetLink} target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline flex items-center gap-2">
-                        {selectedRequest.meetLink} <ExternalLink size={14} />
+                    <div className="border border-[#A7F3D0] bg-[#ECFDF5] rounded-xl p-3.5">
+                      <a
+                        href={selectedRequest.meetLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-[#059669] font-bold hover:underline flex items-center gap-2 truncate"
+                      >
+                        <span className="truncate">{selectedRequest.meetLink}</span>
+                        <ExternalLink size={13} className="shrink-0" />
                       </a>
                     </div>
                   </div>
                 )}
 
                 {/* Message */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-orange-500" /> Your Message
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                    <MessageSquare size={14} className="text-[#6D3DF5]" /> Your Message
                   </h4>
-                  <div className="bg-orange-50/30 rounded-2xl p-4 border border-orange-100/50">
-                    <p className="text-gray-700 leading-relaxed italic">
+                  <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-[#E2E8F0]">
+                    <p className="text-xs text-[#334155] leading-relaxed italic">
                       "{selectedRequest.message || "No message provided."}"
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-3">
+              <div className="p-4 border-t border-[#F1F5F9] bg-[#F8FAFC] flex justify-end">
                 <button
                   onClick={() => setSelectedRequest(null)}
-                  className="w-full px-4 py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all"
+                  className="px-4 py-2 text-xs font-bold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] transition-all shadow-xs"
                 >
                   Close
                 </button>

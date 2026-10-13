@@ -105,21 +105,21 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+          <div className="p-6 border-b border-[#F1F5F9] flex justify-between items-center bg-[#F8FAFC]">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
-                <UserPlus size={24} />
+              <div className="p-2.5 bg-[#F3EEFF] text-[#6D3DF5] rounded-xl">
+                <UserPlus size={22} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Request Mentor</h2>
-                <p className="text-sm text-gray-500 line-clamp-1">For: {task?.title}</p>
+                <h2 className="text-lg font-bold text-[#0F172A]">Request Mentor</h2>
+                <p className="text-xs text-[#64748B] line-clamp-1">For: {task?.title}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-[#94A3B8] hover:text-[#0F172A]"
             >
-              <X size={20} className="text-gray-500" />
+              <X size={20} />
             </button>
           </div>
 
@@ -129,93 +129,93 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+                  className="w-14 h-14 bg-[#ECFDF5] text-[#059669] rounded-full flex items-center justify-center mx-auto mb-3"
                 >
-                  <Check size={32} />
+                  <Check size={28} />
                 </motion.div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Request Sent!</h3>
-                <p className="text-gray-500">
+                <h3 className="text-lg font-bold text-[#0F172A] mb-1">Request Sent!</h3>
+                <p className="text-xs text-[#64748B]">
                   Your request for mentorship has been sent to {selectedMentor?.name}.
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {/* Search & Mentor Selection */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-[#1E293B] mb-2">
                     Select a Mentor
                   </label>
-                  <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                       type="text"
                       placeholder="Search by name or expertise..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs focus:ring-2 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5] outline-none transition-all"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
                     {loading && mentors.length === 0 ? (
-                      <div className="col-span-2 text-center py-8 text-gray-500">Loading mentors...</div>
+                      <div className="col-span-2 text-center py-8 text-xs text-gray-500">Loading mentors...</div>
                     ) : filteredMentors.length > 0 ? (
                       filteredMentors.map((mentor) => (
                         <div
                           key={mentor._id}
                           onClick={() => setSelectedMentor(mentor)}
-                          className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
                             selectedMentor?._id === mentor._id
-                              ? "bg-orange-50 border-orange-500 shadow-sm"
-                              : "bg-white border-gray-100 hover:border-orange-200"
+                              ? "bg-[#F3EEFF] border-[#6D3DF5] shadow-xs"
+                              : "bg-white border-[#E2E8F0] hover:border-[#CBD5E1]"
                           }`}
                         >
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+                          <div className="w-9 h-9 rounded-full bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center font-bold text-xs shrink-0">
                             {mentor.name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-gray-900 truncate">{mentor.name}</p>
-                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-bold uppercase tracking-wider">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-[#0F172A] truncate">{mentor.name}</p>
+                              <span className="text-[9px] px-1.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] rounded-full font-bold uppercase tracking-wider">
                                 {mentor.accountType}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-[11px] text-[#64748B] truncate">
                               {Array.isArray(mentor.Profile?.ExpertiseDomains) 
                                 ? mentor.Profile.ExpertiseDomains.join(", ") 
                                 : mentor.Profile?.ExpertiseDomains || "General Expert"}
                             </p>
                           </div>
                           {selectedMentor?._id === mentor._id && (
-                            <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white">
-                              <Check size={12} />
+                            <div className="w-5 h-5 bg-[#6D3DF5] rounded-full flex items-center justify-center text-white shrink-0">
+                              <Check size={11} strokeWidth={3} />
                             </div>
                           )}
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-2 text-center py-8 text-gray-500">No mentors found.</div>
+                      <div className="col-span-2 text-center py-8 text-xs text-gray-500">No mentors found.</div>
                     )}
                   </div>
                 </div>
 
                 {/* Message */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">
                     Message (Optional)
                   </label>
                   <textarea
                     placeholder="Briefly describe what help you need from the mentor..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all resize-none"
+                    rows={3}
+                    className="w-full p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs focus:ring-2 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5] outline-none transition-all resize-none"
                   />
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-medium">
-                    <AlertCircle size={18} />
+                  <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-medium border border-red-100">
+                    <AlertCircle size={15} />
                     {error}
                   </div>
                 )}
@@ -225,24 +225,24 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
 
           {/* Footer */}
           {!success && (
-            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-3">
+            <div className="p-4 border-t border-[#F1F5F9] bg-[#F8FAFC] flex gap-2.5 justify-end">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-all"
+                className="px-4 py-2 text-xs font-bold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || !selectedMentor}
-                className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-orange-600 rounded-2xl hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 shadow-xs"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <Send size={18} />
-                    Send Request
+                    <Send size={13} />
+                    <span>Send Request</span>
                   </>
                 )}
               </button>
