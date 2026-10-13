@@ -1,22 +1,35 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
   ArrowRight,
-  MessageSquare,
-  Users,
-  Calendar,
-  Sparkles,
-  BookOpen,
   GraduationCap,
-  Heart,
-  Lightbulb,
+  Users,
   Briefcase,
-  Code,
-  MapPin,
-  Clock,
+  Building2,
+  CheckCircle2,
+  ShieldCheck,
+  Star,
+  Sparkles,
+  MessageSquare,
+  Zap,
+  UserCheck,
+  FileText,
+  Calendar,
   ThumbsUp,
   Share2,
+  Clock,
+  MapPin,
+  Lock,
+  ExternalLink,
+  Award,
+  BookOpen,
+  ChevronRight,
+  Code,
+  Check,
+  QrCode,
+  Copy,
+  FolderGit2,
 } from "lucide-react";
 import {
   HandUnderline,
@@ -24,12 +37,370 @@ import {
   LoopDoodle,
   SpiralDoodle,
   StarDoodle,
-  PureConnector,
-  BridgeConnector,
 } from "../components/public/Doodles";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATED COUNT-UP NUMBER (ClassDojo style viewport trigger)
+// ─────────────────────────────────────────────────────────────────────────────
+const CountUpNumber = ({ target, suffix = "", duration = 1.6 }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
 
+  useEffect(() => {
+    if (!isInView) return;
+
+    let startTime = null;
+    let animationFrame;
+
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      // Smooth ease-out cubic curve
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easedProgress * target));
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isInView, target, duration]);
+
+  return (
+    <span ref={ref} className="tabular-nums font-black">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE ROLE BADGE (ClassDojo friendly role selector)
+// ─────────────────────────────────────────────────────────────────────────────
+const RoleBadge = ({ role, label, icon, path, isSelected, onSelect }) => (
+  <button
+    type="button"
+    onClick={() => onSelect(role)}
+    className={`group min-h-[48px] px-5 py-3 rounded-2xl flex items-center gap-3 transition-all duration-200 text-left border ${
+      isSelected
+        ? "bg-white border-[#7540F5] shadow-[0_8px_24px_rgba(117,64,245,0.14)] -translate-y-0.5"
+        : "bg-white/90 hover:bg-white border-slate-200/90 hover:border-[#7540F5]/50 hover:shadow-md hover:-translate-y-0.5"
+    }`}
+  >
+    <div
+      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+        isSelected
+          ? "bg-[#F5F1FF] text-[#7540F5] scale-105"
+          : "bg-slate-50 text-[#5A6482] group-hover:bg-[#F5F1FF] group-hover:text-[#7540F5]"
+      }`}
+    >
+      {icon}
+    </div>
+    <div className="min-w-0">
+      <span
+        className={`block text-sm font-bold leading-tight ${
+          isSelected
+            ? "text-[#111B5E]"
+            : "text-[#111B5E] group-hover:text-[#7540F5]"
+        }`}
+      >
+        {role}
+      </span>
+      <span className="block text-[11px] text-[#5A6482] font-medium leading-tight truncate">
+        {label}
+      </span>
+    </div>
+  </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE FEATURE ROW (Alternating storytelling row)
+// ─────────────────────────────────────────────────────────────────────────────
+const FeatureRow = ({
+  reversed = false,
+  tag,
+  title,
+  emoji,
+  description,
+  bullets = [],
+  ctaText,
+  ctaPath,
+  mockup,
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex flex-col ${
+        reversed ? "md:flex-row-reverse" : "md:flex-row"
+      } items-center gap-8 lg:gap-12 py-3 sm:py-5`}
+    >
+      {/* Left/Right Text Column */}
+      <div className="flex-1 space-y-5 text-left max-w-xl">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F5F1FF] border border-[#E9E1FF] text-[#7540F5] text-xs font-black uppercase tracking-wider">
+          <span>{emoji}</span>
+          <span>{tag}</span>
+        </div>
+
+        <h3 className="text-2xl sm:text-3xl lg:text-[34px] font-black tracking-tight text-[#111B5E] leading-tight">
+          {title}
+        </h3>
+
+        <p className="text-base sm:text-lg text-[#5A6482] font-normal leading-relaxed">
+          {description}
+        </p>
+
+        {bullets.length > 0 && (
+          <ul className="space-y-2.5 pt-1">
+            {bullets.map((item, idx) => (
+              <li
+                key={idx}
+                className="flex items-start gap-2.5 text-sm sm:text-base text-[#111B5E] font-medium"
+              >
+                <div className="w-5 h-5 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check size={13} strokeWidth={3} />
+                </div>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="pt-2">
+          <Link
+            to={ctaPath}
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#7540F5] hover:text-[#6025EB] hover:underline underline-offset-4 group transition-colors"
+          >
+            <span>{ctaText}</span>
+            <ArrowRight
+              size={16}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
+        </div>
+      </div>
+
+      {/* Left/Right Interactive Mockup Surface */}
+      <div className="flex-1 w-full max-w-lg">{mockup}</div>
+    </motion.div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REUSABLE TESTIMONIAL CARD (ClassDojo Wall of Love style)
+// ─────────────────────────────────────────────────────────────────────────────
+const TestimonialCard = ({
+  name,
+  role,
+  institution,
+  avatar,
+  quote,
+  verified = true,
+  rating = 5,
+  tag,
+}) => (
+  <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex flex-col justify-between h-full group">
+    <div>
+      {/* Top Stars & Badge */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1 text-[#FBBF24]">
+          {Array.from({ length: rating }).map((_, i) => (
+            <Star key={i} size={15} className="fill-current" />
+          ))}
+        </div>
+        {tag && (
+          <span className="px-2.5 py-0.5 rounded-full bg-[#F5F1FF] text-[#7540F5] text-[11px] font-bold">
+            {tag}
+          </span>
+        )}
+      </div>
+
+      {/* Quote */}
+      <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal mb-6">
+        "{quote}"
+      </p>
+    </div>
+
+    {/* Author Info */}
+    <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+      <img
+        src={avatar}
+        alt={name}
+        className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs group-hover:scale-105 transition-transform"
+      />
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <h4 className="text-sm font-bold text-[#111B5E] truncate">{name}</h4>
+          {verified && (
+            <ShieldCheck
+              size={14}
+              className="text-[#16A34A] flex-shrink-0"
+              title="Verified VIBE Member"
+            />
+          )}
+        </div>
+        <p className="text-xs text-[#5A6482] truncate">
+          {role} • {institution}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN HOME PAGE COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 const Home = () => {
+  // Selected role state for hero quick-routing
+  const [selectedRole, setSelectedRole] = useState("Student");
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Role routing map (Student and Mentor)
+  const rolePathMap = {
+    Student: "/signup/student",
+    Mentor: "/signup/faculty",
+  };
+
+  const handleCopyPublicCV = () => {
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
+  };
+
+  /* PLACEHOLDER DATA: Auto-scrolling community members strip (ClassDojo style) */
+  const communityMembers = [
+    {
+      name: "Aarav Sharma",
+      role: "Computer Science @ IIT Bombay",
+      type: "Student",
+      avatar:
+        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&h=200&fit=crop&crop=faces",
+      tag: "3 Tasks Solved",
+      highlight: "Internship Secured",
+      badgeBg: "bg-[#EDF7FF] text-[#2F6DB5]",
+    },
+    {
+      name: "Dr. Ananya Rao",
+      role: "AI & ML Professor @ BITS Pilani",
+      type: "Faculty Mentor",
+      avatar:
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=faces",
+      tag: "Verified Guide",
+      highlight: "48 Students Mentored",
+      badgeBg: "bg-[#F5F1FF] text-[#7540F5]",
+    },
+    {
+      name: "Priya Nair",
+      role: "Staff Engineer @ CloudScale",
+      type: "Industry Partner",
+      avatar:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces",
+      tag: "Hiring Lead",
+      highlight: "Posted 8 Tasks",
+      badgeBg: "bg-[#FEF3C7] text-[#D97706]",
+    },
+    {
+      name: "Kabir Patel",
+      role: "Full-Stack Dev @ NIT Trichy",
+      type: "Student",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces",
+      tag: "Virtual CV Active",
+      highlight: "Top 5% Solver",
+      badgeBg: "bg-[#DCFCE7] text-[#16A34A]",
+    },
+    {
+      name: "Prof. Rajesh Verma",
+      role: "Dean of Innovation @ DTU",
+      type: "Partner College",
+      avatar:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=faces",
+      tag: "Campus Lead",
+      highlight: "Placement Partner",
+      badgeBg: "bg-[#FCE7F3] text-[#DB2777]",
+    },
+    {
+      name: "Aditi Sen",
+      role: "Talent Partner @ FinTech Labs",
+      type: "Company Recruiter",
+      avatar:
+        "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=faces",
+      tag: "Verified Recruiter",
+      highlight: "12 Interns Hired",
+      badgeBg: "bg-[#EDE9FE] text-[#7C3AED]",
+    },
+  ];
+
+  /* PLACEHOLDER DATA: Real VIBE Community Testimonials (Wall of Love) */
+  const testimonials = [
+    {
+      name: "Arjun Nair",
+      role: "CS Junior",
+      institution: "IIT Delhi",
+      avatar:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "TaskMania completely changed my internship search. Instead of sending 50 cold resumes, I completed one real micro-task posted by CloudScale and landed an interview within 48 hours!",
+      tag: "Hired via TaskMania",
+    },
+    {
+      name: "Dr. Shalini Gupta",
+      role: "Associate Professor",
+      institution: "BITS Pilani",
+      avatar:
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "VIBE provides a structured, transparent way to mentor students beyond regular lectures. Guiding ambitious students on verifiable industry problems has been deeply rewarding.",
+      tag: "Faculty Mentor",
+    },
+    {
+      name: "Vikramaditya Bose",
+      role: "VP of Engineering",
+      institution: "PayScale Labs",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "We hired two interns through VIBE this summer. Having tangible proof-of-work and cryptographic verification in their Virtual CV eliminated resume speculation entirely.",
+      tag: "Hiring Partner",
+    },
+    {
+      name: "Rhea Sen",
+      role: "ECE Senior",
+      institution: "VIT Vellore",
+      avatar:
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "The Virtual CV feature is pure gold. My projects, peer endorsements, and mentor reviews are consolidated into a live, shareable link that recruiters actually respect.",
+      tag: "Student",
+    },
+    {
+      name: "Prof. K. Venkatesh",
+      role: "Director of Placements",
+      institution: "SRM University",
+      avatar:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "VIBE gives our institution verified analytics on student competencies and corporate engagement. It bridges the critical gap between campus curriculum and real job demands.",
+      tag: "Partner College",
+    },
+    {
+      name: "Tanmay Joshi",
+      role: "Graduate Fellow",
+      institution: "IISc Bangalore",
+      avatar:
+        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&h=160&fit=crop&crop=faces",
+      quote:
+        "Finding an accredited mentor who genuinely reviews system designs and code quality seemed impossible. On VIBE, I booked weekly sessions that accelerated my master's project.",
+      tag: "Mentorship",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-white text-[#111B5E] pt-24 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
 
@@ -37,602 +408,793 @@ const Home = () => {
       {/* ======================================================== */}
       {/* 1. HERO SECTION                                         */}
       {/* ======================================================== */}
-      <section className="relative pt-12 pb-6 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+      <section className="relative pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
         {/* Floating Doodles around Hero */}
-        <div className="absolute top-8 left-8 hidden sm:block pointer-events-none vibe-landing-doodle-1">
+        <div className="absolute top-8 left-6 hidden sm:block pointer-events-none vibe-doodle-float-1">
           <SparkDoodle color="#FBBF24" size={32} />
         </div>
-        <div className="absolute top-12 right-12 hidden sm:block pointer-events-none vibe-landing-doodle-2">
+        <div className="absolute top-10 right-10 hidden sm:block pointer-events-none vibe-doodle-float-2">
           <LoopDoodle color="#F472B6" size={36} />
         </div>
-        <div className="absolute bottom-16 left-12 hidden sm:block pointer-events-none vibe-landing-doodle-3">
-          <SpiralDoodle color="#7540F5" size={30} />
+        <div className="absolute bottom-24 left-10 hidden md:block pointer-events-none vibe-doodle-float-2">
+          <SpiralDoodle color="#7540F5" size={28} />
         </div>
-        <div className="absolute top-40 right-20 hidden md:block pointer-events-none vibe-landing-doodle-4">
+        <div className="absolute top-44 right-16 hidden lg:block pointer-events-none vibe-doodle-float-1">
           <StarDoodle color="#38BDF8" size={24} />
         </div>
 
-        {/* Main Hero Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 15 }}
+        {/* Eyebrow Trust Line */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-black tracking-tight leading-[1.15] text-[#111B5E] max-w-4xl mx-auto"
+          transition={{ duration: 0.4 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider mb-6"
         >
-          A community where students and faculty grow{" "}
+          <ShieldCheck size={14} className="text-[#16A34A]" />
+          <span>Verified Opportunities • Free for Students</span>
+        </motion.div>
+
+        {/* Main Headline (Friendly, bold, ClassDojo style) */}
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-[66px] font-black tracking-tight leading-[1.14] text-[#111B5E] max-w-5xl mx-auto"
+        >
+          Where students find verified internships & mentorship they can{" "}
           <span className="relative inline-block text-[#7540F5]">
-            together
-            <HandUnderline color="#FBBF24" className="absolute -bottom-2 left-0 w-full pointer-events-none vibe-landing-underline" />
+            trust
+            <HandUnderline
+              color="#FBBF24"
+              className="absolute -bottom-2.5 left-0 w-full pointer-events-none"
+            />
           </span>
         </motion.h1>
 
-        {/* Supporting Subtitle */}
+        {/* Short Subline */}
         <motion.p
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mt-6 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed"
-        >
-          Share ideas, get guidance, collaborate on projects, and discover new opportunities — all in one place.
-        </motion.p>
-
-        {/* CTA Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 flex justify-center"
+          className="mt-6 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed"
+        >
+          Connect directly with certified faculty mentors, solve real-world industry tasks, and build an authenticated Virtual CV that unlocks genuine career doors.
+        </motion.p>
+
+        {/* "Get started as a..." Row of Rounded Role Badges (ClassDojo style) */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-10 max-w-xl mx-auto"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider text-[#5A6482] mb-3.5">
+            Get started as a...
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-md mx-auto">
+            <RoleBadge
+              role="Student"
+              label="Tasks & Mentors"
+              icon={<GraduationCap size={19} />}
+              path="/signup/student"
+              isSelected={selectedRole === "Student"}
+              onSelect={setSelectedRole}
+            />
+            <RoleBadge
+              role="Mentor"
+              label="Guide Cohorts"
+              icon={<Users size={19} />}
+              path="/signup/faculty"
+              isSelected={selectedRole === "Mentor"}
+              onSelect={setSelectedRole}
+            />
+          </div>
+        </motion.div>
+
+        {/* Main "Sign up" CTA Button with dynamic role link */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Link
-            to="/signup"
-            className="px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl hover:shadow-[#7540F5]/35 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+            to={rolePathMap[selectedRole] || "/signup"}
+            className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.28)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.36)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 group"
           >
-            <span>Join VIBE</span>
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            <span>Sign up as {selectedRole}</span>
+            <ArrowRight
+              size={18}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </Link>
+
+          <Link
+            to="/how-it-works"
+            className="w-full sm:w-auto min-h-[48px] px-6 py-3.5 rounded-full text-base font-bold text-[#111B5E] bg-white border border-slate-200 hover:border-[#7540F5] hover:text-[#7540F5] transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>How it works</span>
           </Link>
         </motion.div>
 
-        {/* Social Proof Avatars */}
+        {/* Trust Proof Micro-Banner */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-xs sm:text-sm text-[#5A6482]"
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#5A6482]"
         >
-          <div className="flex -space-x-2 vibe-landing-avatars">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"
-              alt="Member"
-              className="w-7 h-7 rounded-full border-2 border-white object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&crop=faces"
-              alt="Member"
-              className="w-7 h-7 rounded-full border-2 border-white object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces"
-              alt="Member"
-              className="w-7 h-7 rounded-full border-2 border-white object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces"
-              alt="Member"
-              className="w-7 h-7 rounded-full border-2 border-white object-cover"
-            />
-          </div>
-          <p>
-            <strong className="text-[#111B5E] font-bold">10K+ students and faculty</strong> already on VIBE
-          </p>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> Institutional Domain Vetted
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> Zero Cold Resumes
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> 100% Free for Students
+          </span>
         </motion.div>
-
-        {/* ======================================================== */}
-        {/* HERO COLLAGE (STUDENTS & FACULTY COLLABORATING)          */}
-        {/* ======================================================== */}
-        <div className="relative mt-14 max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 items-center">
-            {/* Collage Item 1: Group working on laptop */}
-            <div className="relative group rounded-3xl overflow-hidden shadow-md border-2 border-white hover:shadow-xl transition-shadow col-span-2 md:col-span-1 aspect-[4/3] md:aspect-[3/4] vibe-landing-card-1">
-              <img
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop&q=80"
-                alt="Students collaborating"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute top-3 left-3 px-3 py-1 bg-white/95 backdrop-blur-md text-[#111B5E] text-xs font-bold rounded-full shadow-sm flex items-center gap-1 border border-slate-100">
-                <Lightbulb size={12} className="text-[#FBBF24]" /> Ideas
-              </span>
-            </div>
-
-            {/* Collage Item 2: Two students discussing */}
-            <div className="relative group rounded-3xl overflow-hidden shadow-md border-2 border-white hover:shadow-xl transition-shadow aspect-[4/3] md:aspect-[3/4] vibe-landing-card-2">
-              <img
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=80"
-                alt="Students studying"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute bottom-3 left-3 px-3 py-1 bg-white/95 backdrop-blur-md text-[#111B5E] text-xs font-bold rounded-full shadow-sm flex items-center gap-1 border border-slate-100">
-                <Code size={12} className="text-[#F97316]" /> Projects
-              </span>
-            </div>
-
-            {/* Collage Item 3: Faculty Mentor smiling */}
-            <div className="relative group rounded-3xl overflow-hidden shadow-md border-2 border-white hover:shadow-xl transition-shadow aspect-[4/3] md:aspect-[3/4] vibe-landing-card-3">
-              <img
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80"
-                alt="Faculty Mentor"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute top-3 right-3 px-3 py-1 bg-white/95 backdrop-blur-md text-[#111B5E] text-xs font-bold rounded-full shadow-sm flex items-center gap-1 border border-slate-100">
-                <GraduationCap size={12} className="text-[#7540F5]" /> Mentorship
-              </span>
-            </div>
-
-            {/* Collage Item 4: Two female students with books */}
-            <div className="relative group rounded-3xl overflow-hidden shadow-md border-2 border-white hover:shadow-xl transition-shadow col-span-2 md:col-span-1 aspect-[4/3] md:aspect-[3/4] vibe-landing-card-4">
-              <img
-                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80"
-                alt="College peers"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <span className="absolute bottom-3 right-3 px-3 py-1 bg-white/95 backdrop-blur-md text-[#111B5E] text-xs font-bold rounded-full shadow-sm flex items-center gap-1 border border-slate-100">
-                <Sparkles size={12} className="text-[#A45AFF]" /> Opportunities
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Connector: Hero collage → Stay connected */}
-        <PureConnector variant="right-arc" className="mt-8 mb-2 sm:mt-10 sm:mb-2" />
       </section>
 
       {/* ======================================================== */}
-      {/* 2. SECTION: STAY CONNECTED — INSTANTLY                   */}
+      {/* 2. AUTO-SCROLLING COMMUNITY CAROUSEL STRIP (ClassDojo)   */}
       {/* ======================================================== */}
-      <section className="relative pt-4 pb-8 sm:pb-10 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
-        {/* Icon Pill Badge */}
-        <div className="w-12 h-12 rounded-full bg-[#EDF7FF] text-[#2F6DB5] flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <Users size={22} />
+      <section className="relative py-6 bg-[#F8FAFF] border-y border-slate-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 mb-4 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#5A6482]">
+            Active Students, Mentors & Recruiter Teams
+          </span>
         </div>
 
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Stay connected — instantly
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          Join a vibrant community of learners, creators, and mentors from colleges and universities across the globe.
-        </p>
-
-        {/* Chat Illustration Mock Surface */}
-        <div className="mt-10 bg-gradient-to-b from-[#EDF7FF]/90 to-[#F5F1FF]/60 rounded-3xl p-6 sm:p-10 border border-[#EDF7FF] max-w-2xl mx-auto shadow-sm relative text-left">
-          <div className="space-y-4">
-            {/* Message 1 */}
-            <div className="flex items-start gap-3">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=faces"
-                alt="Aman"
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-              />
-              <div className="bg-white p-3.5 rounded-2xl rounded-tl-none shadow-sm max-w-md border border-slate-100">
-                <p className="text-xs font-bold text-[#111B5E] mb-1">Aman</p>
-                <p className="text-xs sm:text-sm text-slate-700">
-                  Anyone interested in a web development project this semester?
-                </p>
-                <span className="text-[10px] text-slate-400 block text-right mt-1">10:24 AM</span>
-              </div>
-            </div>
-
-            {/* Message 2 (Right-aligned response) */}
-            <div className="flex items-start justify-end gap-3">
-              <div className="bg-[#7540F5] text-white p-3.5 rounded-2xl rounded-tr-none shadow-sm max-w-md">
-                <p className="text-xs font-bold text-white/90 mb-1">Priya</p>
-                <p className="text-xs sm:text-sm">
-                  I'm in! Let's discuss further 🚀
-                </p>
-                <span className="text-[10px] text-white/70 block text-right mt-1">10:26 AM</span>
-              </div>
-              <img
-                src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&h=80&fit=crop&crop=faces"
-                alt="Priya"
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-              />
-            </div>
-
-            {/* Message 3 */}
-            <div className="flex items-start gap-3">
-              <img
-                src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&h=80&fit=crop&crop=faces"
-                alt="Sneha"
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-              />
-              <div className="bg-white p-3.5 rounded-2xl rounded-tl-none shadow-sm max-w-md border border-slate-100">
-                <p className="text-xs font-bold text-[#111B5E] mb-1">Sneha</p>
-                <p className="text-xs sm:text-sm text-slate-700">
-                  I can help with the UI/UX design part! ✨
-                </p>
-                <span className="text-[10px] text-slate-400 block text-right mt-1">10:28 AM</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Connector: Stay connected chat → Offer a window */}
-        <PureConnector variant="left-arc" className="mt-8 mb-2 sm:mt-10 sm:mb-2" />
-      </section>
-
-      {/* ======================================================== */}
-      {/* 3. SECTION: OFFER A WINDOW INTO THEIR WORLD              */}
-      {/* ======================================================== */}
-      <section className="relative pt-4 pb-8 sm:pb-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="w-12 h-12 rounded-full bg-[#FFFBEB] text-[#D97706] flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <MessageSquare size={22} />
-        </div>
-
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Offer a window into their world
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          Get to know students and faculty through posts, ideas, projects, achievements, and real experiences.
-        </p>
-
-        {/* Two Sample Post Cards */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-4xl mx-auto">
-          {/* Post Card 1 */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces"
-                alt="Rohan Mehta"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div>
-                <h4 className="text-sm font-bold text-[#111B5E]">Rohan Mehta</h4>
-                <p className="text-xs text-[#5A6482]">3 hours ago</p>
-              </div>
-            </div>
-            <div className="rounded-2xl overflow-hidden mb-3 aspect-video bg-slate-100">
-              <img
-                src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&auto=format&fit=crop&q=80"
-                alt="AI Discussion"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <p className="text-sm text-slate-800 font-medium mb-4">
-              Great discussion on AI and its real-world applications! 💡
-            </p>
-            <div className="flex items-center gap-4 text-xs font-semibold text-[#5A6482] pt-2 border-t border-slate-100">
-              <span className="flex items-center gap-1 hover:text-[#7540F5] cursor-pointer">
-                <ThumbsUp size={14} className="text-[#7540F5]" /> 124 vibes
-              </span>
-              <span className="flex items-center gap-1 hover:text-[#7540F5] cursor-pointer">
-                <MessageSquare size={14} /> 28 comments
-              </span>
-            </div>
-          </div>
-
-          {/* Post Card 2 */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <img
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=faces"
-                alt="Dr. Meera Sharma"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div>
-                <h4 className="text-sm font-bold text-[#111B5E]">Dr. Meera Sharma</h4>
-                <p className="text-xs text-[#5A6482]">1 day ago</p>
-              </div>
-            </div>
-            <div className="rounded-2xl overflow-hidden mb-3 aspect-video bg-slate-100">
-              <img
-                src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&auto=format&fit=crop&q=80"
-                alt="Research Mentorship"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <p className="text-sm text-slate-800 font-medium mb-4">
-              Excited to mentor students on their research projects! 🎓
-            </p>
-            <div className="flex items-center gap-4 text-xs font-semibold text-[#5A6482] pt-2 border-t border-slate-100">
-              <span className="flex items-center gap-1 hover:text-[#7540F5] cursor-pointer">
-                <ThumbsUp size={14} className="text-[#7540F5]" /> 310 vibes
-              </span>
-              <span className="flex items-center gap-1 hover:text-[#7540F5] cursor-pointer">
-                <MessageSquare size={14} /> 45 comments
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Connector: Post cards → Events schedule */}
-        <PureConnector variant="right-arc" className="mt-8 mb-2 sm:mt-10 sm:mb-2" />
-      </section>
-
-      {/* ======================================================== */}
-      {/* 4. SECTION: KEEP EVERYONE UP-TO-DATE                     */}
-      {/* ======================================================== */}
-      <section className="relative pt-4 pb-8 sm:pb-10 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
-        <div className="w-12 h-12 rounded-full bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <Calendar size={22} />
-        </div>
-
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Keep everyone up-to-date
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          Discover upcoming events, workshops, webinars, internships, and deadlines — never miss an opportunity.
-        </p>
-
-        {/* Event Cards Container */}
-        <div className="mt-10 bg-[#F5F1FF]/70 rounded-3xl p-6 sm:p-8 border border-[#E9E1FF] max-w-2xl mx-auto space-y-4 text-left">
-          {/* Event 1 */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 flex items-center gap-4 shadow-sm border border-slate-100">
-            <div className="w-14 h-14 rounded-2xl bg-[#FFF1F2] text-[#E11D48] flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-extrabold uppercase">OCT</span>
-              <span className="text-lg font-black leading-none">12</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm sm:text-base font-bold text-[#111B5E] truncate">Web Development Workshop</h4>
-              <p className="text-xs text-[#5A6482] mt-0.5 flex items-center gap-2">
-                <span className="flex items-center gap-1"><Clock size={12} /> 10:00 AM – 12:00 PM</span>
-                <span>•</span>
-                <span className="flex items-center gap-1"><MapPin size={12} /> Main Auditorium</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Event 2 */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 flex items-center gap-4 shadow-sm border border-slate-100">
-            <div className="w-14 h-14 rounded-2xl bg-[#EFF6FF] text-[#2563EB] flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-extrabold uppercase">OCT</span>
-              <span className="text-lg font-black leading-none">15</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm sm:text-base font-bold text-[#111B5E] truncate">Career Guidance Session</h4>
-              <p className="text-xs text-[#5A6482] mt-0.5 flex items-center gap-2">
-                <span className="flex items-center gap-1"><Clock size={12} /> 03:00 PM – 04:30 PM</span>
-                <span>•</span>
-                <span className="flex items-center gap-1"><MapPin size={12} /> Online (Zoom)</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Event 3 */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 flex items-center gap-4 shadow-sm border border-slate-100">
-            <div className="w-14 h-14 rounded-2xl bg-[#F0FDF4] text-[#16A34A] flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-extrabold uppercase">OCT</span>
-              <span className="text-lg font-black leading-none">20</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm sm:text-base font-bold text-[#111B5E] truncate">Open Source Meetup</h4>
-              <p className="text-xs text-[#5A6482] mt-0.5 flex items-center gap-2">
-                <span className="flex items-center gap-1"><Clock size={12} /> 11:00 AM – 01:00 PM</span>
-                <span>•</span>
-                <span className="flex items-center gap-1"><MapPin size={12} /> CS Department</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Connector: Events → Growth constellation */}
-        <PureConnector variant="left-arc" className="mt-8 mb-2 sm:mt-10 sm:mb-2" />
-      </section>
-
-      {/* ======================================================== */}
-      {/* 5. SECTION: HELP THEM GROW THEIR OWN WAY                 */}
-      {/* ======================================================== */}
-      <section className="relative pt-4 pb-10 sm:pb-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="w-14 h-14 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <GraduationCap size={26} />
-        </div>
-
-        <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black text-[#111B5E] tracking-tight leading-tight">
-          Help them grow their own way
-        </h2>
-        <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
-          Learn new skills, get career guidance, find collaborators, and explore resources that support your goals.
-        </p>
-
-        {/* Feature Constellation Graphic */}
-        <div className="mt-12 sm:mt-14 max-w-3xl mx-auto">
-          {/* Desktop Composition with Central Illustration */}
-          <div className="hidden md:flex flex-col items-center relative">
-            {/* Top Bubble: Learn Skills */}
-            <div className="mb-6 z-10 vibe-landing-bubble-1">
-              <div className="bg-[#FCE7F3]/90 px-6 py-3.5 rounded-2xl border border-[#FBCFE8] flex items-center gap-3.5 shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#DB2777] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <GraduationCap size={22} />
+        {/* Infinite Marquee Track */}
+        <div className="relative w-full overflow-hidden">
+          <div className="animate-vibe-marquee py-2 flex items-center gap-4">
+            {/* Double the list for seamless continuous infinite scrolling */}
+            {[...communityMembers, ...communityMembers].map((member, idx) => (
+              <div
+                key={idx}
+                className="w-72 sm:w-80 flex-shrink-0 bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md hover:border-[#7540F5]/40 transition-all flex items-center gap-3.5 select-none"
+              >
+                <img
+                  src={member.avatar}
+                  alt={member.name}
+                  className="w-12 h-12 rounded-xl object-cover border border-slate-100 flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[#111B5E] truncate">
+                      {member.name}
+                    </p>
+                    <ShieldCheck
+                      size={13}
+                      className="text-[#16A34A] flex-shrink-0"
+                    />
+                  </div>
+                  <p className="text-xs text-[#5A6482] truncate">
+                    {member.role}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${member.badgeBg}`}
+                    >
+                      {member.tag}
+                    </span>
+                    <span className="text-[10px] text-[#5A6482] font-medium truncate">
+                      {member.highlight}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-base font-bold text-[#111B5E]">Learn Skills</span>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 3. SECTION HEADING & ANIMATED STAT COUNTER              */}
+      {/* ======================================================== */}
+      <section className="pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mx-auto mb-4 shadow-xs">
+            <Users size={24} />
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+            Keeping students, mentors and companies connected
+          </h2>
+
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            From first-year technical exploration to verified corporate placement — VIBE gives every participant transparent, certified tools for growth.
+          </p>
+
+          {/* Animated Stat Counters (Viewport triggered) */}
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#EDF7FF] text-[#2F6DB5] flex items-center justify-center mb-3">
+                <GraduationCap size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={15000} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Students
+              </p>
             </div>
 
-            {/* Middle Row: Find Mentors | Central Learner | Explore Resources */}
-            <div className="flex items-center justify-between w-full max-w-2xl px-2 z-10">
-              {/* Left Bubble: Find Mentors */}
-              <div className="bg-[#FEF3C7]/90 px-6 py-3.5 rounded-2xl border border-[#FDE68A] flex items-center gap-3.5 shadow-sm hover:shadow-md transition-shadow vibe-landing-bubble-2">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#D97706] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Users size={22} />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mb-3">
+                <Users size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={1200} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Faculty Mentors
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center mb-3">
+                <Briefcase size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={450} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Industry Partners
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs text-left hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center mb-3">
+                <Award size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={98} suffix="%" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Completion
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 4. ALTERNATING FEATURE ROWS (5 VIBE MODULES)             */}
+      {/* ======================================================== */}
+      <section className="pt-2 pb-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6 sm:space-y-10">
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 1: Community Posts (💬)                             */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Community Module"
+          title="Community Posts"
+          emoji="💬"
+          description="Engage in peer-driven campus discussions, share technical breakthroughs, and get instant guidance from your collegiate network."
+          bullets={[
+            "Post ideas, research findings, and technical dilemmas",
+            "Give and receive positive vibes and peer endorsements",
+            "Filter discussions by interest circles and university tags",
+          ]}
+          ctaText="Explore Community Feed"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces"
+                  alt="Rohan Mehta"
+                  className="w-11 h-11 rounded-full object-cover border border-slate-100"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-sm font-bold text-[#111B5E]">
+                      Rohan Mehta
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full bg-[#EDF7FF] text-[#2F6DB5] text-[10px] font-bold">
+                      IIT Delhi
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#5A6482]">2 hours ago • Public Circle</p>
                 </div>
-                <span className="text-base font-bold text-[#111B5E]">Find Mentors</span>
               </div>
 
-              {/* Central Learner with Laptop */}
-              <div className="relative group mx-4 flex-shrink-0">
-                <div className="w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden shadow-lg border-4 border-white bg-gradient-to-tr from-[#ECFDF5] via-[#E0F2FE] to-[#F5F1FF] p-1">
+              <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                Built an open-source task scheduling visualizer using React & Web Workers! Looking for feedback on latency benchmarks. 🚀
+              </p>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #ReactJS
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #WebWorkers
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-[#5A6482]">
+                  #OpenSource
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6482] font-semibold">
+                <span className="flex items-center gap-1.5 text-[#7540F5] bg-[#F5F1FF] px-3 py-1.5 rounded-full">
+                  <ThumbsUp size={14} /> 148 vibes
+                </span>
+                <span className="flex items-center gap-1.5 hover:text-[#111B5E]">
+                  <MessageSquare size={14} /> 32 replies
+                </span>
+                <span className="flex items-center gap-1.5 hover:text-[#111B5E]">
+                  <Share2 size={14} /> Share
+                </span>
+              </div>
+            </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 2: TaskMania (⚡)                                    */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          reversed
+          tag="Practical Tasks"
+          title="TaskMania"
+          emoji="⚡"
+          description="Solve vetted industry challenges posted by real tech teams. Submit working solutions and get noticed by recruiters on merit."
+          bullets={[
+            "Micro-internship challenges with transparent rubrics",
+            "Clear milestone deliverables and automated code checks",
+            "Stipend bounties and direct fast-track interviews",
+          ]}
+          ctaText="Browse Active Tasks"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center font-black text-xs">
+                    CS
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#111B5E]">CloudScale Systems</h4>
+                    <span className="text-[10px] text-[#16A34A] font-bold flex items-center gap-1">
+                      <ShieldCheck size={11} /> Verified Employer
+                    </span>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-[#DCFCE7] text-[#16A34A] text-xs font-black">
+                  $450 Bounty
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-[#111B5E]">
+                  Implement Real-Time Metrics Pipeline
+                </h4>
+                <p className="text-xs text-[#5A6482] mt-1 leading-relaxed">
+                  Design a robust ingestion service handling 10k events/sec with resilient backpressure.
+                </p>
+              </div>
+
+              {/* Progress Milestones */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#111B5E]">
+                  <span>Milestone 3 of 4</span>
+                  <span className="text-[#7540F5]">75% Ready</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                  <div className="h-full bg-[#7540F5] rounded-full w-3/4" />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-[#5A6482] pt-1">
+                  <span>Due in 4 days</span>
+                  <span>28 submissions</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Zap size={14} /> Submit Solution
+              </button>
+            </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 3: Profile (🌟)                                     */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Verified Portfolio"
+          title="Profile"
+          emoji="🌟"
+          description="Your authenticated academic and skill footprint. Showcase endorsed proficiencies, faculty ratings, and real project milestones."
+          bullets={[
+            "Authenticated college identity and enrollment status",
+            "Peer endorsements and mentor rating breakdowns",
+            "Comprehensive timeline of solved TaskMania challenges",
+          ]}
+          ctaText="Build Your Profile"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
                   <img
-                    src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&auto=format&fit=crop&q=80"
-                    alt="Learner growing with VIBE"
-                    className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500"
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=faces"
+                    alt="Sneha Mukherjee"
+                    className="w-14 h-14 rounded-2xl object-cover border border-slate-100"
                   />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#16A34A] text-white flex items-center justify-center border-2 border-white">
+                    <Check size={11} strokeWidth={3} />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Sneha Mukherjee
+                  </h4>
+                  <p className="text-xs text-[#5A6482]">
+                    CS Undergrad • BITS Pilani '26
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[#FBBF24]">
+                    <Star size={13} className="fill-current" />
+                    <span className="text-xs font-bold text-[#111B5E]">4.95</span>
+                    <span className="text-[11px] text-[#5A6482]">(24 mentor ratings)</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Right Bubble: Explore Resources */}
-              <div className="bg-[#E0F2FE]/90 px-6 py-3.5 rounded-2xl border border-[#BAE6FD] flex items-center gap-3.5 shadow-sm hover:shadow-md transition-shadow vibe-landing-bubble-3">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#0284C7] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <BookOpen size={22} />
+              {/* Endorsed Skills */}
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs font-bold text-[#111B5E]">Endorsed Skills</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2.5 py-1 rounded-lg bg-[#F5F1FF] text-[#7540F5] text-xs font-bold">
+                    React & TypeScript
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#EDF7FF] text-[#2F6DB5] text-xs font-bold">
+                    Distributed Systems
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-[#DCFCE7] text-[#16A34A] text-xs font-bold">
+                    FastAPI
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-[#5A6482] text-xs font-bold">
+                    +4 more
+                  </span>
                 </div>
-                <span className="text-base font-bold text-[#111B5E]">Explore Resources</span>
+              </div>
+
+              {/* Badges Bar */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6482]">
+                <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
+                  <Award size={14} className="text-[#7540F5]" /> TaskMania Top 5%
+                </span>
+                <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
+                  <Sparkles size={14} className="text-[#FBBF24]" /> 18 Day Streak
+                </span>
               </div>
             </div>
+          }
+        />
 
-            {/* Bottom Row: Build Projects & Discover Opportunities */}
-            <div className="flex items-center justify-center gap-8 mt-6 z-10">
-              {/* Bottom-Left Bubble: Build Projects */}
-              <div className="bg-[#EDE9FE]/90 px-6 py-3.5 rounded-2xl border border-[#DDD6FE] flex items-center gap-3.5 shadow-sm hover:shadow-md transition-shadow vibe-landing-bubble-2">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#7C3AED] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Code size={22} />
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 4: Virtual CV (📄)                                   */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          reversed
+          tag="Living Credential"
+          title="Virtual CV"
+          emoji="📄"
+          description="A dynamic, tamper-proof living resume that auto-syncs your completed tasks, mentorship hours, and certifications in real time."
+          bullets={[
+            "Cryptographic proof of work verifying project completion",
+            "Instant public share link with embedded QR verification",
+            "Exportable to clean, ATS-compliant formats with one click",
+          ]}
+          ctaText="Learn About Virtual CV"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#111B5E]">
+                      VIBE Virtual CV #8492
+                    </h4>
+                    <span className="text-[10px] text-[#16A34A] font-bold flex items-center gap-1">
+                      <ShieldCheck size={11} /> Cryptographically Signed
+                    </span>
+                  </div>
                 </div>
-                <span className="text-base font-bold text-[#111B5E]">Build Projects</span>
+                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-mono font-bold">
+                  SHA-256 ✓
+                </span>
               </div>
 
-              {/* Bottom-Right Bubble: Discover Opportunities */}
-              <div className="bg-[#FEE2E2]/90 px-6 py-3.5 rounded-2xl border border-[#FECACA] flex items-center gap-3.5 shadow-sm hover:shadow-md transition-shadow vibe-landing-bubble-2">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#DC2626] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Briefcase size={22} />
+              {/* Public link copy box */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-[#5A6482] truncate">
+                  vibe.app/cv/sneha-mukherjee-bits
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyPublicCV}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-[#111B5E] hover:text-[#7540F5] hover:border-[#7540F5] flex items-center gap-1 transition-colors flex-shrink-0"
+                >
+                  {copiedLink ? <Check size={12} className="text-[#16A34A]" /> : <Copy size={12} />}
+                  <span>{copiedLink ? "Copied!" : "Copy"}</span>
+                </button>
+              </div>
+
+              {/* Micro-Timeline Preview */}
+              <div className="space-y-2 pt-1 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[#7540F5] mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-[#111B5E]">
+                      CloudScale Systems • Micro-Internship
+                    </p>
+                    <p className="text-[11px] text-[#5A6482]">
+                      Oct 2026 • Verified by Staff Lead Priya Nair
+                    </p>
+                  </div>
                 </div>
-                <span className="text-base font-bold text-[#111B5E]">Discover Opportunities</span>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[#16A34A] mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-[#111B5E]">
+                      AI Research Mentorship • 32 Hours
+                    </p>
+                    <p className="text-[11px] text-[#5A6482]">
+                      Sep 2026 • Certified by Dr. Ananya Rao
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between text-xs text-[#5A6482]">
+                <span className="flex items-center gap-1 text-[#7540F5] font-semibold">
+                  <QrCode size={14} /> Scan-to-verify badge included
+                </span>
+                <span className="font-mono text-[10px]">Updated today</span>
               </div>
             </div>
+          }
+        />
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* ROW 5: Verified Internships & Mentorship (🤝)           */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <FeatureRow
+          tag="Direct Pipelines"
+          title="Verified Internships and Mentorship"
+          emoji="🤝"
+          description="Book 1-on-1 guidance with accredited university professors and vetted tech executives. Gain actionable feedback and direct internship referrals."
+          bullets={[
+            "Structured 1-on-1 mentoring sessions with personalized roadmaps",
+            "Zero ghosting: guaranteed feedback and evaluation notes",
+            "Direct internship pipelines verified by institutional pacts",
+          ]}
+          ctaText="Find Your Mentor"
+          ctaPath="/signup"
+          mockup={
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_10px_30px_rgba(17,27,94,0.06)] space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-[#F5F1FF] text-[#7540F5] text-xs font-bold">
+                  Confirmed Mentorship Session
+                </span>
+                <span className="text-xs text-[#16A34A] font-bold flex items-center gap-1">
+                  <CheckCircle2 size={13} /> Active Booking
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3.5">
+                <img
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=faces"
+                  alt="Dr. Meera Sharma"
+                  className="w-12 h-12 rounded-full object-cover border border-slate-100"
+                />
+                <div>
+                  <h4 className="text-sm font-bold text-[#111B5E]">
+                    Dr. Meera Sharma
+                  </h4>
+                  <p className="text-xs text-[#5A6482]">
+                    Professor @ IIT Delhi • AI Lead
+                  </p>
+                  <p className="text-[11px] text-[#7540F5] font-semibold mt-0.5">
+                    Domain: Computer Vision & Career Prep
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#EDF7FF] p-3.5 rounded-2xl border border-[#D3E3EE] text-xs text-[#111B5E] space-y-1">
+                <div className="flex items-center gap-2 font-bold">
+                  <Calendar size={14} className="text-[#2F6DB5]" />
+                  <span>Thursday, Oct 16 • 4:00 PM – 4:45 PM</span>
+                </div>
+                <p className="text-[11px] text-[#5A6482] pl-5">
+                  Agenda: Codebase Architecture & Winter Internship Review
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>Join Video Room</span>
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          }
+        />
+      </section>
+
+      {/* ======================================================== */}
+      {/* 5. "OUR COMMUNITY IS OUR SUPERPOWER" WALL OF LOVE       */}
+      {/* ======================================================== */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center mx-auto mb-4 shadow-xs">
+            <Sparkles size={22} />
           </div>
 
-          {/* Mobile / Tablet Responsive Stack */}
-          <div className="flex md:hidden flex-col items-center space-y-4">
-            {/* Central Learner */}
-            <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-md border-4 border-white bg-gradient-to-tr from-[#ECFDF5] to-[#E0F2FE] p-1 mb-2">
-              <img
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&auto=format&fit=crop&q=80"
-                alt="Learner growing with VIBE"
-                className="w-full h-full object-cover rounded-full"
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+            Our community is our superpower
+          </h2>
+
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            Real stories from students who found certified opportunities and mentors who shaped future careers.
+          </p>
+
+          {/* Masonry Grid of Testimonials */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+            {testimonials.map((t, idx) => (
+              <TestimonialCard
+                key={idx}
+                name={t.name}
+                role={t.role}
+                institution={t.institution}
+                avatar={t.avatar}
+                quote={t.quote}
+                tag={t.tag}
               />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-md">
-              <div className="bg-[#FEF3C7]/90 p-4 rounded-2xl border border-[#FDE68A] flex items-center gap-3 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#D97706] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Users size={20} />
-                </div>
-                <span className="text-sm font-bold text-[#111B5E]">Find Mentors</span>
-              </div>
-
-              <div className="bg-[#FCE7F3]/90 p-4 rounded-2xl border border-[#FBCFE8] flex items-center gap-3 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#DB2777] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <GraduationCap size={20} />
-                </div>
-                <span className="text-sm font-bold text-[#111B5E]">Learn Skills</span>
-              </div>
-
-              <div className="bg-[#E0F2FE]/90 p-4 rounded-2xl border border-[#BAE6FD] flex items-center gap-3 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#0284C7] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <BookOpen size={20} />
-                </div>
-                <span className="text-sm font-bold text-[#111B5E]">Explore Resources</span>
-              </div>
-
-              <div className="bg-[#EDE9FE]/90 p-4 rounded-2xl border border-[#DDD6FE] flex items-center gap-3 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#7C3AED] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Code size={20} />
-                </div>
-                <span className="text-sm font-bold text-[#111B5E]">Build Projects</span>
-              </div>
-
-              <div className="sm:col-span-2 bg-[#FEE2E2]/90 p-4 rounded-2xl border border-[#FECACA] flex items-center justify-center gap-3 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-white text-[#DC2626] flex items-center justify-center flex-shrink-0 shadow-xs">
-                  <Briefcase size={20} />
-                </div>
-                <span className="text-sm font-bold text-[#111B5E]">Discover Opportunities</span>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
-
-        {/* Connector: Growth constellation → Statistics */}
-        <PureConnector variant="center-wave" className="mt-8 mb-2 sm:mt-10 sm:mb-2" />
+        </motion.div>
       </section>
 
       {/* ======================================================== */}
-      {/* 6. SECTION: BE PART OF SOMETHING BIGGER (STATISTICS)     */}
+      {/* 6. "PRIVACY FIRST, ALWAYS" TRUST SECTION                 */}
       {/* ======================================================== */}
-      <section className="relative pt-4 pb-12 sm:pb-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="w-12 h-12 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center mx-auto mb-4 shadow-sm">
-          <Heart size={22} className="fill-current" />
-        </div>
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+        <div className="bg-[#EDF7FF]/70 border border-[#D3E3EE] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="w-12 h-12 rounded-2xl bg-white text-[#2F6DB5] flex items-center justify-center mx-auto mb-4 shadow-xs border border-[#D3E3EE]">
+              <Lock size={22} />
+            </div>
 
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Be part of something bigger
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          Join a supportive community that celebrates curiosity, creativity, and continuous learning.
-        </p>
-
-        {/* 4 Statistics Cards */}
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-              <Users size={22} />
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">10K+</p>
-              <p className="text-xs text-[#5A6482] font-semibold">Members</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center flex-shrink-0">
-              <Sparkles size={22} />
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">2K+</p>
-              <p className="text-xs text-[#5A6482] font-semibold">Communities</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center flex-shrink-0">
-              <MessageSquare size={22} />
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">5K+</p>
-              <p className="text-xs text-[#5A6482] font-semibold">Posts Shared</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center flex-shrink-0">
-              <GraduationCap size={22} />
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">120+</p>
-              <p className="text-xs text-[#5A6482] font-semibold">Colleges & Institutes</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ======================================================== */}
-      {/* 7. CLOSING CALL TO ACTION BANNER                         */}
-      {/* ======================================================== */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-        <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-6 max-w-lg text-center md:text-left">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111B5E] tracking-tight leading-tight">
-              Your ideas. Your people. <br />
-              A brighter tomorrow.
+            <h2 className="text-3xl sm:text-4xl font-black text-[#111B5E] tracking-tight">
+              Privacy first, always
             </h2>
+
+            <p className="mt-3.5 text-base sm:text-lg text-[#5A6482] leading-relaxed">
+              We believe verified opportunity should never compromise student safety or institutional integrity. VIBE is engineered with strict academic data standards.
+            </p>
+
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#16A34A]">
+                  <ShieldCheck size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Institutional Authentication
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Every student and mentor is verified against authorized institutional domains (.edu/ac.in) to keep campus circles safe from spam.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#7540F5]">
+                  <CheckCircle2 size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Zero Data Selling
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Your academic records and project files belong to you. We never monetize or sell personal candidate data to third-party ad networks.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#D97706]">
+                  <Award size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    Cryptographic Proof of Work
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Virtual CV entries and TaskMania completions are signed and time-stamped to guarantee authenticity and eliminate resume inflation.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+                <div className="flex items-center gap-2.5 mb-2 text-[#0284C7]">
+                  <Building2 size={20} />
+                  <h4 className="text-base font-bold text-[#111B5E]">
+                    FERPA & Campus Compliant
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
+                  Built to adhere to modern university privacy guidelines, audit trails, and strict role-based permission boundaries.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 7. FINAL CTA BAND ("LET'S GET GROWING")                  */}
+      {/* ======================================================== */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto mb-8">
+        <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl text-center md:text-left">
+            <span className="inline-block px-3 py-1 rounded-full bg-white text-[#7540F5] text-xs font-black uppercase tracking-wider shadow-2xs">
+              Join VIBE Today
+            </span>
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111B5E] tracking-tight leading-tight">
+              Let's get growing
+            </h2>
+
+            <p className="text-base sm:text-lg text-[#5A6482] leading-relaxed">
+              Whether you are a student hungry for practical projects or an educator passionate about mentorship — your place is here.
+            </p>
+
+            {/* Quick Role Badges inside CTA */}
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
+              <Link
+                to="/signup/student"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Students
+              </Link>
+              <Link
+                to="/signup/faculty"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Mentors
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl transition-all"
+              className="min-h-[48px] px-8 py-4 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.3)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
             >
-              <span>Join VIBE</span>
-              <ArrowRight size={18} />
+              <span>Get started — It's Free</span>
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
             </Link>
-          </div>
-
-          <div className="relative w-full max-w-md aspect-video rounded-2xl overflow-hidden shadow-lg border-2 border-white">
-            <img
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=700&auto=format&fit=crop&q=80"
-              alt="Students collaborating"
-              className="w-full h-full object-cover"
-            />
+            <span className="text-xs text-[#5A6482]">
+              No credit card required • Instant verification
+            </span>
           </div>
         </div>
       </section>
