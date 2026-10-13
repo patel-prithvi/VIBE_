@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VIBE | Verified Internship & Mentorship</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Connect with verified internships and mentorship opportunities">
+  <meta name="theme-color" content="#1D3C5A">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="VIBE">
+  <meta name="msapplication-TileColor" content="#1D3C5A">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="mask-icon" href="/masked-icon.svg" color="#1D3C5A">
+
+  <script>
+    // Suppress non-critical console warnings in development
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    console.warn = function (...args) {
+      const message = args.join(' ');
+      // Suppress specific warnings that are not critical
+      if (message.includes('cdn.tailwindcss.com should not be used in production') ||
+        message.includes('Using CacheFirst to respond to') ||
+        message.includes('Router is responding to') ||
+        message.includes('installHook.js:1') ||
+        message.includes('apple-mobile-web-app-capable') ||
+        message.includes('deprecated')) {
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+
+    console.error = function (...args) {
+      const message = args.join(' ');
+      // Log critical errors but suppress known non-critical ones
+      if (!message.includes('workbox-') &&
+        !message.includes('installHook.js') &&
+        !message.includes('pwa-192x192.png') &&
+        !message.includes('pwa-512x512.png') &&
+        !message.includes('Download error or resource isn\'t a valid image')) {
+        originalError.apply(console, args);
+      }
+    };
+
+    // Handle unhandled promise rejections
+    window.addEventListener('unhandledrejection', function (event) {
+      console.log('Unhandled promise rejection:', event.reason);
+      event.preventDefault();
+    });
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            vibePurple: '#7540F5',
+            vibePurpleHover: '#6025EB',
+            vibePurpleLight: '#A45AFF',
+            vibePurpleSurface: '#F5F1FF',
+            vibeNavy: '#111B5E',
+            vibeNavyMuted: '#5A6482',
+            vibeBlueSurface: '#EDF7FF',
+            navy: '#1D3C5A',
+            ink: '#12283F',
+            steel: '#4B7EA3',
+            powder: '#D3E3EE',
+            mist: '#E6EEF5',
+            chip: '#D8E5EF',
+            brandText: '#5E6A76',
+            muted: '#728494',
+            brandBorder: '#C9D8E4',
+            accent: '#A5632E',
+            notify: '#2F6DB5',
+            'vibe-orange': '#1D3C5A',
+            orange: {
+              50: '#E6EEF5',
+              100: '#D3E3EE',
+              200: '#D8E5EF',
+              300: '#C9D8E4',
+              400: '#4B7EA3',
+              500: '#4B7EA3',
+              600: '#1D3C5A',
+              700: '#12283F',
+              800: '#12283F',
+              900: '#0F1E30',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1D3C5A;
+      --ink: #12283F;
+      --steel: #4B7EA3;
+      --powder: #D3E3EE;
+      --mist: #E6EEF5;
+      --chip: #D8E5EF;
+      --white: #FFFFFF;
+      --text: #5E6A76;
+      --muted: #728494;
+      --border: #C9D8E4;
+      --accent: #A5632E;
+      --notify: #2F6DB5;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--mist);
+      color: var(--text);
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: var(--navy);
+      color: var(--white);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--mist);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--steel);
+    }
+
+    /* PWA Install Button Styles */
+    .install-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(29, 60, 90, 0.3);
+      transition: all 0.3s ease;
+      z-index: 1000;
+      display: none;
+    }
+
+    .install-button:hover {
+      background: var(--ink);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(29, 60, 90, 0.4);
+    }
+
+    .install-button.show {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.400.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^6.15.0",
+    "framer-motion": "https://esm.sh/framer-motion@^10.16.0"
+  }
+}
+</script>
+
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- PWA Install Button -->
+  <button id="install-button" class="install-button">
+    📱 Install App
+  </button>
+
+  <script type="module" src="/src/index.jsx"></script>
+</body>
+
+</html>

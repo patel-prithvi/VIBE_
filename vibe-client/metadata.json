@@ -1,0 +1,7 @@
+{
+  "name": "VIBE - Verified Internship & Mentorship",
+  "description": "A premium platform connecting students, industries, and mentors through real-world tasks and verified internships.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

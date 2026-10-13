@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIBE - Comment System Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #ff6b00, #ff8533);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="highlight">
+        <h1>🎉 VIBE Comment System - Now Live!</h1>
+        <p>Interactive commenting is now working across all dashboards</p>
+    </div>
+
+    <div class="demo-card">
+        <h2>🚀 New Comment Features</h2>
+        <ul class="feature-list">
+            <li><strong>Real-time commenting</strong> - Add comments instantly to any post</li>
+            <li><strong>User authentication</strong> - Comments show user role and avatar</li>
+            <li><strong>Interactive UI</strong> - Smooth animations and hover effects</li>
+            <li><strong>Comment threading</strong> - Organized comment display with timestamps</li>
+            <li><strong>Like system</strong> - Users can like individual comments</li>
+            <li><strong>Role-based styling</strong> - Different colors for Student, Faculty, Industry</li>
+            <li><strong>Responsive design</strong> - Works perfectly on mobile and desktop</li>
+            <li><strong>Login integration</strong> - Prompts users to login if not authenticated</li>
+        </ul>
+    </div>
+
+    <div class="demo-card">
+        <h2>📱 How to Test</h2>
+        <ol>
+            <li>Start the development server: <code>npm run dev</code></li>
+            <li>Navigate to <code>http://localhost:3001</code></li>
+            <li>Login with any role (student/faculty/industry)</li>
+            <li>Go to the dashboard and visit the Posts/Community section</li>
+            <li>Click the comment button (💬) on any post</li>
+            <li>Add a comment and see it appear instantly!</li>
+        </ol>
+    </div>
+
+    <div class="demo-card">
+        <h2>🎨 Available in All Dashboards</h2>
+        <ul class="feature-list">
+            <li><strong>Student Dashboard</strong> - Community Posts section</li>
+            <li><strong>Faculty Dashboard</strong> - Community Posts section</li>
+            <li><strong>Industry Dashboard</strong> - Community section</li>
+        </ul>
+    </div>
+
+    <div class="demo-card">
+        <h2>🔧 Technical Implementation</h2>
+        <ul class="feature-list">
+            <li>Enhanced PostCard component with comment state management</li>
+            <li>Integrated with existing authentication system</li>
+            <li>Added sample comments to mock data</li>
+            <li>Smooth animations using Framer Motion</li>
+            <li>Responsive design with Tailwind CSS</li>
+        </ul>
+    </div>
+</body>
+</html>
