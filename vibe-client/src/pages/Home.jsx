@@ -402,7 +402,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
       {/* Scoped CSS animations for Marquee and gentle floaters */}
       <style>{`
         @keyframes vibeContinuousMarquee {
@@ -1086,10 +1086,6 @@ const Home = () => {
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="w-12 h-12 rounded-2xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center mx-auto mb-4 shadow-xs">
-            <Sparkles size={22} />
-          </div>
-
           <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
             Our community is our superpower
           </h2>

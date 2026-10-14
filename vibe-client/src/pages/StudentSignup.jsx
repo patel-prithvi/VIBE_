@@ -361,7 +361,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFF] text-[#172554] relative overflow-hidden flex items-center">
+    <div className="roboto-bold min-h-screen pt-24 pb-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFF] text-[#172554] relative overflow-hidden flex items-center">
       {/* Soft Ambient Lavender Glows */}
       <div
         aria-hidden="true"
@@ -389,7 +389,6 @@ const Signup = () => {
               {[
                 { id: 'student', label: 'Student', path: '/signup/student', icon: <GraduationCap size={14} /> },
                 { id: 'faculty', label: 'Faculty', path: '/signup/faculty', icon: <User size={14} /> },
-                { id: 'industry', label: 'Industry', path: '/signup/industry', icon: <Briefcase size={14} /> },
               ].map((tab) => {
                 const active = role === tab.id;
                 return (
