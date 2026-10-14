@@ -402,8 +402,48 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#111B5E] pt-24 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+    <div className="min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+      {/* Scoped CSS animations for Marquee and gentle floaters */}
+      <style>{`
+        @keyframes vibeContinuousMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes vibeFloatSubtle1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        @keyframes vibeFloatSubtle2 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(6px); }
+        }
+        .animate-vibe-marquee {
+          display: flex;
+          width: max-content;
+          animation: vibeContinuousMarquee 38s linear infinite;
+        }
+        .animate-vibe-marquee:hover {
+          animation-play-state: paused;
+        }
+        .vibe-doodle-float-1 {
+          animation: vibeFloatSubtle1 4.5s ease-in-out infinite;
+        }
+        .vibe-doodle-float-2 {
+          animation: vibeFloatSubtle2 5.2s ease-in-out infinite;
+        }
 
+        @media (prefers-reduced-motion: reduce) {
+          .animate-vibe-marquee {
+            animation: none !important;
+            overflow-x: auto;
+          }
+          .vibe-doodle-float-1,
+          .vibe-doodle-float-2 {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
 
       {/* ======================================================== */}
       {/* 1. HERO SECTION                                         */}
