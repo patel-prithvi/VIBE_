@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Users, Briefcase, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Users, ArrowRight, CheckCircle2 } from 'lucide-react';
 import {
   HandUnderline,
   SparkDoodle,
@@ -13,7 +13,7 @@ import {
 
 const SignupSelection = () => {
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center bg-[#F8FAFF] text-[#172554] relative overflow-hidden">
+    <div className="roboto-bold min-h-screen pt-28 pb-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center bg-[#F8FAFF] text-[#172554] relative overflow-hidden">
       {/* Soft Ambient Background Shapes */}
       <div
         aria-hidden="true"
@@ -59,7 +59,7 @@ const SignupSelection = () => {
         </motion.div>
 
         {/* Role Selection Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl w-full mx-auto">
           <SelectionCard
             role="Student"
             badge="For Learners"
@@ -84,19 +84,6 @@ const SignupSelection = () => {
               'Foster industry collaboration',
             ]}
             href="/signup/faculty"
-            iconStyle="bg-[#F3EEFF] text-[#6D3DF5]"
-          />
-          <SelectionCard
-            role="Industry"
-            badge="For Partners"
-            icon={<Briefcase size={32} />}
-            desc="Post real tasks, evaluate talent objectively, and hire with confidence."
-            highlights={[
-              'Post verified internships',
-              'Evaluate real work output',
-              'Discover academic talent',
-            ]}
-            href="/signup/industry"
             iconStyle="bg-[#F3EEFF] text-[#6D3DF5]"
           />
         </div>

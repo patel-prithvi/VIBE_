@@ -7,7 +7,6 @@ import {
   Lock,
   User,
   GraduationCap,
-  Briefcase,
   ArrowRight,
   CheckCircle,
   Users,
@@ -28,7 +27,6 @@ import api from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -63,32 +61,8 @@ const Login = () => {
     }
   };
 
-  const roleData = {
-    student: {
-      title: "Welcome back, Student",
-      desc: "Ready to tackle your next verified task?",
-      icon: <GraduationCap size={24} />,
-      color: "text-[#6D3DF5]",
-      bgColor: "bg-[#F3EEFF]"
-    },
-    faculty: {
-      title: "Hello, Mentor",
-      desc: "Your students are waiting for guidance.",
-      icon: <User size={24} />,
-      color: "text-[#6D3DF5]",
-      bgColor: "bg-[#F3EEFF]"
-    },
-    industry: {
-      title: "Industry Portal",
-      desc: "Evaluate talent and hire top performers.",
-      icon: <Briefcase size={24} />,
-      color: "text-[#6D3DF5]",
-      bgColor: "bg-[#F3EEFF]"
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#F8FAFF] text-[#172554] relative overflow-hidden pt-24 pb-16 lg:py-28 flex items-center">
+    <div className="roboto-bold min-h-screen bg-[#F8FAFF] text-[#172554] relative overflow-hidden pt-24 pb-16 lg:py-28 flex items-center">
       {/* Soft ambient background shapes */}
       <div
         aria-hidden="true"
@@ -323,60 +297,24 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-7">
 
-                {/* Unique Role Selection Tiles */}
-                <div className="space-y-3">
-                  <label className="text-xs font-bold uppercase tracking-widest text-[#64748B] ml-1">
-                    Select Your Perspective
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {['student', 'faculty', 'industry'].filter(Boolean).map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setRole(r)}
-                        className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${
-                          role === r
-                            ? 'border-[#6D3DF5] bg-[#F3EEFF]/60 shadow-md shadow-[#6D3DF5]/10'
-                            : 'border-[#E2E8F0] bg-[#F8FAFF] hover:border-[#CBD5E1] text-[#64748B]'
-                        }`}
-                      >
-                        {role === r && (
-                          <motion.div
-                            layoutId="role-indicator"
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-[#6D3DF5] rounded-full flex items-center justify-center text-white shadow-sm"
-                          >
-                            <CheckCircle size={14} />
-                          </motion.div>
-                        )}
-                        <div className={`mb-2 transition-colors ${role === r ? 'text-[#6D3DF5]' : 'text-[#64748B]'}`}>
-                          {r === 'student' ? <GraduationCap size={24} /> : r === 'faculty' ? <User size={24} /> : <Briefcase size={24} />}
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-wider ${role === r ? 'text-[#172554]' : 'text-[#64748B]'}`}>
-                          {r}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Form Fields */}
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={role}
+                    key="login-fields"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-5"
                   >
                     <div className="space-y-1">
-                      <h3 className={`text-lg font-bold ${roleData[role].color}`}>{roleData[role].title}</h3>
-                      <p className="text-sm text-[#64748B]">{roleData[role].desc}</p>
+                      <h3 className="text-lg font-bold text-[#6D3DF5]">Welcome back</h3>
+                      <p className="text-sm text-[#64748B]">Log in with your registered email to access your dashboard.</p>
                     </div>
 
                     <div className="space-y-4">
                       <div className="relative group">
                         <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">
-                          Business Email
+                          Email Address
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-all" size={20} />
@@ -388,7 +326,7 @@ const Login = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-2xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
-                            placeholder="e.g. name@company.com"
+                            placeholder="e.g. name@college.edu"
                           />
                         </div>
                       </div>

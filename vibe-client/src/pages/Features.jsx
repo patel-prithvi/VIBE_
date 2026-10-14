@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   ArrowRight,
   Users,
@@ -10,6 +10,7 @@ import {
   Lightbulb,
   Briefcase,
   ShieldCheck,
+  CheckCircle2,
   TrendingUp,
   Sparkles,
   Heart,
@@ -18,6 +19,7 @@ import {
   CheckCircle,
   Gem,
   LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 import {
   HandUnderline,
@@ -25,9 +27,46 @@ import {
   LoopDoodle,
   SpiralDoodle,
   StarDoodle,
-  WavyConnector,
 } from "../components/public/Doodles";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATED COUNT-UP NUMBER (Home-style viewport trigger)
+// ─────────────────────────────────────────────────────────────────────────────
+const CountUpNumber = ({ target, suffix = "", duration = 1.6 }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let startTime = null;
+    let animationFrame;
+
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easedProgress * target));
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isInView, target, duration]);
+
+  return (
+    <span ref={ref} className="tabular-nums font-black">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+};
 const Features = () => {
   // State for FAQ Accordion (Item 0 open by default as in screenshot)
   const [openFaq, setOpenFaq] = useState(0);
@@ -64,57 +103,120 @@ const Features = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#111B5E] pt-24 overflow-hidden selection:bg-[#7540F5] selection:text-white">
+    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+      {/* Scoped CSS animations for gentle floaters (Home-style) */}
+      <style>{`
+        @keyframes vibeFloatSubtle1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        @keyframes vibeFloatSubtle2 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(6px); }
+        }
+        .vibe-doodle-float-1 {
+          animation: vibeFloatSubtle1 4.5s ease-in-out infinite;
+        }
+        .vibe-doodle-float-2 {
+          animation: vibeFloatSubtle2 5.2s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vibe-doodle-float-1,
+          .vibe-doodle-float-2 {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
       {/* ======================================================== */}
       {/* 1. HERO SECTION (TWO-COLUMN)                            */}
       {/* ======================================================== */}
-      <section className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      <section className="relative pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+        {/* Floating Doodles (Home-style gentle floaters) */}
+        <div className="absolute top-8 left-6 hidden sm:block pointer-events-none vibe-doodle-float-1">
+          <SparkDoodle color="#FBBF24" size={32} />
+        </div>
+        <div className="absolute top-10 right-10 hidden sm:block pointer-events-none vibe-doodle-float-2">
+          <LoopDoodle color="#F472B6" size={36} />
+        </div>
+        <div className="absolute bottom-10 left-10 hidden md:block pointer-events-none vibe-doodle-float-2">
+          <SpiralDoodle color="#7540F5" size={28} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           {/* Left Text Column */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-block px-4 py-1 rounded-full bg-[#F5F1FF] text-[#7540F5] text-xs font-black uppercase tracking-widest"
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider"
             >
-              FEATURES
-            </motion.span>
+              <ShieldCheck size={14} className="text-[#16A34A]" />
+              <span>Features • All in one place</span>
+            </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#111B5E] leading-[1.15]"
+              className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#111B5E] leading-[1.14]"
             >
               Everything you need to{" "}
               <span className="relative inline-block text-[#7540F5]">
                 Learn, Connect and Grow
-                <HandUnderline color="#FBBF24" className="absolute -bottom-2 left-0 w-full" />
+                <HandUnderline color="#FBBF24" className="absolute -bottom-2 left-0 w-full pointer-events-none" />
               </span>
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-base sm:text-lg text-[#5A6482] font-normal leading-relaxed max-w-xl mx-auto lg:mx-0"
+              className="text-base sm:text-lg md:text-xl text-[#5A6482] font-normal leading-relaxed max-w-xl mx-auto lg:mx-0"
             >
               Discover powerful features designed for students and faculty to share knowledge, collaborate on projects, and unlock new opportunities — all in one place.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="pt-2 flex justify-center lg:justify-start"
+              className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
             >
               <Link
                 to="/signup"
-                className="px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+                className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.28)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.36)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 group"
               >
                 <span>Join VIBE</span>
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
+
+              <Link
+                to="/how-it-works"
+                className="w-full sm:w-auto min-h-[48px] px-6 py-3.5 rounded-full text-base font-bold text-[#111B5E] bg-white border border-slate-200 hover:border-[#7540F5] hover:text-[#7540F5] transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>How it works</span>
+              </Link>
+            </motion.div>
+
+            {/* Trust Proof Micro-Banner (Home-style) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-xs text-[#5A6482]"
+            >
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#16A34A]" /> 6 Core Modules
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#16A34A]" /> Verified Community
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#16A34A]" /> 100% Free for Students
+              </span>
             </motion.div>
           </div>
 
@@ -143,25 +245,29 @@ const Features = () => {
             </span>
           </div>
         </div>
-
-        <WavyConnector className="my-10" />
       </section>
 
       {/* ======================================================== */}
       {/* 2. SECTION: OUR FEATURES (6 GRID CARDS)                  */}
       {/* ======================================================== */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Our Features
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          Explore everything VIBE offers to help you build meaningful connections and create new opportunities.
-        </p>
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black text-[#111B5E] tracking-tight leading-tight">
+            Our Features
+          </h2>
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            Explore everything VIBE offers to help you build meaningful connections and create new opportunities.
+          </p>
 
         {/* 6 Feature Cards */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-5xl mx-auto">
           {/* Card 1: Communities */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <Users size={26} />
             </div>
@@ -177,7 +283,7 @@ const Features = () => {
           </div>
 
           {/* Card 2: Mentorship */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <GraduationCap size={26} />
             </div>
@@ -193,7 +299,7 @@ const Features = () => {
           </div>
 
           {/* Card 3: Resources */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <BookOpen size={26} />
             </div>
@@ -209,7 +315,7 @@ const Features = () => {
           </div>
 
           {/* Card 4: Events */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <Calendar size={26} />
             </div>
@@ -225,7 +331,7 @@ const Features = () => {
           </div>
 
           {/* Card 5: Collaboration */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <Lightbulb size={26} />
             </div>
@@ -241,7 +347,7 @@ const Features = () => {
           </div>
 
           {/* Card 6: Opportunities */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all flex items-start gap-5 group">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex items-start gap-5 group">
             <div className="w-14 h-14 rounded-2xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <Briefcase size={26} />
             </div>
@@ -256,20 +362,29 @@ const Features = () => {
             </div>
           </div>
         </div>
-
-        <WavyConnector className="my-10" />
+        </motion.div>
       </section>
 
       {/* ======================================================== */}
       {/* 3. SECTION: WHY CHOOSE VIBE?                             */}
       {/* ======================================================== */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
-          Why Choose VIBE?
-        </h2>
-        <p className="mt-3 text-base sm:text-lg text-[#5A6482] max-w-xl mx-auto">
-          More than just a platform — VIBE is a supportive community built for your growth.
-        </p>
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#EDF7FF] text-[#2F6DB5] flex items-center justify-center mx-auto mb-4 shadow-xs border border-[#D3E3EE]">
+            <Heart size={22} />
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black text-[#111B5E] tracking-tight leading-tight">
+            Why Choose VIBE?
+          </h2>
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            More than just a platform — VIBE is a supportive community built for your growth.
+          </p>
 
         {/* Central Graphic with 6 Surrounding Value Props */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6 items-center max-w-5xl mx-auto">
@@ -348,61 +463,78 @@ const Features = () => {
             </div>
           </div>
         </div>
+        </motion.div>
       </section>
 
       {/* ======================================================== */}
       {/* 4. STATISTICS STRIP                                      */}
       {/* ======================================================== */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"
+        >
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
               <Users size={22} />
             </div>
             <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">10K+</p>
+              <p className="text-xl sm:text-2xl font-black text-[#111B5E]"><CountUpNumber target={10000} suffix="+" /></p>
               <p className="text-xs text-[#5A6482] font-semibold">Members</p>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center flex-shrink-0">
               <Sparkles size={22} />
             </div>
             <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">2K+</p>
+              <p className="text-xl sm:text-2xl font-black text-[#111B5E]"><CountUpNumber target={2000} suffix="+" /></p>
               <p className="text-xs text-[#5A6482] font-semibold">Communities</p>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center flex-shrink-0">
               <BookOpen size={22} />
             </div>
             <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">5K+</p>
+              <p className="text-xl sm:text-2xl font-black text-[#111B5E]"><CountUpNumber target={5000} suffix="+" /></p>
               <p className="text-xs text-[#5A6482] font-semibold">Posts Shared</p>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm flex items-center gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center flex-shrink-0">
               <GraduationCap size={22} />
             </div>
             <div>
-              <p className="text-xl sm:text-2xl font-black text-[#111B5E]">120+</p>
+              <p className="text-xl sm:text-2xl font-black text-[#111B5E]"><CountUpNumber target={120} suffix="+" /></p>
               <p className="text-xs text-[#5A6482] font-semibold">Colleges & Institutes</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ======================================================== */}
       {/* 5. FAQ SECTION (ACCORDION)                               */}
       {/* ======================================================== */}
       <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111B5E] tracking-tight">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center mx-auto mb-4 shadow-xs">
+            <MessageSquare size={22} />
+          </div>
+
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black text-[#111B5E] tracking-tight leading-tight">
             Frequently{" "}
             <span className="relative inline-block text-[#7540F5]">
               Asked
@@ -410,8 +542,8 @@ const Features = () => {
             </span>{" "}
             Questions
           </h2>
-          <p className="mt-3 text-base sm:text-lg text-[#5A6482]">Got questions? We've got answers.</p>
-        </div>
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">Got questions? We've got answers.</p>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Left Visual: Thinking Student */}
@@ -471,23 +603,49 @@ const Features = () => {
       {/* ======================================================== */}
       {/* 6. CLOSING CTA BANNER                                    */}
       {/* ======================================================== */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-        <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="space-y-2">
-            <span className="text-xs font-black tracking-widest text-[#7540F5] uppercase block">
-              READY TO GET STARTED?
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto mb-8">
+        <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl text-center md:text-left">
+            <span className="inline-block px-3 py-1 rounded-full bg-white text-[#7540F5] text-xs font-black uppercase tracking-wider shadow-2xs">
+              Ready to get started?
             </span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#111B5E] tracking-tight">
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111B5E] tracking-tight leading-tight">
               Join VIBE and be part of a supportive community that believes in your potential.
             </h2>
+
+            {/* Quick Role Badges inside CTA */}
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
+              <Link
+                to="/signup/student"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Students
+              </Link>
+              <Link
+                to="/signup/faculty"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Mentors
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/signup"
-            className="flex-shrink-0 px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl transition-all flex items-center gap-2"
-          >
-            <span>Join VIBE</span>
-            <ArrowRight size={18} />
-          </Link>
+
+          <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">
+            <Link
+              to="/signup"
+              className="min-h-[48px] px-8 py-4 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.3)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+            >
+              <span>Get started — It's Free</span>
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </Link>
+            <span className="text-xs text-[#5A6482]">
+              No credit card required • Instant verification
+            </span>
+          </div>
         </div>
       </section>
     </div>
