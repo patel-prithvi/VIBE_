@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
   ArrowRight,
   UserCheck,
@@ -13,6 +13,7 @@ import {
   Calendar,
   Briefcase,
   CheckCircle2,
+  ShieldCheck,
   Award,
   Zap,
 } from "lucide-react";
@@ -22,53 +23,121 @@ import {
   LoopDoodle,
   SpiralDoodle,
   StarDoodle,
-  WavyConnector,
 } from "../components/public/Doodles";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATED COUNT-UP NUMBER (Home-style viewport trigger)
+// ─────────────────────────────────────────────────────────────────────────────
+const CountUpNumber = ({ target, suffix = "", duration = 1.6 }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-40px" });
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let startTime = null;
+    let animationFrame;
+
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easedProgress * target));
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isInView, target, duration]);
+
+  return (
+    <span ref={ref} className="tabular-nums font-black">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+};
 
 const HowItWorks = () => {
   return (
-    <div className="min-h-screen bg-white text-[#111B5E] pt-24 overflow-hidden selection:bg-[#7540F5] selection:text-white">
+    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+      {/* Scoped CSS animations for gentle floaters (Home-style) */}
+      <style>{`
+        @keyframes vibeFloatSubtle1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        @keyframes vibeFloatSubtle2 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(6px); }
+        }
+        .vibe-doodle-float-1 {
+          animation: vibeFloatSubtle1 4.5s ease-in-out infinite;
+        }
+        .vibe-doodle-float-2 {
+          animation: vibeFloatSubtle2 5.2s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vibe-doodle-float-1,
+          .vibe-doodle-float-2 {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
       {/* ======================================================== */}
       {/* 1. HERO INTRO SECTION                                    */}
       {/* ======================================================== */}
-      <section className="relative pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        {/* Floating Doodles */}
-        <div className="absolute top-10 left-8 hidden sm:block">
-          <SparkDoodle color="#FBBF24" size={30} />
+      <section className="relative pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+        {/* Floating Doodles (Home-style gentle floaters) */}
+        <div className="absolute top-8 left-6 hidden sm:block pointer-events-none vibe-doodle-float-1">
+          <SparkDoodle color="#FBBF24" size={32} />
         </div>
-        <div className="absolute top-14 right-10 hidden sm:block">
-          <LoopDoodle color="#F472B6" size={34} />
+        <div className="absolute top-10 right-10 hidden sm:block pointer-events-none vibe-doodle-float-2">
+          <LoopDoodle color="#F472B6" size={36} />
         </div>
-        <div className="absolute bottom-10 left-16 hidden sm:block">
+        <div className="absolute bottom-24 left-10 hidden md:block pointer-events-none vibe-doodle-float-2">
           <SpiralDoodle color="#7540F5" size={28} />
         </div>
+        <div className="absolute top-44 right-16 hidden lg:block pointer-events-none vibe-doodle-float-1">
+          <StarDoodle color="#38BDF8" size={24} />
+        </div>
 
-        {/* Eyebrow Label */}
-        <motion.span
+        {/* Eyebrow Trust Line (Home-style) */}
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-block px-4 py-1 rounded-full bg-[#F5F1FF] text-[#7540F5] text-xs font-black uppercase tracking-widest mb-4"
+          transition={{ duration: 0.4 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider mb-6"
         >
-          HOW IT WORKS
-        </motion.span>
+          <ShieldCheck size={14} className="text-[#16A34A]" />
+          <span>How it works • Simple by design</span>
+        </motion.div>
 
         {/* Main Headline */}
         <motion.h1
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#111B5E] max-w-3xl mx-auto leading-tight"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-[66px] font-black tracking-tight leading-[1.14] text-[#111B5E] max-w-5xl mx-auto"
         >
           From Curiosity to{" "}
           <span className="relative inline-block text-[#7540F5]">
             Opportunity
-            <HandUnderline color="#FBBF24" className="absolute -bottom-2 left-0 w-full" />
+            <HandUnderline color="#FBBF24" className="absolute -bottom-2.5 left-0 w-full pointer-events-none" />
           </span>
         </motion.h1>
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-6 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed"
@@ -76,31 +145,62 @@ const HowItWorks = () => {
           VIBE makes it simple for students and faculty to connect, share, learn, and grow together — in just a few steps.
         </motion.p>
 
-        {/* CTA Button */}
+        {/* Dual CTA Buttons (Home-style) */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8 flex justify-center"
+          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Link
             to="/signup"
-            className="px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+            className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.28)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.36)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 group"
           >
             <span>Join VIBE</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
+
+          <Link
+            to="/features"
+            className="w-full sm:w-auto min-h-[48px] px-6 py-3.5 rounded-full text-base font-bold text-[#111B5E] bg-white border border-slate-200 hover:border-[#7540F5] hover:text-[#7540F5] transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>Explore features</span>
+          </Link>
+        </motion.div>
+
+        {/* Trust Proof Micro-Banner (Home-style) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#5A6482]"
+        >
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> College Email Verified
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> 5 Simple Steps
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-[#16A34A]" /> 100% Free for Students
+          </span>
         </motion.div>
       </section>
 
       {/* ======================================================== */}
       {/* 2. FIVE-STEP ALTERNATING STORYTELLING                   */}
       {/* ======================================================== */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-16">
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-16">
         {/* -------------------------------------------------------- */}
         {/* STEP 1: JOIN VIBE                                        */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        >
           {/* Left Visual: Student signing up with mock card */}
           <div className="relative group">
             <div className="rounded-3xl overflow-hidden shadow-lg border-2 border-white aspect-[4/3] bg-gradient-to-tr from-[#EEF2FF] to-[#FAF5FF]">
@@ -148,16 +248,20 @@ const HowItWorks = () => {
                 <span className="text-xs font-bold text-[#111B5E] block">Start exploring</span>
                 <span className="text-[11px] text-[#5A6482]">right away</span>
               </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <WavyConnector />
+        </motion.div>
 
         {/* -------------------------------------------------------- */}
         {/* STEP 2: EXPLORE & DISCOVER                              */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        >
           {/* Left Content */}
           <div className="space-y-4 order-2 md:order-1">
             <div className="w-12 h-12 rounded-full bg-[#F3E8FF] text-[#7E22CE] font-black text-xl flex items-center justify-center shadow-sm">
@@ -218,14 +322,18 @@ const HowItWorks = () => {
               Mentorship
             </span>
           </div>
-        </div>
-
-        <WavyConnector />
+        </motion.div>
 
         {/* -------------------------------------------------------- */}
         {/* STEP 3: CONNECT & ENGAGE                                */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        >
           {/* Left Visual: Students discussing with speech bubble */}
           <div className="relative group">
             <div className="rounded-3xl overflow-hidden shadow-lg border-2 border-white aspect-[4/3]">
@@ -272,14 +380,18 @@ const HowItWorks = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        <WavyConnector />
+        </motion.div>
 
         {/* -------------------------------------------------------- */}
         {/* STEP 4: LEARN & GROW                                    */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        >
           {/* Left Content */}
           <div className="space-y-4 order-2 md:order-1">
             <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] font-black text-xl flex items-center justify-center shadow-sm">
@@ -342,14 +454,18 @@ const HowItWorks = () => {
               </span>
             </div>
           </div>
-        </div>
-
-        <WavyConnector />
+        </motion.div>
 
         {/* -------------------------------------------------------- */}
         {/* STEP 5: UNLOCK OPPORTUNITIES                            */}
         {/* -------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        >
           {/* Left Visual: Celebrating student */}
           <div className="relative group">
             <div className="rounded-3xl overflow-hidden shadow-lg border-2 border-white aspect-[4/3]">
@@ -395,37 +511,129 @@ const HowItWorks = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* ANIMATED STAT COUNTERS (Home-style)                      */}
+      {/* ======================================================== */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+            Loved by campuses across the country
+          </h2>
+
+          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+            From first-year exploration to verified placement — VIBE keeps every step transparent.
+          </p>
+
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-left">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#EDF7FF] text-[#2F6DB5] flex items-center justify-center mb-3">
+                <GraduationCap size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={15000} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Students
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#F5F1FF] text-[#7540F5] flex items-center justify-center mb-3">
+                <Users size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={1200} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Faculty Mentors
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center mb-3">
+                <Briefcase size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={450} suffix="+" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Industry Partners
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center mb-3">
+                <Award size={20} />
+              </div>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#111B5E]">
+                <CountUpNumber target={98} suffix="%" />
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A6482] font-semibold mt-1">
+                Verified Completion
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </section>
 
       {/* ======================================================== */}
       {/* 3. CLOSING CTA BANNER                                    */}
       {/* ======================================================== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto mb-8">
         <div className="bg-[#F5F1FF] border border-[#E9E1FF] rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-lg text-center md:text-left">
-            <span className="text-xs font-bold text-[#7540F5] tracking-widest uppercase">READY TO GET STARTED?</span>
+          <div className="space-y-4 max-w-xl text-center md:text-left">
+            <span className="inline-block px-3 py-1 rounded-full bg-white text-[#7540F5] text-xs font-black uppercase tracking-wider shadow-2xs">
+              Ready to get started?
+            </span>
+
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111B5E] tracking-tight leading-tight">
               Your ideas. Your people. <br />
               A brighter tomorrow.
             </h2>
-            <div className="pt-2">
+
+            <p className="text-base sm:text-lg text-[#5A6482] leading-relaxed">
+              Join thousands of students and mentors already growing together on VIBE.
+            </p>
+
+            {/* Quick Role Badges inside CTA */}
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
               <Link
-                to="/signup"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-lg shadow-[#7540F5]/25 hover:shadow-xl transition-all"
+                to="/signup/student"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
               >
-                <span>Join VIBE</span>
-                <ArrowRight size={18} />
+                For Students
+              </Link>
+              <Link
+                to="/signup/faculty"
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#7540F5] text-[#111B5E] hover:text-white border border-slate-200/90 text-xs font-bold transition-colors"
+              >
+                For Mentors
               </Link>
             </div>
           </div>
 
-          <div className="relative w-full max-w-md aspect-video rounded-2xl overflow-hidden shadow-lg border-2 border-white">
-            <img
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=700&auto=format&fit=crop&q=80"
-              alt="Students collaborating"
-              className="w-full h-full object-cover"
-            />
+          <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">
+            <Link
+              to="/signup"
+              className="min-h-[48px] px-8 py-4 rounded-full text-base font-bold text-white bg-[#7540F5] hover:bg-[#6025EB] shadow-[0_8px_24px_rgba(117,64,245,0.3)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.4)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 group"
+            >
+              <span>Get started — It's Free</span>
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </Link>
+            <span className="text-xs text-[#5A6482]">
+              No credit card required • Instant verification
+            </span>
           </div>
         </div>
       </section>
