@@ -9,6 +9,7 @@ import { MyMentorRequestsView } from "../components/student/MyMentorRequestsView
 import { VirtualCVView } from "../components/student/VirtualCVView";
 import { TaskManiaView } from "../components/taskmania/TaskManiaView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
+import { MobileBottomNav } from "../components/shared/MobileBottomNav";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +20,9 @@ const StudentDashboard = () => {
   const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_student_tab") || "home");
   const [activeFeedTab, setActiveFeedTab] = useState("for-you");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorage.getItem("vibe_sidebar_collapsed") === "true"
+  );
   const [user, setUser] = useState(auth.getCurrentUser());
   const [posts, setPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
@@ -26,6 +30,14 @@ const StudentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState("");
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("vibe_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
 
   const fetchPostsAndBookmarks = async () => {
     try {
@@ -234,17 +246,26 @@ const StudentDashboard = () => {
         onLogout={handleLogout}
         onNavigate={handleSectionChange}
         onSearch={setSearchQuery}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={handleToggleSidebar}
       />
 
       {/* 2. Main Desktop Dashboard Container */}
-      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-5">
         {isHomeDashboard ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_320px] gap-5 items-start">
-            {/* Column 1: Left Fixed-Width Sidebar (260px) */}
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_300px] xl:grid-cols-[76px_minmax(0,1fr)_320px]"
+                : "md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_320px]"
+            }`}
+          >
+            {/* Column 1: Left Fixed-Width Sidebar (Full 260px or Collapsed 76px rail, hidden on mobile) */}
             <StudentLeftSidebar
               activeView={activeView}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Column 2: Center Feed (Primary content area) */}
@@ -264,24 +285,36 @@ const StudentDashboard = () => {
               />
             </div>
 
-            {/* Column 3: Right Sidebar (Recommended Mentors & AI CV Analysis) */}
-            <StudentRightPanel
-              onNavigate={handleSectionChange}
-            />
+            {/* Column 3: Right Sidebar — Hidden on tablet (< lg) and mobile */}
+            <div className="hidden lg:block">
+              <StudentRightPanel
+                onNavigate={handleSectionChange}
+              />
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)]"
+                : "md:grid-cols-[260px_minmax(0,1fr)]"
+            }`}
+          >
             {/* Column 1: Left Fixed-Width Sidebar */}
             <StudentLeftSidebar
               activeView={activeView}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Dedicated View Column (Full available width) */}
             <div className="min-w-0 w-full">
               {activeView === "mentorship" || activeView === "requests" ? (
-                <MyMentorRequestsView onBackToFeed={() => handleSectionChange("home")} />
+                <MyMentorRequestsView
+                  onBackToFeed={() => handleSectionChange("home")}
+                  initialTab={activeView === "requests" ? "requests" : "explore"}
+                />
               ) : activeView === "cv-analysis" || activeView === "virtual-cv" ? (
                 <VirtualCVView
                   user={user}
@@ -322,6 +355,15 @@ const StudentDashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar (app-style fixed bar for small screens) */}
+      <MobileBottomNav
+        role="student"
+        activeView={activeView}
+        onNavigate={handleSectionChange}
+        onLogout={handleLogout}
+        onOpenCreatePost={() => setIsCreatePostOpen(true)}
+      />
 
       {/* Create Post Modal */}
       <CreatePostModal

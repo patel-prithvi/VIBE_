@@ -4,7 +4,6 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
-  CheckCircle2,
   Send,
   Loader2,
   CornerDownRight,
@@ -141,10 +140,6 @@ export const StudentPostCard = ({
               <span className="font-bold text-sm text-[#0F172A] leading-tight truncate">
                 {authorName}
               </span>
-              <CheckCircle2
-                size={14}
-                className="text-[#3B82F6] fill-[#3B82F6] text-white flex-shrink-0"
-              />
               <span
                 className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize flex-shrink-0 ${
                   isFacultyAuthor

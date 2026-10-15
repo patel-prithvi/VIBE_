@@ -1,9 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, Bell, MessageSquare, ChevronDown, Check, LogOut, User } from "lucide-react";
+import { Search, Bell, MessageSquare, ChevronDown, Check, LogOut, User, Menu } from "lucide-react";
 import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
 
-export const FacultyTopHeader = ({ user, onLogout, onNavigate, onSearch }) => {
+export const FacultyTopHeader = ({
+  user,
+  onLogout,
+  onNavigate,
+  onSearch,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+}) => {
   const [searchValue, setSearchValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -32,12 +39,23 @@ export const FacultyTopHeader = ({ user, onLogout, onNavigate, onSearch }) => {
     <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
-        {/* Left: VIBE Logo & Wordmark */}
-        <div 
-          onClick={() => onNavigate && onNavigate("home")} 
-          className="flex items-center cursor-pointer flex-shrink-0 select-none hover:opacity-90 transition-opacity"
-        >
-          <VibeLogo size="md" />
+        {/* Left: Sidebar Toggle & VIBE Logo */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="hidden md:inline-flex items-center justify-center p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[#6D3DF5]/30 cursor-pointer"
+          >
+            <Menu size={20} />
+          </button>
+          <div 
+            onClick={() => onNavigate && onNavigate("home")} 
+            className="flex items-center cursor-pointer flex-shrink-0 select-none hover:opacity-90 transition-opacity"
+          >
+            <VibeLogo size="md" />
+          </div>
         </div>
 
         {/* Center: Search Field */}

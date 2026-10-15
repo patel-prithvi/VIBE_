@@ -7,6 +7,7 @@ import { FacultyBookmarksView } from "../components/faculty/FacultyBookmarksView
 import { ProfileView } from "../components/faculty/ProfileView";
 import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
+import { MobileBottomNav } from "../components/shared/MobileBottomNav";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,9 @@ const FacultyDashboard = () => {
   const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_faculty_tab") || "home");
   const [activeFeedTab, setActiveFeedTab] = useState("for-you");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorage.getItem("vibe_sidebar_collapsed") === "true"
+  );
   const [user, setUser] = useState(auth.getCurrentUser());
   const [posts, setPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
@@ -24,6 +28,14 @@ const FacultyDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState("");
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("vibe_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
 
   const fetchPostsAndBookmarks = async () => {
     try {
@@ -241,17 +253,26 @@ const FacultyDashboard = () => {
         onLogout={handleLogout}
         onNavigate={handleSectionChange}
         onSearch={setSearchQuery}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={handleToggleSidebar}
       />
 
       {/* 2. Main Desktop Dashboard Container */}
-      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-5">
         {isHomeDashboard ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_260px] gap-5 items-start">
-            {/* Column 1: Left Fixed-Width Sidebar */}
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_260px]"
+                : "md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_260px]"
+            }`}
+          >
+            {/* Column 1: Left Sidebar (Full 260px or Collapsed 76px rail, hidden on mobile) */}
             <FacultyLeftSidebar
               activeView={activeView}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Column 2: Center Feed (Primary content area, visibly wider than sidebars) */}
@@ -271,19 +292,28 @@ const FacultyDashboard = () => {
               />
             </div>
 
-            {/* Column 3: Right Sidebar — Equal width to left sidebar (260px) */}
-            <FacultyRightPanel
-              onNavigate={handleSectionChange}
-              onOpenCreatePost={() => setIsCreatePostOpen(true)}
-            />
+            {/* Column 3: Right Sidebar — Hidden on tablet (< lg) and mobile */}
+            <div className="hidden lg:block">
+              <FacultyRightPanel
+                onNavigate={handleSectionChange}
+                onOpenCreatePost={() => setIsCreatePostOpen(true)}
+              />
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
-            {/* Column 1: Left Fixed-Width Sidebar */}
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)]"
+                : "md:grid-cols-[260px_minmax(0,1fr)]"
+            }`}
+          >
+            {/* Column 1: Left Sidebar */}
             <FacultyLeftSidebar
               activeView={activeView}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Dedicated View Column (Full available width, no right panel) */}
@@ -323,6 +353,15 @@ const FacultyDashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar (app-style fixed bar for small screens) */}
+      <MobileBottomNav
+        role="faculty"
+        activeView={activeView}
+        onNavigate={handleSectionChange}
+        onLogout={handleLogout}
+        onOpenCreatePost={() => setIsCreatePostOpen(true)}
+      />
 
       {/* Redesigned Create Post Modal */}
       <CreatePostModal
