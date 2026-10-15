@@ -1056,7 +1056,7 @@ const InputField = ({
   ...props
 }) => (
   <div className="relative group">
-    <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">
+    <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">
       {label}
     </label>
     <div className="relative">
@@ -1100,7 +1100,7 @@ const SelectField = ({
   error
 }) => (
   <div className="relative group">
-    <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">
+    <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">
       {label}
     </label>
     <div className="relative">

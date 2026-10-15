@@ -4,7 +4,6 @@ import {
   Share2,
   Bookmark,
   MoreHorizontal,
-  CheckCircle2,
   Send,
   Loader2,
   CornerDownRight,
@@ -121,7 +120,7 @@ export const FacultyPostCard = ({
   const timestamp = post.time || post.timestamp || (post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "Recently");
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-shadow hover:shadow-sm w-full min-w-0 overflow-hidden">
+    <div className="vibe-card p-4 sm:p-5 transition-shadow hover:shadow-sm w-full overflow-hidden">
       {/* 1. Header */}
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -136,7 +135,6 @@ export const FacultyPostCard = ({
               <span className="font-bold text-sm text-[#0F172A] leading-tight truncate">
                 {authorName}
               </span>
-              <CheckCircle2 size={14} className="text-[#3B82F6] fill-[#3B82F6] text-white flex-shrink-0" />
               <span className="text-[10px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full border border-[#DBEAFE] capitalize flex-shrink-0">
                 {authorRole}
               </span>

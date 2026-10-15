@@ -18,37 +18,39 @@ import {
   Users,
   ArrowRight,
   Edit3,
-  Loader2
-} from 'lucide-react';
+  Loader2,
+  Mail,
+  Phone,
+  Save,
+} from "lucide-react";
 
 export const ProfileView = ({ user, onProfileUpdate }) => {
   const toast = useToast();
   const [internships, setInternships] = useState([]);
-
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    mobileNo: user.mobileNo || '',
-    dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
-    institutionName: user.Profile?.InstituteName || '',
-    degree: user.Profile?.degree || 'B.Tech',
-    branch: user.Profile?.branch || '',
-    currentYear: user.Profile?.yearOfStudy || '1st Year'
+    name: user?.name || "",
+    mobileNo: user?.mobileNo || "",
+    dob: user?.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
+    institutionName: user?.Profile?.InstituteName || "",
+    degree: user?.Profile?.degree || "B.Tech",
+    branch: user?.Profile?.branch || user?.Profile?.Branch || "",
+    currentYear: user?.Profile?.yearOfStudy || user?.Profile?.YearOfStudy || "1st Year",
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleUpdateProfile = async () => {
     try {
       setLoading(true);
-      const updatedUser = await auth.updateProfile(user._id, formData);
+      const updatedUser = await auth.updateProfile(user._id || user.id, formData);
       if (onProfileUpdate) {
         onProfileUpdate(updatedUser);
       }
@@ -69,19 +71,24 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
       setIsEditing(true);
     }
   };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await api.get('/submissions/me');
-        const items = (res.data?.data || []).map(s => {
-          const st = String(s.status || '').toLowerCase();
+        const res = await api.get("/submissions/me");
+        const items = (res.data?.data || []).map((s) => {
+          const st = String(s.status || "").toLowerCase();
           return {
             id: String(s._id),
-            company: s.taskId?.createdBy?.Profile?.InstituteName || s.taskId?.createdBy?.name || s.taskId?.companyName || 'Unknown',
-            role: s.taskId?.roleOffered || 'Intern',
-            appliedDate: new Date(s.createdAt).toLocaleDateString("en-GB"),
-            status: st,
+            company:
+              s.taskId?.createdBy?.Profile?.InstituteName ||
+              s.taskId?.createdBy?.name ||
+              s.taskId?.companyName ||
+              "VIBE Partner",
+            role: s.taskId?.roleOffered || s.taskId?.title || "Intern",
+            appliedDate: new Date(s.createdAt).toLocaleDateString(),
+            status: st || "submitted",
           };
         });
         if (mounted) setInternships(items);
@@ -89,7 +96,9 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
         if (mounted) setInternships([]);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const inputClasses =
@@ -171,6 +180,16 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                 />
               </div>
             </div>
+            <p className="text-xs sm:text-sm text-[#475569] font-medium flex items-center justify-center sm:justify-start gap-1.5">
+              <GraduationCap size={15} className="text-[#6D3DF5]" />
+              <span>
+                {formData.branch || "Computer Science"} • {formData.currentYear}
+              </span>
+            </p>
+            <p className="text-xs text-[#64748B] flex items-center justify-center sm:justify-start gap-1.5">
+              <Building size={14} className="text-[#94A3B8]" />
+              <span>{formData.institutionName || "VIBE Academic Community"}</span>
+            </p>
           </div>
         </div>
 
@@ -566,6 +585,18 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                         );
                       })()}
                     </div>
+
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
+                        item.status === "accepted" || item.status === "reviewed"
+                          ? "bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]"
+                          : item.status === "rejected"
+                          ? "bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]"
+                          : "bg-[#FFFBEB] text-[#D97706] border-[#FDE68A]"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
                   </div>
                   <button className="w-full lg:w-auto p-3 rounded-xl bg-[#F8FAFC] text-[#64748B] border border-[#E1E8F2] hover:bg-[#F2ECFF] hover:text-[#6D3DF5] hover:border-[#E9E1FF] transition-all shadow-xs flex items-center justify-center gap-2 shrink-0">
                     <span className="lg:hidden text-xs font-bold">Details</span>

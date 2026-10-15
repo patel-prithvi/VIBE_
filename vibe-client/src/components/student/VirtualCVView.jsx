@@ -13,64 +13,105 @@ import {
   Download,
   Briefcase,
   Code,
-  Quote,
-  CheckCircle,
-  MapPin,
-  Github,
-  Linkedin
-} from 'lucide-react';
+  CheckCircle2,
+  Check,
+  ChevronLeft,
+  Building,
+  GraduationCap,
+  Calendar,
+  FileText,
+  BarChart2,
+} from "lucide-react";
+import Avatar from "../shared/Avatar";
+import api from "../../services/api";
 
-const mockSkills = [
-  { name: 'React.js', level: 'Advanced', score: 92, verified: true, category: 'Technical' },
-  { name: 'TypeScript', level: 'Intermediate', score: 85, verified: true, category: 'Technical' },
-  { name: 'Node.js', level: 'Intermediate', score: 78, verified: false, category: 'Technical' },
-  { name: 'Figma', level: 'Advanced', score: 88, verified: true, category: 'Tools' },
-  { name: 'Git & GitHub', level: 'Advanced', score: 95, verified: true, category: 'Tools' },
-  { name: 'Public Speaking', level: 'Intermediate', score: 82, verified: true, category: 'Soft Skills' },
-  { name: 'Team Leadership', level: 'Advanced', score: 90, verified: true, category: 'Soft Skills' },
-];
+export const VirtualCVView = ({ user, onBackToFeed }) => {
+  const [resumeData, setResumeData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-const mockExperience = [
-  {
-    id: '1',
-    company: 'TechFlow Systems',
-    role: 'Frontend Developer Intern',
-    duration: 'Jun 2024 - Present',
-    description: 'Leading the migration of core dashboard components to React 19 and improving performance by 40%.',
-    type: 'Internship',
-    verified: true
-  },
-  {
-    id: '2',
-    company: 'Freelance',
-    role: 'UI Designer',
-    duration: 'Jan 2024 - May 2024',
-    description: 'Designed and developed 5+ landing pages for local startups using Tailwind CSS and Framer Motion.',
-    type: 'Freelance',
-    verified: false
-  }
-];
+  useEffect(() => {
+    const fetchVirtualResume = async () => {
+      const uid = user?._id || user?.id;
+      if (!uid) return;
+      try {
+        setLoading(true);
+        const res = await api.get(`/virtual-resume/${uid}`);
+        if (res.data?.data) {
+          setResumeData(res.data.data);
+        }
+      } catch (err) {
+        console.warn("Could not load backend virtual resume, using profile data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVirtualResume();
+  }, [user]);
 
-const mockProjects = [
-  {
-    id: '1',
-    title: 'EcoTrack Dashboard',
-    description: 'A carbon footprint monitoring tool with real-time data visualization.',
-    skills: ['React', 'D3.js', 'Firebase'],
-    impact: 'Reduced data processing time by 60%',
-    thumbnail: 'https://picsum.photos/seed/project1/400/250'
-  },
-  {
-    id: '2',
-    title: 'VIBE Community Hub',
-    description: 'The central social platform for student engagement and mentorship.',
-    skills: ['Next.js', 'Tailwind', 'Three.js'],
-    impact: 'Onboarded 500+ students in first week',
-    thumbnail: 'https://picsum.photos/seed/project2/400/250'
-  }
-];
+  const displayName = user?.name || "Student";
+  const displayAvatar = user?.ImageUrl || user?.avatar;
+  const institute = user?.Profile?.InstituteName || "VIBE Institute of Technology";
+  const branch = user?.Profile?.Branch || user?.Profile?.branch || "Computer Science";
+  const year = user?.Profile?.YearOfStudy || user?.Profile?.currentYear || "3rd Year";
 
-export const VirtualCVView = ({ user }) => {
+  // Merged skills: prioritize backend skills if present, or profile skills, or standard academic skill categories
+  const backendSkills = resumeData?.skills || [];
+  const defaultSkills = [
+    { name: "React.js", category: "Technical", level: "Advanced", verified: true },
+    { name: "JavaScript / TypeScript", category: "Technical", level: "Advanced", verified: true },
+    { name: "Node.js & Express", category: "Technical", level: "Intermediate", verified: true },
+    { name: "Data Structures & Algorithms", category: "Technical", level: "Intermediate", verified: true },
+    { name: "Git & Version Control", category: "Tools", level: "Advanced", verified: true },
+    { name: "Figma & UI/UX Design", category: "Tools", level: "Intermediate", verified: false },
+    { name: "Problem Solving", category: "Soft Skills", level: "Advanced", verified: true },
+    { name: "Team Collaboration", category: "Soft Skills", level: "Advanced", verified: true },
+  ];
+
+  const displayedSkills =
+    backendSkills.length > 0
+      ? backendSkills.map((s) => ({
+          name: s,
+          category: "Technical",
+          level: "Verified",
+          verified: true,
+        }))
+      : defaultSkills;
+
+  // Real or simulated experience/tasks
+  const displayedExperience =
+    resumeData?.experience && resumeData.experience.length > 0
+      ? resumeData.experience.map((exp, idx) => ({
+          id: String(idx),
+          role: exp.taskTitle || "Industry Challenge",
+          company: "VIBE Partner Organization",
+          duration: exp.completedAt ? new Date(exp.completedAt).toLocaleDateString() : "Recent",
+          description: exp.problemStatement || "Completed real industry task requirements with verified submission.",
+          verified: true,
+          techStack: Array.isArray(exp.techStack) ? exp.techStack : [],
+        }))
+      : [
+          {
+            id: "1",
+            role: "Full-Stack Development Contributor",
+            company: "Academic Project & Industry Tasks",
+            duration: "2025 - Present",
+            description: "Developed modern web application modules using React and Node.js with component-based architecture.",
+            verified: true,
+            techStack: ["React", "Tailwind CSS", "REST APIs"],
+          },
+        ];
+
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      alert("CV link copied to clipboard!");
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* 1. CV Header */}
@@ -141,6 +182,14 @@ export const VirtualCVView = ({ user }) => {
                 <Download size={14} /> Export CV
               </button>
             </div>
+            <p className="text-xs sm:text-sm text-[#475569] font-medium flex items-center justify-center sm:justify-start gap-1.5">
+              <GraduationCap size={15} className="text-[#6D3DF5]" />
+              <span>{branch} • {year}</span>
+            </p>
+            <p className="text-xs text-[#64748B] flex items-center justify-center sm:justify-start gap-1.5">
+              <Building size={14} className="text-[#94A3B8]" />
+              <span>{institute}</span>
+            </p>
           </div>
         </div>
 
@@ -173,7 +222,6 @@ export const VirtualCVView = ({ user }) => {
             <div className="p-3 bg-[#F3EEFF] text-[#6D3DF5] rounded-2xl">
               <Zap size={24} />
             </div>
-            <h3 className="text-2xl font-black text-gray-900">Skills Matrix</h3>
           </div>
 
           <div className="space-y-8 bg-white rounded-2xl p-8 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -204,6 +252,12 @@ export const VirtualCVView = ({ user }) => {
               </div>
             ))}
           </div>
+          <div className="w-full bg-[#F1F5F9] rounded-full h-2 mt-3 overflow-hidden">
+            <div className="bg-[#6D3DF5] h-2 rounded-full w-[92%]" />
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-2">
+            Tailored for tech roles and verified industry internship tasks.
+          </p>
         </div>
 
         {/* 4 & 5. Experience & Projects */}
@@ -290,8 +344,18 @@ export const VirtualCVView = ({ user }) => {
               ))}
             </div>
           </div>
+          <ul className="space-y-1.5 text-xs text-[#334155] mt-1">
+            <li className="flex items-start gap-1.5">
+              <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
+              <span>Highlight live project links & GitHub repos</span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
+              <span>Connect with a faculty mentor for code reviews</span>
+            </li>
+          </ul>
         </div>
-      </div>
+      </motion.section>
 
       {/* 8. Feedback Section */}
       <section className="space-y-6">
@@ -299,7 +363,6 @@ export const VirtualCVView = ({ user }) => {
           <div className="p-3 bg-[#FDF2F8] text-[#DB2777] rounded-2xl">
             <Quote size={24} />
           </div>
-          <h3 className="text-2xl font-black text-gray-900">Mentor Highlights</h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -313,7 +376,26 @@ export const VirtualCVView = ({ user }) => {
                 <h5 className="font-black text-gray-900 text-sm">Prof. Anjali Sharma</h5>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">HOD, Computer Engineering</p>
               </div>
+              {skill.verified && (
+                <div className="w-5 h-5 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0" title="Verified Skill">
+                  <Check size={12} strokeWidth={3} />
+                </div>
+              )}
             </div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* 4. Experience & Projects Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center">
+            <Briefcase size={18} />
           </div>
           <div className="bg-white rounded-2xl p-8 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex gap-6">
             <div className="w-16 h-16 rounded-2xl bg-[#FEF3C7] shrink-0 overflow-hidden">
@@ -328,10 +410,6 @@ export const VirtualCVView = ({ user }) => {
             </div>
           </div>
         </div>
-      </section>
-    </div>
-  );
-};
 
 const StatCard = ({ icon: Icon, label, value, color }) => {
   const colors = {

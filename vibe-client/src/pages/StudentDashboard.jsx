@@ -19,13 +19,66 @@ const StudentDashboard = () => {
   const [activeView, setActiveView] = useState(() => localStorage.getItem('vibe_student_tab') || 'posts');
   const [activeFeedTab, setActiveFeedTab] = useState('for-you');
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorage.getItem("vibe_sidebar_collapsed") === "true"
+  );
   const [user, setUser] = useState(auth.getCurrentUser());
   const [posts, setPosts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("vibe_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
+  const fetchPostsAndBookmarks = async () => {
+    try {
+      setLoadingPosts(true);
+      setPostsError("");
+      const userData = await auth.fetchUser();
+      setUser(userData);
+
+      // Fetch all posts
+      const postsRes = await api.get("/posts");
+      if (postsRes.data && postsRes.data.data) {
+        const mappedPosts = postsRes.data.data.map((post) => ({
+          id: post._id,
+          _id: post._id,
+          author: {
+            id: post.author?._id || post.author?.id,
+            _id: post.author?._id || post.author?.id,
+            name: post.author?.name || "Unknown",
+            role: post.author?.accountType || "Student",
+            accountType: post.author?.accountType || "Student",
+            avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || "default"}/200`,
+            verified: true,
+            details: post.author?.Profile?.Branch 
+              ? `${post.author?.Profile?.YearOfStudy ? `${post.author.Profile.YearOfStudy} year` : "Student"}, ${post.author?.Profile?.Branch}`
+              : "VIBE Member",
+          },
+          time: new Date(post.createdAt).toLocaleDateString(),
+          createdAt: post.createdAt,
+          title: post.title,
+          content: post.content,
+          category: post.category || "General",
+          tags: Array.isArray(post.tags) ? post.tags : [],
+          attachments: post.attachments || [],
+          vibes: post.vibes || {},
+          vibeCount: post.vibes ? Object.keys(post.vibes).length : 0,
+          commentCount: post.comments?.length || 0,
+          comments: post.comments || [],
+          shares: 4,
+        }));
+        setPosts(mappedPosts);
+      } else {
+        setPosts([]);
+      }
+
+      // Fetch real bookmarks from backend
       try {
         setLoadingPosts(true);
         const userData = await auth.fetchUser();
@@ -35,10 +88,16 @@ const StudentDashboard = () => {
         if (postsRes.data && postsRes.data.data) {
            const mappedPosts = postsRes.data.data.map(post => ({
             id: post._id,
+            _id: post._id,
             author: {
               name: post.author?.name || "Unknown",
-              role: post.author?.accountType || "User",
-              avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || 'default'}/200`
+              role: post.author?.accountType || "Student",
+              accountType: post.author?.accountType || "Student",
+              avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || "default"}/200`,
+              verified: true,
+              details: post.author?.Profile?.Branch 
+                ? `${post.author?.Profile?.YearOfStudy ? `${post.author.Profile.YearOfStudy} year` : "Student"}, ${post.author?.Profile?.Branch}`
+                : "VIBE Member",
             },
             timestamp: new Date(post.createdAt).toLocaleDateString(),
             tag: post.category || "General",
@@ -50,38 +109,37 @@ const StudentDashboard = () => {
             vibes: post.vibes || {},
             vibeCount: post.vibes ? Object.keys(post.vibes).length : 0,
             commentCount: post.comments?.length || 0,
-            comments: (post.comments || []).map(c => ({
-               id: c._id,
-               author: {
-                 name: c.author?.name || "Unknown",
-                 role: c.author?.accountType || "User",
-                 avatar: c.author?.ImageUrl || `https://picsum.photos/seed/${c.author?._id || 'default'}/200`
-               },
-               content: c.content,
-               timestamp: new Date(c.createdAt).toLocaleDateString(),
-               likes: c.vibes ? Object.keys(c.vibes).length : 0
-            }))
+            comments: post.comments || [],
+            shares: 4,
           }));
-          setPosts(mappedPosts);
+          setBookmarkedPosts(bmList);
+          setBookmarkedIds(new Set(bmList.map((p) => p.id)));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoadingPosts(false);
       }
-    };
-    fetchData();
+    } catch (error) {
+      console.error("Error fetching student dashboard data:", error);
+      setPostsError("Failed to load feed posts. Please check your connection and try again.");
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPostsAndBookmarks();
   }, []);
 
   // Scroll to top when section changes
   useEffect(() => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
   }, [activeView]);
 
-  // Custom handler for section navigation with scroll
   const handleSectionChange = (newSection) => {
     const next = newSection === 'home' ? 'posts' : newSection;
     setActiveView(next);
@@ -187,13 +245,18 @@ const StudentDashboard = () => {
         isOpen={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
         onPostCreated={(newPost) => {
-          // Refresh posts or append new post
           const mappedPost = {
             id: newPost._id,
+            _id: newPost._id,
             author: {
-              name: user.name || "Unknown",
-              role: user.role || "User",
-              avatar: user.ImageUrl || `https://picsum.photos/seed/${user._id || 'default'}/200`
+              name: user?.name || "Student",
+              role: user?.accountType || user?.role || "Student",
+              accountType: user?.accountType || user?.role || "Student",
+              avatar: user?.ImageUrl || `https://picsum.photos/seed/${user?._id || "default"}/200`,
+              verified: true,
+              details: user?.Profile?.Branch 
+                ? `${user?.Profile?.YearOfStudy ? `${user.Profile.YearOfStudy} year` : "Student"}, ${user.Profile.Branch}`
+                : "Student Member",
             },
             timestamp: "Just now",
             tag: newPost.category || "General",
@@ -205,12 +268,13 @@ const StudentDashboard = () => {
             vibes: {},
             vibeCount: 0,
             commentCount: 0,
-            comments: []
+            comments: [],
+            shares: 0,
           };
           setPosts([mappedPost, ...posts]);
         }}
       />
-    </>
+    </div>
   );
 };
 

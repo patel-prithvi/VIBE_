@@ -12,7 +12,7 @@ export const FacultyBookmarksView = ({
   return (
     <div className="w-full min-w-0 space-y-5">
       {/* Page Header */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-between">
+      <div className="vibe-card p-5 sm:p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center flex-shrink-0">
             <Bookmark size={20} />
@@ -52,7 +52,7 @@ export const FacultyBookmarksView = ({
             );
           })
         ) : (
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-3">
+          <div className="vibe-card p-12 text-center space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-[#F8FAFC] text-[#94A3B8] flex items-center justify-center mx-auto border border-[#E2E8F0]">
               <Bookmark size={28} />
             </div>
@@ -66,7 +66,7 @@ export const FacultyBookmarksView = ({
             </div>
             <button
               onClick={onBackToFeed}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#172554] hover:bg-[#0F172A] text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+              className="mt-2 inline-flex items-center gap-2 vibe-btn vibe-btn-navy px-4 py-2 text-xs shadow-xs"
             >
               Explore Community Posts
             </button>

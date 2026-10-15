@@ -511,14 +511,14 @@ const Login = () => {
 // Helper Input Field (Scoped to Login)
 const InputField = ({ label, icon, type = 'text', placeholder, value, onChange }) => (
   <div className="relative group">
-    <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">{label}</label>
+    <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">{label}</label>
     <div className="relative">
       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-colors">{icon}</div>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
+        className="vibe-auth-input font-medium"
         placeholder={placeholder}
       />
     </div>
