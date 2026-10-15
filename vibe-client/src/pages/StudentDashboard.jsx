@@ -24,8 +24,11 @@ const StudentDashboard = () => {
   );
   const [user, setUser] = useState(auth.getCurrentUser());
   const [posts, setPosts] = useState([]);
+  const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [postsError, setPostsError] = useState("");
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -80,13 +83,9 @@ const StudentDashboard = () => {
 
       // Fetch real bookmarks from backend
       try {
-        setLoadingPosts(true);
-        const userData = await auth.fetchUser();
-        setUser(userData);
-
-        const postsRes = await api.get('/posts');
-        if (postsRes.data && postsRes.data.data) {
-           const mappedPosts = postsRes.data.data.map(post => ({
+        const bmRes = await api.get("/posts/bookmarks");
+        if (bmRes.data && bmRes.data.data) {
+          const bmList = bmRes.data.data.map((post) => ({
             id: post._id,
             _id: post._id,
             author: {
@@ -99,11 +98,11 @@ const StudentDashboard = () => {
                 ? `${post.author?.Profile?.YearOfStudy ? `${post.author.Profile.YearOfStudy} year` : "Student"}, ${post.author?.Profile?.Branch}`
                 : "VIBE Member",
             },
-            timestamp: new Date(post.createdAt).toLocaleDateString(),
-            tag: post.category || "General",
-            category: post.category || "General",
+            time: new Date(post.createdAt).toLocaleDateString(),
+            createdAt: post.createdAt,
             title: post.title,
             content: post.content,
+            category: post.category || "General",
             tags: Array.isArray(post.tags) ? post.tags : [],
             attachments: post.attachments || [],
             vibes: post.vibes || {},
@@ -115,10 +114,8 @@ const StudentDashboard = () => {
           setBookmarkedPosts(bmList);
           setBookmarkedIds(new Set(bmList.map((p) => p.id)));
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoadingPosts(false);
+      } catch (bmErr) {
+        console.warn("Could not fetch student bookmarks:", bmErr);
       }
     } catch (error) {
       console.error("Error fetching student dashboard data:", error);

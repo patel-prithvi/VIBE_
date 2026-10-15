@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff,
   Briefcase,
+  Building,
   Calendar,
   Users,
   ArrowRight,
@@ -588,14 +589,14 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
 
                     <span
                       className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${
-                        item.status === "accepted" || item.status === "reviewed"
+                        intern.status === "accepted" || intern.status === "reviewed"
                           ? "bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]"
-                          : item.status === "rejected"
+                          : intern.status === "rejected"
                           ? "bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]"
                           : "bg-[#FFFBEB] text-[#D97706] border-[#FDE68A]"
                       }`}
                     >
-                      {item.status}
+                      {intern.status}
                     </span>
                   </div>
                   <button className="w-full lg:w-auto p-3 rounded-xl bg-[#F8FAFC] text-[#64748B] border border-[#E1E8F2] hover:bg-[#F2ECFF] hover:text-[#6D3DF5] hover:border-[#E9E1FF] transition-all shadow-xs flex items-center justify-center gap-2 shrink-0">
