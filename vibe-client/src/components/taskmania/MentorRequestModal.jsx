@@ -105,9 +105,9 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/50">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
+              <div className="p-2 bg-[#EDE9FE] text-[#6D3DF5] rounded-xl">
                 <UserPlus size={24} />
               </div>
               <div>
@@ -152,7 +152,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                       placeholder="Search by name or expertise..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all"
                     />
                   </div>
 
@@ -166,17 +166,17 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                           onClick={() => setSelectedMentor(mentor)}
                           className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
                             selectedMentor?._id === mentor._id
-                              ? "bg-orange-50 border-orange-500 shadow-sm"
-                              : "bg-white border-gray-100 hover:border-orange-200"
+                              ? "bg-[#F3EEFF] border-[#6D3DF5] shadow-sm"
+                              : "bg-white border-gray-100 hover:border-[#E9E1FF]"
                           }`}
                         >
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+                          <div className="w-10 h-10 rounded-full bg-[#EDE9FE] flex items-center justify-center text-[#6D3DF5] font-bold">
                             {mentor.name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-bold text-gray-900 truncate">{mentor.name}</p>
-                              <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-bold uppercase tracking-wider">
+                              <span className="text-[10px] px-1.5 py-0.5 bg-[#EDE9FE] text-[#6D3DF5] rounded-full font-bold uppercase tracking-wider">
                                 {mentor.accountType}
                               </span>
                             </div>
@@ -187,7 +187,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                             </p>
                           </div>
                           {selectedMentor?._id === mentor._id && (
-                            <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white">
+                            <div className="w-5 h-5 bg-[#6D3DF5] rounded-full flex items-center justify-center text-white">
                               <Check size={12} />
                             </div>
                           )}
@@ -209,7 +209,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none transition-all resize-none"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all resize-none"
                   />
                 </div>
 
@@ -235,7 +235,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
               <button
                 onClick={handleSubmit}
                 disabled={loading || !selectedMentor}
-                className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-orange-600 rounded-2xl hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-[#6D3DF5] rounded-2xl hover:bg-[#5B2FD6] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

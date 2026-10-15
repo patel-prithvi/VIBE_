@@ -108,7 +108,7 @@ export const MyMentorRequestsView = () => {
                 onClick={() => setFilter(f)}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
                   filter === f
-                    ? "bg-orange-500 text-white shadow-md"
+                    ? "bg-[#6D3DF5] text-white shadow-md"
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -128,7 +128,7 @@ export const MyMentorRequestsView = () => {
             placeholder="Search by mentor name, task or company..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all"
           />
         </div>
       </div>
@@ -136,7 +136,7 @@ export const MyMentorRequestsView = () => {
       {/* Content */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
+          <Loader2 className="w-10 h-10 text-[#6D3DF5] animate-spin mb-4" />
           <p className="text-gray-500 font-medium">Loading requests...</p>
         </div>
       ) : error ? (
@@ -179,7 +179,7 @@ export const MyMentorRequestsView = () => {
                   <img
                     src={request.faculty.avatar}
                     alt={request.faculty.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-orange-100"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#EDE9FE]"
                   />
                   <div>
                     <h3 className="font-bold text-gray-900">{request.faculty.name}</h3>
@@ -200,7 +200,7 @@ export const MyMentorRequestsView = () => {
               {/* Card Body */}
               <div className="p-5 space-y-4">
                 <div>
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider mb-1">
                     Task Details
                   </p>
                   <h4 className="font-bold text-gray-800 line-clamp-1">
@@ -264,7 +264,7 @@ export const MyMentorRequestsView = () => {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
                 <div
                     className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(
@@ -296,10 +296,10 @@ export const MyMentorRequestsView = () => {
                     <p className="text-sm text-gray-500 capitalize">{selectedRequest.faculty.accountType}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Building2 size={12} className="text-orange-500" /> {selectedRequest.faculty.institute}
+                        <Building2 size={12} className="text-[#6D3DF5]" /> {selectedRequest.faculty.institute}
                       </p>
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Award size={12} className="text-orange-500" /> {selectedRequest.faculty.expertise}
+                        <Award size={12} className="text-[#6D3DF5]" /> {selectedRequest.faculty.expertise}
                       </p>
                     </div>
                   </div>
@@ -308,13 +308,13 @@ export const MyMentorRequestsView = () => {
                 {/* Task Info */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar size={18} className="text-orange-500" /> Task Information
+                    <Calendar size={18} className="text-[#6D3DF5]" /> Task Information
                   </h4>
                   <div className="border border-gray-100 rounded-2xl p-4">
                     <h5 className="font-bold text-gray-800">{selectedRequest.task.title}</h5>
                     <p className="text-sm text-gray-500 mb-3">{selectedRequest.task.company}</p>
                     <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="px-2 py-1 bg-orange-50 text-orange-600 rounded-md capitalize">
+                      <span className="px-2 py-1 bg-[#F3EEFF] text-[#6D3DF5] rounded-md capitalize">
                         {selectedRequest.task.category}
                       </span>
                       <span className="text-gray-400">Deadline: {selectedRequest.task.deadline}</span>
@@ -326,7 +326,7 @@ export const MyMentorRequestsView = () => {
                 {selectedRequest.status === "accepted" && selectedRequest.meetLink && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <ExternalLink size={18} className="text-orange-500" /> Meeting Link
+                      <ExternalLink size={18} className="text-[#6D3DF5]" /> Meeting Link
                     </h4>
                     <div className="border border-green-100 bg-green-50/30 rounded-2xl p-4">
                       <a href={selectedRequest.meetLink} target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline flex items-center gap-2">
@@ -339,9 +339,9 @@ export const MyMentorRequestsView = () => {
                 {/* Message */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-orange-500" /> Your Message
+                    <MessageSquare size={18} className="text-[#6D3DF5]" /> Your Message
                   </h4>
-                  <div className="bg-orange-50/30 rounded-2xl p-4 border border-orange-100/50">
+                  <div className="bg-[#F3EEFF]/40 rounded-2xl p-4 border border-[#EDE9FE]/50">
                     <p className="text-gray-700 leading-relaxed italic">
                       "{selectedRequest.message || "No message provided."}"
                     </p>

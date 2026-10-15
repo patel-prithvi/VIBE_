@@ -6,8 +6,10 @@ import { InstructionModal } from './InstructionModal';
 import { ApplicationFormModal } from './ApplicationFormModal';
 import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
+import { useToast } from '../Toast';
 
 export const TaskManiaView = () => {
+  const toast = useToast();
   const [tasks, setTasks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -121,71 +123,71 @@ export const TaskManiaView = () => {
       // Add to submitted tasks
       setSubmittedTasks(prev => [...prev, taskId]);
       
-      alert('Application submitted successfully!');
+      toast.success('Application submitted successfully!');
       setIsApplicationOpen(false);
     } catch (error) {
       console.error('Error submitting application:', error);
-      alert('Failed to submit application. Please try again.');
+      toast.error('Failed to submit application. Please try again.');
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header Section */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl p-8 text-white shadow-xl"
+        className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-            <Briefcase size={28} />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
+            <Briefcase size={22} />
           </div>
           <div>
-            <h2 className="text-3xl font-black">TaskMania</h2>
-            <p className="text-orange-100">Solve real industry challenges and get hired</p>
+            <h2 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">TaskMania</h2>
+            <p className="text-xs md:text-sm text-[#64748B] font-medium">Solve real industry challenges and get hired</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-2xl font-bold">
+        <div className="grid grid-cols-3 gap-3 md:gap-4 mt-5">
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">
               {tasks.filter(t => !(typeof t.deadlineTs === 'number' && Date.now() > t.deadlineTs)).length}
             </p>
-            <p className="text-sm text-orange-100">Active Tasks</p>
+            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Active Tasks</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-2xl font-bold">{submittedTasks.length}</p>
-            <p className="text-sm text-orange-100">Applied</p>
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{submittedTasks.length}</p>
+            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Applied</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-2xl font-bold">{tasks.filter(t => t.paid).length}</p>
-            <p className="text-sm text-orange-100">Paid Tasks</p>
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{tasks.filter(t => t.paid).length}</p>
+            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Paid Tasks</p>
           </div>
         </div>
       </motion.div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col md:flex-row gap-3.5">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={18} />
             <input
               type="text"
               placeholder="Search tasks, companies, or technologies..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
             />
           </div>
 
           {/* Category Filter */}
           <div className="relative">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={16} />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="pl-11 pr-8 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all appearance-none bg-white cursor-pointer min-w-[180px]"
+              className="pl-10 pr-8 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[180px]"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
@@ -198,7 +200,7 @@ export const TaskManiaView = () => {
             <select
               value={selectedMode}
               onChange={(e) => setSelectedMode(e.target.value)}
-              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all appearance-none bg-white cursor-pointer min-w-[140px]"
+              className="px-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[140px]"
             >
               {modes.map(mode => (
                 <option key={mode} value={mode}>{mode}</option>
@@ -208,8 +210,8 @@ export const TaskManiaView = () => {
         </div>
 
         {/* Results Count */}
-        <div className="mt-4 text-sm text-gray-500">
-          Showing <span className="font-bold text-gray-900">{filteredTasks.length}</span> of <span className="font-bold text-gray-900">{tasks.length}</span> tasks
+        <div className="mt-3.5 text-xs text-[#64748B]">
+          Showing <span className="font-bold text-[#0F172A]">{filteredTasks.length}</span> of <span className="font-bold text-[#0F172A]">{tasks.length}</span> tasks
         </div>
       </div>
 
@@ -229,12 +231,12 @@ export const TaskManiaView = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-100">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search size={32} className="text-gray-400" />
+        <div className="bg-white rounded-2xl p-12 text-center border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="w-14 h-14 rounded-2xl bg-[#F8FAFC] text-[#94A3B8] border border-[#E1E8F2] flex items-center justify-center mx-auto mb-4">
+            <Search size={26} />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">No tasks found</h3>
-          <p className="text-gray-500">Try adjusting your search or filters</p>
+          <h3 className="text-lg font-bold text-[#172554] mb-1.5">No tasks found</h3>
+          <p className="text-xs text-[#64748B]">Try adjusting your search or filters</p>
         </div>
       )}
 

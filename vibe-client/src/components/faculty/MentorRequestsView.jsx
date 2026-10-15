@@ -18,8 +18,10 @@ import {
   Trash2,
 } from "lucide-react";
 import api from '../../services/api';
+import { useToast } from '../Toast';
 
 export const MentorRequestsView = ({ onBackToFeed }) => {
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +84,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
 
   const handleAcceptSubmit = async () => {
     if (!meetLink.trim()) {
-      alert("Please provide a meeting link.");
+      toast.error("Please provide a meeting link.");
       return;
     }
 
@@ -100,12 +102,12 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
           req.id === acceptingRequestId ? { ...req, status: "accepted", meetLink, resources: filteredResources } : req,
         ),
       );
-      alert("Request accepted! Student will be notified.");
+      toast.success("Request accepted! Student will be notified.");
       setAcceptingRequestId(null);
       setSelectedRequest(null);
     } catch (err) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to accept request. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to accept request. Please try again.");
     }
   };
 
@@ -117,10 +119,10 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
           req.id === requestId ? { ...req, status: "rejected" } : req,
         ),
       );
-      alert("Request rejected. Student will be notified.");
+      toast.info("Request rejected. Student will be notified.");
     } catch (err) {
       console.error("Error rejecting request:", err);
-      alert(err.response?.data?.message || "Failed to reject request. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to reject request. Please try again.");
     }
   };
 
@@ -346,7 +348,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-orange-50/50">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
                 <button
                   onClick={() => setSelectedRequest(null)}
@@ -371,10 +373,10 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                     <p className="text-sm text-gray-500">{selectedRequest.student.email}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Award size={12} className="text-orange-500" /> {selectedRequest.student.college}
+                        <Award size={12} className="text-[#6D3DF5]" /> {selectedRequest.student.college}
                       </p>
                       <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <User size={12} className="text-orange-500" /> {selectedRequest.student.year} • {selectedRequest.student.branch}
+                        <User size={12} className="text-[#6D3DF5]" /> {selectedRequest.student.year} • {selectedRequest.student.branch}
                       </p>
                     </div>
                   </div>
@@ -383,13 +385,13 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                 {/* Task Info */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar size={18} className="text-orange-500" /> Task Information
+                    <Calendar size={18} className="text-[#6D3DF5]" /> Task Information
                   </h4>
                   <div className="border border-gray-100 rounded-2xl p-4">
                     <h5 className="font-bold text-gray-800">{selectedRequest.task.title}</h5>
                     <p className="text-sm text-gray-500 mb-3">{selectedRequest.task.company}</p>
                     <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="px-2 py-1 bg-orange-50 text-orange-600 rounded-md capitalize">
+                      <span className="px-2 py-1 bg-[#F3EEFF] text-[#6D3DF5] rounded-md capitalize">
                         {selectedRequest.task.category}
                       </span>
                       <span className="text-gray-400">Deadline: {selectedRequest.task.deadline}</span>
@@ -401,7 +403,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                 {selectedRequest.status === "accepted" && selectedRequest.meetLink && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <ExternalLink size={18} className="text-orange-500" /> Meeting Link
+                      <ExternalLink size={18} className="text-[#6D3DF5]" /> Meeting Link
                     </h4>
                     <div className="border border-green-100 bg-green-50/30 rounded-2xl p-4">
                       <a href={selectedRequest.meetLink} target="_blank" rel="noopener noreferrer" className="text-green-600 font-medium hover:underline flex items-center gap-2">
@@ -415,7 +417,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                 {selectedRequest.status === "accepted" && selectedRequest.resources && selectedRequest.resources.length > 0 && (
                   <div className="space-y-3">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <FileText size={18} className="text-orange-500" /> Shared Resources
+                      <FileText size={18} className="text-[#6D3DF5]" /> Shared Resources
                     </h4>
                     <div className="grid grid-cols-1 gap-3">
                       {selectedRequest.resources.map((res, i) => (
@@ -429,7 +431,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                               <p className="text-xs text-gray-500 truncate max-w-[200px]">{res.url}</p>
                             </div>
                           </div>
-                          <a href={res.url} target="_blank" rel="noopener noreferrer" className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all">
+                          <a href={res.url} target="_blank" rel="noopener noreferrer" className="p-2 text-[#6D3DF5] hover:bg-[#F3EEFF] rounded-lg transition-all">
                             <ExternalLink size={16} />
                           </a>
                         </div>
@@ -441,9 +443,9 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                 {/* Message */}
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-orange-500" /> Message
+                    <MessageSquare size={18} className="text-[#6D3DF5]" /> Message
                   </h4>
-                  <div className="bg-orange-50/30 rounded-2xl p-4 border border-orange-100/50">
+                  <div className="bg-[#F3EEFF]/40 rounded-2xl p-4 border border-[#EDE9FE]/50">
                     <p className="text-gray-700 leading-relaxed italic">
                       "{selectedRequest.message || "No message provided."}"
                     </p>

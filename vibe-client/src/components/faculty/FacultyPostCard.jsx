@@ -10,6 +10,7 @@ import {
   CornerDownRight,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
+import { useToast } from "../Toast";
 import { auth } from "../../utils/auth";
 import api from "../../services/api";
 
@@ -19,6 +20,7 @@ export const FacultyPostCard = ({
   isBookmarked = false,
   onToggleBookmark,
 }) => {
+  const toast = useToast();
   const user = currentUser || auth.getCurrentUser();
   const userId = user?._id?.toString() || user?.id?.toString();
 
@@ -102,7 +104,7 @@ export const FacultyPostCard = ({
       }
     } catch (err) {
       console.error("Error submitting comment:", err);
-      alert(err.response?.data?.message || "Failed to submit comment. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to submit comment. Please try again.");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -292,7 +294,7 @@ export const FacultyPostCard = ({
             onClick={() => {
               if (navigator.clipboard) {
                 navigator.clipboard.writeText(window.location.href);
-                alert("Post link copied to clipboard!");
+                toast.success("Post link copied to clipboard!");
               }
             }}
             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] transition-colors"

@@ -1,28 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
-import { DashboardLayout } from '../components/shared/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
+import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
+import { StudentLeftSidebar } from '../components/student/StudentLeftSidebar';
+import { StudentCenterFeed } from '../components/student/StudentCenterFeed';
+import { StudentRightPanel } from '../components/student/StudentRightPanel';
 import { ProfileView } from '../components/student/ProfileView';
-import { PostCard } from '../components/posts/PostCard';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { VirtualCVView } from '../components/student/VirtualCVView';
 import { TaskManiaView } from '../components/taskmania/TaskManiaView';
 import { MyMentorRequestsView } from '../components/student/MyMentorRequestsView';
 import { auth } from '../utils/auth';
 import api from '../services/api';
+import { useToast } from '../components/Toast';
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [activeView, setActiveView] = useState(() => localStorage.getItem('vibe_student_tab') || 'posts');
+  const [activeFeedTab, setActiveFeedTab] = useState('for-you');
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [user, setUser] = useState(auth.getCurrentUser());
   const [posts, setPosts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoadingPosts(true);
         const userData = await auth.fetchUser();
         setUser(userData);
-        
+
         const postsRes = await api.get('/posts');
         if (postsRes.data && postsRes.data.data) {
            const mappedPosts = postsRes.data.data.map(post => ({
@@ -32,10 +40,13 @@ const StudentDashboard = () => {
               role: post.author?.accountType || "User",
               avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || 'default'}/200`
             },
-            timestamp: new Date(post.createdAt).toLocaleDateString(), 
+            timestamp: new Date(post.createdAt).toLocaleDateString(),
             tag: post.category || "General",
+            category: post.category || "General",
             title: post.title,
             content: post.content,
+            tags: Array.isArray(post.tags) ? post.tags : [],
+            attachments: post.attachments || [],
             vibes: post.vibes || {},
             vibeCount: post.vibes ? Object.keys(post.vibes).length : 0,
             commentCount: post.comments?.length || 0,
@@ -55,22 +66,15 @@ const StudentDashboard = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setLoadingPosts(false);
       }
     };
     fetchData();
   }, []);
+
   // Scroll to top when section changes
   useEffect(() => {
-    // Scroll the main content area to top
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      mainContent.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
-    
-    // Also scroll window to top as fallback
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -79,42 +83,27 @@ const StudentDashboard = () => {
 
   // Custom handler for section navigation with scroll
   const handleSectionChange = (newSection) => {
-    setActiveView(newSection);
-    localStorage.setItem('vibe_student_tab', newSection);
+    const next = newSection === 'home' ? 'posts' : newSection;
+    setActiveView(next);
+    localStorage.setItem('vibe_student_tab', next);
+  };
+
+  const handleLogout = async () => {
+    const confirmed = await toast.confirm({
+      title: "Logout?",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true,
+    });
+    if (confirmed) {
+      await auth.logout();
+      navigate("/");
+      toast.success("You have been successfully logged out!");
+    }
   };
 
   const renderContent = () => {
     switch (activeView) {
-      case 'posts':
-        return (
-          <div className="space-y-8">
-            {/* Header with Create Post Button */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Community Posts</h2>
-                <p className="text-gray-600">Connect, share, and learn with the VIBE community</p>
-              </div>
-              <button
-                onClick={() => setIsCreatePostOpen(true)}
-                className="flex items-center justify-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-200 hover:bg-orange-700 transition-all"
-              >
-                <Plus size={18} />
-                <span>Create Post</span>
-              </button>
-            </div>
-
-            {/* Posts Feed */}
-            <div className="space-y-6">
-              {posts && posts.length > 0 ? posts.map((post, index) => (
-                <PostCard post={post} index={index} key={post.id} />
-              )) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No posts available</p>
-                </div>
-              )}
-            </div>
-          </div>
-        );
       case 'taskmania':
         return <TaskManiaView />;
       case 'requests':
@@ -123,30 +112,80 @@ const StudentDashboard = () => {
         return <ProfileView user={user} onProfileUpdate={setUser} />;
       case 'virtual-cv':
         return <VirtualCVView user={user} />;
+      case 'posts':
       default:
         return (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Content not found</p>
-          </div>
+          <StudentCenterFeed
+            user={user}
+            posts={posts}
+            activeTab={activeFeedTab}
+            onTabChange={setActiveFeedTab}
+            onOpenCreatePost={() => setIsCreatePostOpen(true)}
+            loading={loadingPosts}
+            searchQuery={searchQuery}
+          />
         );
     }
   };
 
+  // Wide views (tasks, requests, profile, CV) get a 2-column layout; home feed gets the 3-column shell
+  const isWideView = activeView !== 'posts';
+
   return (
     <>
-      <DashboardLayout
-        activeTab={activeView}
-        setActiveTab={handleSectionChange}
-        role="student"
-        user={user}
-      >
-        {renderContent()}
-      </DashboardLayout>
+      <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
+        {/* 1. Horizontal Header Aligned across the top */}
+        <FacultyTopHeader
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={handleSectionChange}
+          onSearch={setSearchQuery}
+        />
+
+        {/* 2. Main Desktop Dashboard Container */}
+        <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          {isWideView ? (
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
+              {/* Column 1: Left Fixed-Width Sidebar */}
+              <StudentLeftSidebar
+                activeView={activeView}
+                onNavigate={handleSectionChange}
+                onLogout={handleLogout}
+              />
+
+              {/* Dedicated View Column (Full available width, no right panel) */}
+              <div className="min-w-0 w-full">
+                {renderContent()}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_260px] gap-5 items-start">
+              {/* Column 1: Left Fixed-Width Sidebar */}
+              <StudentLeftSidebar
+                activeView={activeView}
+                onNavigate={handleSectionChange}
+                onLogout={handleLogout}
+              />
+
+              {/* Column 2: Center Feed (Primary content area, visibly wider than sidebars) */}
+              <div className="min-w-0 w-full">
+                {renderContent()}
+              </div>
+
+              {/* Column 3: Right Sidebar — Equal width to left sidebar (260px) */}
+              <StudentRightPanel
+                onNavigate={handleSectionChange}
+                onOpenCreatePost={() => setIsCreatePostOpen(true)}
+              />
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Create Post Modal */}
-      <CreatePostModal 
-        isOpen={isCreatePostOpen} 
-        onClose={() => setIsCreatePostOpen(false)} 
+      <CreatePostModal
+        isOpen={isCreatePostOpen}
+        onClose={() => setIsCreatePostOpen(false)}
         onPostCreated={(newPost) => {
           // Refresh posts or append new post
           const mappedPost = {
@@ -158,8 +197,11 @@ const StudentDashboard = () => {
             },
             timestamp: "Just now",
             tag: newPost.category || "General",
+            category: newPost.category || "General",
             title: newPost.title,
             content: newPost.content,
+            tags: Array.isArray(newPost.tags) ? newPost.tags : [],
+            attachments: newPost.attachments || [],
             vibes: {},
             vibeCount: 0,
             commentCount: 0,

@@ -24,9 +24,11 @@ import {
 } from '../components/public/Doodles';
 import { auth } from '../utils/auth';
 import api from '../services/api';
+import { useToast } from '../components/Toast';
 
 const Login = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -53,11 +55,11 @@ const Login = () => {
         } else {
           // Fallback if something went wrong
           console.error("Login successful but no role found", user);
-          alert("Login successful but could not determine user role.");
+          toast.error("Login successful but could not determine user role.");
         }
       }
     } catch (error) {
-      alert(error?.message || "Login failed. Please check your credentials.");
+      toast.error(error?.message || "Login failed. Please check your credentials.");
     }
   };
 
@@ -424,18 +426,18 @@ const Login = () => {
                       fullWidth
                       className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5]"
                       onClick={async () => {
-                        if (!forgotEmail) return alert("Please enter your email");
+                        if (!forgotEmail) { toast.error("Please enter your email"); return; }
                         try {
                           const response = await api.post('/users/forgot-password', { email: forgotEmail });
                           
                           if (response.status === 200) {
                             setForgotStep(2);
-                            alert("Verification code sent to your email!");
+                            toast.success("Verification code sent to your email!");
                           }
                         } catch (err) {
                           console.error(err);
                           const msg = err.response?.data?.message || "Failed to send code";
-                          alert(msg);
+                          toast.error(msg);
                         }
                       }}
                     >
@@ -464,7 +466,7 @@ const Login = () => {
                       fullWidth
                       className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5]"
                       onClick={async () => {
-                        if (!forgotOtp || !newPassword) return alert("Please fill all fields");
+                        if (!forgotOtp || !newPassword) { toast.error("Please fill all fields"); return; }
                         try {
                           const response = await api.post('/users/reset-password', { 
                             email: forgotEmail, 
@@ -473,7 +475,7 @@ const Login = () => {
                           });
                           
                           if (response.status === 200) {
-                            alert("Password reset successfully! You can now login.");
+                            toast.success("Password reset successfully! You can now login.");
                             setShowForgotModal(false);
                             setForgotStep(1);
                             setForgotEmail('');
@@ -483,7 +485,7 @@ const Login = () => {
                         } catch (err) {
                           console.error(err);
                           const msg = err.response?.data?.message || "Failed to reset password";
-                          alert(msg);
+                          toast.error(msg);
                         }
                       }}
                     >

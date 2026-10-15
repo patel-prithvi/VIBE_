@@ -15,7 +15,7 @@ import ChartErrorBoundary from "../ChartErrorBoundary";
 import { useChartDimensions } from "../hooks/useChartDimensions";
 
 const StatCard = ({ icon: Icon, label, value, trend, color }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 hover:shadow-xl hover:shadow-orange-500/20 hover:scale-105 transition-all duration-300 cursor-pointer">
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#E2E8F0] hover:shadow-xl hover:shadow-[#6D3DF5]/20 hover:scale-105 transition-all duration-300 cursor-pointer">
     <div className="flex justify-between items-start mb-4">
       <div className={`p-3 rounded-xl ${color}`}>
         <Icon className="w-6 h-6 text-white" />
@@ -140,39 +140,39 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
           label="Total Tasks Posted"
           value={totalTasksCount}
           trend="+12%"
-          color="bg-orange-500"
+          color="bg-[#6D3DF5]"
         />
         <StatCard
           icon={Clock}
           label="Active Tasks"
           value={activeTasksCount}
           trend="+4%"
-          color="bg-blue-500"
+          color="bg-[#3B82F6]"
         />
         <StatCard
           icon={Users}
           label="Total Submissions"
           value={applicants.length}
           trend="+28%"
-          color="bg-indigo-500"
+          color="bg-[#8B5CF6]"
         />
         <StatCard
           icon={CheckCircle}
           label="Acceptance Rate"
           value={`${acceptanceRate}%`}
           trend={totalDecisions > 0 ? "Live" : "Est."}
-          color="bg-emerald-500"
+          color="bg-[#10B981]"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-[#E2E8F0]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-slate-800">
               Student Submissions Overview
             </h3>
-            <select className="text-sm border-none bg-orange-50 text-orange-600 font-medium rounded-lg px-3 py-1 focus:ring-0 cursor-pointer">
+            <select className="text-sm border-none bg-[#F3EEFF] text-[#6D3DF5] font-medium rounded-lg px-3 py-1 focus:ring-0 cursor-pointer">
               <option>Last 7 Days</option>
             </select>
           </div>
@@ -187,8 +187,8 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
                   <AreaChart data={dataActivity} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#6D3DF5" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#6D3DF5" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid
@@ -222,7 +222,7 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
                       type="monotone"
                       dataKey="applications"
                       name="Student Submissions"
-                      stroke="#f97316"
+                      stroke="#6D3DF5"
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorApps)"
@@ -232,7 +232,7 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6D3DF5] mx-auto mb-2"></div>
                     <p className="text-slate-500 text-sm">Loading chart...</p>
                   </div>
                 </div>
@@ -243,20 +243,20 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
 
         {/* Quick Actions & Secondary Chart */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-orange-500/20">
+          <div className="bg-gradient-to-br from-[#6D3DF5] to-[#5B2FD6] rounded-2xl p-6 text-white shadow-lg shadow-[#6D3DF5]/25">
             <h3 className="text-xl font-bold mb-2">Ready to grow?</h3>
-            <p className="text-orange-100 mb-6 text-sm">
+            <p className="text-white/80 mb-6 text-sm">
               Post a new task to engage with top student talent immediately.
             </p>
             <button
               onClick={() => setActiveTab("tasks")}
-              className="w-full bg-white text-orange-600 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-sm"
+              className="w-full bg-white text-[#6D3DF5] py-3 rounded-xl font-bold hover:bg-[#F3EEFF] transition-colors shadow-sm"
             >
               Post New Task
             </button>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#E2E8F0]">
             <h3 className="text-lg font-bold text-slate-800 mb-4">
               Student Demographics
             </h3>
@@ -278,10 +278,10 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
                         tickLine={false}
                         tick={{ fontSize: 12, fill: "#64748b" }}
                       />
-                      <Tooltip cursor={{ fill: "#fff7ed" }} />
+                      <Tooltip cursor={{ fill: "#F3EEFF" }} />
                       <Bar
                         dataKey="count"
-                        fill="#fb923c"
+                        fill="#6D3DF5"
                         radius={[0, 4, 4, 0]}
                         barSize={20}
                       />
@@ -290,7 +290,7 @@ export const Overview = ({ setActiveTab, tasks = [], applicants = [] }) => {
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto mb-2"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6D3DF5] mx-auto mb-2"></div>
                       <p className="text-slate-500 text-xs">Loading...</p>
                     </div>
                   </div>

@@ -10,9 +10,11 @@ import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/Toast";
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   // Default view is "home" which represents the 3-column feed dashboard
   const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_faculty_tab") || "home");
   const [activeFeedTab, setActiveFeedTab] = useState("for-you");
@@ -128,10 +130,16 @@ const FacultyDashboard = () => {
   };
 
   const handleLogout = async () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-    if (confirmLogout) {
+    const confirmed = await toast.confirm({
+      title: "Logout?",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true,
+    });
+    if (confirmed) {
       await auth.logout();
       navigate("/");
+      toast.success("You have been successfully logged out!");
     }
   };
 

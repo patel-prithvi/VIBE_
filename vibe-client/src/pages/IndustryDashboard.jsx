@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '../components/shared/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
+import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
+import { IndustryLeftSidebar } from '../components/industry/IndustryLeftSidebar';
+import { IndustryRightPanel } from '../components/industry/IndustryRightPanel';
 import { Overview } from '../components/industry/Overview';
 import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
 import { Profile } from '../components/industry/Profile';
 import { auth } from '../utils/auth';
 import api from '../services/api';
+import { useToast } from '../components/Toast';
 
 const IndustryDashboard = () => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('vibe_industry_tab') || 'overview');
   const [user, setUser] = useState(auth.getCurrentUser());
   const [tasks, setTasks] = useState([]);
   const [applicants, setApplicants] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,8 +135,23 @@ const IndustryDashboard = () => {
 
   // Custom handler for section navigation with scroll
   const handleSectionChange = (newSection) => {
-    setActiveTab(newSection);
-    localStorage.setItem('vibe_industry_tab', newSection);
+    const next = newSection === 'home' ? 'overview' : newSection;
+    setActiveTab(next);
+    localStorage.setItem('vibe_industry_tab', next);
+  };
+
+  const handleLogout = async () => {
+    const confirmed = await toast.confirm({
+      title: "Logout?",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true,
+    });
+    if (confirmed) {
+      await auth.logout();
+      navigate("/");
+      toast.success("You have been successfully logged out!");
+    }
   };
 
   const fetchAndMapTasks = async () => {
@@ -185,11 +207,11 @@ const IndustryDashboard = () => {
       const response = await api.post('/tasks', payload);
       if (response.data && response.data.data) {
         await fetchAndMapTasks();
-        alert("Task created successfully!");
+        toast.success("Task created successfully!");
       }
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task");
+      toast.error("Failed to create task");
     }
   };
 
@@ -211,10 +233,10 @@ const IndustryDashboard = () => {
 
       await api.put(`/tasks/${updatedTask.id}`, payload);
       await fetchAndMapTasks();
-      alert("Task updated successfully!");
+      toast.success("Task updated successfully!");
     } catch (error) {
        console.error("Error updating task:", error);
-       alert("Failed to update task");
+       toast.error("Failed to update task");
     }
   };
 
@@ -235,10 +257,10 @@ const IndustryDashboard = () => {
       setApplicants(prev => prev.map(applicant =>
         applicant.id === applicantId ? { ...applicant, status: newStatus } : applicant
       ));
-      alert("Status updated");
+      toast.success("Status updated");
     } catch (error) {
       console.error("Error updating applicant status:", error);
-      alert("Failed to update status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -253,7 +275,7 @@ const IndustryDashboard = () => {
           />
         );
       case 'community':
-        return <Community />;
+        return <Community searchQuery={searchQuery} />;
       case 'tasks':
         return (
           <MyTasks
@@ -266,7 +288,7 @@ const IndustryDashboard = () => {
           />
         );
       case 'profile':
-        return <Profile user={user} tasks={tasks} onProfileUpdate={setUser} />;
+        return <Profile user={user} tasks={tasks} applicants={applicants} onProfileUpdate={setUser} />;
       default:
         return (
           <Overview
@@ -278,15 +300,60 @@ const IndustryDashboard = () => {
     }
   };
 
+  // Wide views (tasks, profile) get a 2-column layout; home views get the 3-column faculty shell
+  const isWideView = activeTab === 'tasks' || activeTab === 'profile';
+
   return (
-    <DashboardLayout
-      activeTab={activeTab}
-      setActiveTab={handleSectionChange}
-      role="industry"
-      user={user}
-    >
-      {renderContent()}
-    </DashboardLayout>
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
+      {/* 1. Horizontal Header Aligned across the top */}
+      <FacultyTopHeader
+        user={user}
+        onLogout={handleLogout}
+        onNavigate={handleSectionChange}
+        onSearch={setSearchQuery}
+      />
+
+      {/* 2. Main Desktop Dashboard Container */}
+      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        {isWideView ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
+            {/* Column 1: Left Fixed-Width Sidebar */}
+            <IndustryLeftSidebar
+              activeView={activeTab}
+              onNavigate={handleSectionChange}
+              onLogout={handleLogout}
+            />
+
+            {/* Dedicated View Column (Full available width, no right panel) */}
+            <div className="min-w-0 w-full">
+              {renderContent()}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_260px] gap-5 items-start">
+            {/* Column 1: Left Fixed-Width Sidebar */}
+            <IndustryLeftSidebar
+              activeView={activeTab}
+              onNavigate={handleSectionChange}
+              onLogout={handleLogout}
+            />
+
+            {/* Column 2: Center (Primary content area, visibly wider than sidebars) */}
+            <div className="min-w-0 w-full">
+              {renderContent()}
+            </div>
+
+            {/* Column 3: Right Sidebar — Equal width to left sidebar (260px) */}
+            <IndustryRightPanel
+              applicants={applicants}
+              onUpdateApplicantStatus={handleUpdateApplicantStatus}
+              onNavigate={handleSectionChange}
+              onPostTask={() => handleSectionChange('tasks')}
+            />
+          </div>
+        )}
+      </main>
+    </div>
   );
 };
 

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Share2, MoreVertical, Send, Heart } from 'lucide-react';
+import { MessageSquare, Share2, MoreHorizontal, Send, Heart, CheckCircle2 } from 'lucide-react';
+import Avatar from '../shared/Avatar';
+import { useToast } from '../Toast';
 import { auth } from '../../utils/auth';
 import api from '../../services/api';
 
 export const PostCard = ({ post, index }) => {
+  const toast = useToast();
   const currentUser = auth.getCurrentUser();
   const [isLiked, setIsLiked] = useState(currentUser && post.vibes && post.vibes[currentUser._id]);
   const [vibeCount, setVibeCount] = useState(post.vibeCount);
@@ -30,14 +33,14 @@ export const PostCard = ({ post, index }) => {
     });
     return roots;
   };
-  
+
   const handleLike = async () => {
     if (!currentUser) return;
 
     // Optimistic update
     const previousIsLiked = isLiked;
     const previousVibeCount = vibeCount;
-    
+
     setIsLiked(!isLiked);
     setVibeCount(prev => isLiked ? prev - 1 : prev + 1);
 
@@ -56,9 +59,9 @@ export const PostCard = ({ post, index }) => {
     if (!newComment.trim() || !currentUser) return;
 
     try {
-      const res = await api.post('/posts/comment', { 
-        content: newComment.trim(), 
-        parent: post.id 
+      const res = await api.post('/posts/comment', {
+        content: newComment.trim(),
+        parent: post.id
       });
 
       if (res.data && res.data.data) {
@@ -95,8 +98,8 @@ export const PostCard = ({ post, index }) => {
     e.preventDefault();
     if (!replyText.trim() || !currentUser || !replyFor) return;
     try {
-      const res = await api.post('/posts/comment', { 
-        content: replyText.trim(), 
+      const res = await api.post('/posts/comment', {
+        content: replyText.trim(),
         parent: post.id,
         parentComment: replyFor
       });
@@ -144,41 +147,17 @@ export const PostCard = ({ post, index }) => {
     }
   };
 
-  // Rock/Metal Hand Icon Component
-  const RockHandIcon = ({ size = 20, className = "" }) => (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      className={className}
-    >
-      <path 
-        d="M8 2C7.45 2 7 2.45 7 3V11C7 11.55 7.45 12 8 12S9 11.55 9 11V3C9 2.45 8.55 2 8 2Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M12 4C11.45 4 11 4.45 11 5V11C11 11.55 11.45 12 12 12S13 11.55 13 11V5C13 4.45 12.55 4 12 4Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M16 6C15.45 6 15 6.45 15 7V11C15 11.55 15.45 12 16 12S17 11.55 17 11V7C17 6.45 16.55 6 16 6Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M4 8C3.45 8 3 8.45 3 9V11C3 11.55 3.45 12 4 12S5 11.55 5 11V9C5 8.45 4.55 8 4 8Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M20 10C19.45 10 19 10.45 19 11V13C19 13.55 19.45 14 20 14S21 13.55 21 13V11C21 10.45 20.55 10 20 10Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M3 13C3 16.31 5.69 19 9 19H15C18.31 19 21 16.31 21 13V11H19V13C19 15.21 17.21 17 15 17H9C6.79 17 5 15.21 5 13V11H3V13Z" 
-        fill="currentColor"
-      />
-    </svg>
-  );
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Post link copied to clipboard!");
+    }
+  };
+
+  const authorName = post.author?.name || "Anonymous";
+  const authorAvatar = post.author?.avatar;
+  const authorRole = post.author?.role || "User";
+  const authorDetails = post.author?.details || "VIBE Member";
 
   return (
     <motion.div
@@ -186,107 +165,125 @@ export const PostCard = ({ post, index }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative bg-white/80 backdrop-blur-md rounded-[2rem] p-8 shadow-xl shadow-[#1D3C5A]/5 border border-[#C9D8E4] transition-all duration-500 hover:shadow-2xl hover:shadow-[#1D3C5A]/10"
+      className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-shadow hover:shadow-sm w-full min-w-0 overflow-hidden"
     >
-      {/* Post Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <AvatarImage 
-              src={post.author.avatar}
-              name={post.author.name}
-              className="w-14 h-14 rounded-2xl object-cover ring-2 ring-[#C9D8E4] shadow-md bg-[#E6EEF5] flex items-center justify-center text-[#1D3C5A] font-bold"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-bold text-[#12283F] text-lg leading-tight">{post.author.name}</h4>
-              <span className="text-[10px] font-bold text-[#1D3C5A] bg-[#D3E3EE] px-2 py-0.5 rounded-full uppercase tracking-tighter ring-1 ring-[#C9D8E4]">
-                {post.author.role}
+      {/* 1. Header */}
+      <div className="flex items-start justify-between gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Avatar
+            name={authorName}
+            src={authorAvatar}
+            className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F1F5F9]"
+            initialsClassName="text-xs font-bold text-white"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-sm text-[#0F172A] leading-tight truncate">
+                {authorName}
+              </span>
+              <CheckCircle2 size={14} className="text-[#3B82F6] fill-[#3B82F6] text-white flex-shrink-0" />
+              <span className="text-[10px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full border border-[#DBEAFE] capitalize flex-shrink-0">
+                {authorRole}
               </span>
             </div>
-            <p className="text-xs text-[#728494] font-medium mt-0.5">{post.timestamp}</p>
+            <p className="text-xs text-[#64748B] mt-0.5 truncate">
+              {authorDetails} • {post.timestamp}
+            </p>
           </div>
         </div>
-        <button className="text-[#728494] hover:text-[#12283F] transition-colors p-2 hover:bg-[#E6EEF5] rounded-full">
-          <MoreVertical size={20} />
+
+        <button
+          type="button"
+          aria-label="Options"
+          className="p-1 text-[#94A3B8] hover:text-[#0F172A] rounded-lg transition-colors flex-shrink-0"
+        >
+          <MoreHorizontal size={18} />
         </button>
       </div>
 
-      {/* Post Body */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#D8E5EF] text-[#1D3C5A] border border-[#C9D8E4]">
+      {/* 2. Post Content */}
+      <div className="mt-3.5 min-w-0">
+        {post.tag && (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#F3EEFF] text-[#6D3DF5] border border-[#E9E1FF] mb-2">
             {post.tag}
           </span>
-        </div>
-        <h2 className="text-xl font-extrabold text-[#12283F] leading-snug group-hover:text-[#1D3C5A] transition-colors italic">
-          "{post.title}"
-        </h2>
-        <p className="text-[#5E6A76] leading-relaxed text-[0.95rem]">
+        )}
+        {post.title && (
+          <h3 className="font-bold text-base text-[#0F172A] mb-1.5 leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
+            {post.title}
+          </h3>
+        )}
+        <p className="whitespace-pre-line text-sm text-[#334155] leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]">
           {post.content}
         </p>
-        {Array.isArray(post.attachments) && post.attachments.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-            {post.attachments.map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                alt={`attachment-${i}`}
-                className="w-full h-36 object-cover rounded-xl border border-[#C9D8E4]"
-              />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Actions */}
-      <div className="mt-8 pt-6 border-t border-[#C9D8E4] flex items-center gap-8">
-        <button 
-          onClick={handleLike}
-          className={`flex items-center gap-2.5 transition-colors font-semibold text-sm group/btn ${
-            isLiked 
-              ? 'text-[#A5632E]' 
-              : 'text-[#5E6A76] hover:text-[#1D3C5A]'
+      {/* Attachments if any */}
+      {Array.isArray(post.attachments) && post.attachments.length > 0 && (
+        <div
+          className={`mt-3.5 gap-2.5 overflow-hidden rounded-xl border border-[#E2E8F0] ${
+            post.attachments.length === 1
+              ? "grid grid-cols-1"
+              : "grid grid-cols-1 sm:grid-cols-2"
           }`}
         >
-          <div 
-            className={`p-2 rounded-xl transition-colors ${
-              isLiked 
-                ? 'bg-[#A5632E]/10' 
-                : 'group-hover/btn:bg-[#E6EEF5]'
+          {post.attachments.map((url, i) => (
+            <div key={i} className="relative overflow-hidden bg-[#F8FAFC]">
+              <img
+                src={url}
+                alt={`Attachment ${i + 1}`}
+                className="w-full max-h-80 object-cover"
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 3. Engagement Bar */}
+      <div className="mt-4 pt-3 border-t border-[#F1F5F9] flex items-center justify-between text-xs text-[#64748B]">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Vibe Reaction */}
+          <button
+            onClick={handleLike}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all ${
+              isLiked
+                ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                : "hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]"
+            }`}
+            title={isLiked ? "Remove reaction" : "React"}
+          >
+            <span className="text-sm leading-none">🤘</span>
+            <span className={`font-semibold ${isLiked ? "text-[#6D3DF5]" : "text-[#0F172A]"}`}>
+              {vibeCount} vibe{vibeCount !== 1 ? 's' : ''}
+            </span>
+          </button>
+
+          {/* Comments Toggle */}
+          <button
+            onClick={toggleComments}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${
+              showComments
+                ? "bg-[#F1F5F9] text-[#0F172A] font-bold"
+                : "hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]"
             }`}
           >
-            <RockHandIcon size={20} />
-          </div>
-          <span>{vibeCount} vibe{vibeCount !== 1 ? 's' : ''}</span>
-        </button>
+            <MessageSquare size={15} />
+            <span className="font-semibold text-[#0F172A]">{commentCount}</span>
+          </button>
 
-        <button 
-          onClick={toggleComments}
-          className={`flex items-center gap-2.5 transition-colors font-semibold text-sm group/btn ${
-            showComments ? 'text-[#1D3C5A]' : 'text-[#5E6A76] hover:text-[#1D3C5A]'
-          }`}
-        >
-          <div className={`p-2 rounded-xl transition-colors ${
-            showComments ? 'bg-[#D3E3EE]' : 'group-hover/btn:bg-[#E6EEF5]'
-          }`}>
-            <MessageCircle size={20} />
-          </div>
-          <span>{commentCount}</span>
-        </button>
-
-        <button 
-          className="flex items-center gap-2.5 text-[#5E6A76] hover:text-[#2F6DB5] transition-colors font-semibold text-sm group/btn ml-auto"
-        >
-          <div className="p-2 rounded-xl group-hover/btn:bg-[#E6EEF5] transition-colors">
-            <Share2 size={18} />
-          </div>
-          <span className="hidden sm:inline">Share</span>
-        </button>
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] transition-colors"
+          >
+            <Share2 size={15} />
+            <span className="font-semibold text-[#0F172A]">Share</span>
+          </button>
+        </div>
       </div>
 
-      {/* Comments Section */}
+      {/* 4. Comments Section */}
       <AnimatePresence>
         {showComments && (
           <motion.div
@@ -294,36 +291,37 @@ export const PostCard = ({ post, index }) => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-6 pt-6 border-t border-[#C9D8E4] space-y-4"
+            className="mt-4 pt-4 border-t border-[#F1F5F9] space-y-3 min-w-0"
           >
             {/* Comment Input */}
             {currentUser && (
-              <form onSubmit={handleCommentSubmit} className="flex gap-3">
-                <AvatarImage
-                  name={currentUser.name || 'User'}
-                  className="w-8 h-8 rounded-full ring-2 ring-[#C9D8E4] bg-[#E6EEF5] flex items-center justify-center text-[#1D3C5A] font-bold"
+              <form onSubmit={handleCommentSubmit} className="flex gap-2.5 items-center min-w-0">
+                <Avatar
+                  name={currentUser.name || 'Me'}
+                  src={currentUser.ImageUrl || currentUser.avatar}
+                  className="w-8 h-8 rounded-full flex-shrink-0 object-cover ring-1 ring-[#E2E8F0]"
+                  initialsClassName="text-xs font-bold text-[#172554]"
                 />
-                <div className="flex-1 flex gap-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="flex-1 bg-[#E6EEF5] border border-[#C9D8E4] rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#4B7EA3] focus:ring-2 focus:ring-[#4B7EA3]/10 transition-all text-[#12283F] placeholder-[#728494]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newComment.trim()}
-                    className="bg-[#1D3C5A] hover:bg-[#12283F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-xl transition-colors"
-                  >
-                    <Send size={16} />
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Write a comment..."
+                  className="flex-1 min-w-0 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3.5 py-2 text-xs text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={!newComment.trim()}
+                  className="px-3.5 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs shrink-0"
+                >
+                  <span>Send</span>
+                  <Send size={12} />
+                </button>
               </form>
             )}
 
             {/* Comments List with nesting */}
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-2.5 pt-1 min-w-0">
               {comments.length > 0 ? (
                 buildCommentTree(comments).map((node) => (
                   <CommentItem
@@ -339,16 +337,16 @@ export const PostCard = ({ post, index }) => {
                   />
                 ))
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-[#728494]">No comments yet. Be the first to comment!</p>
-                </div>
+                <p className="text-center text-xs text-[#94A3B8] py-2">
+                  No comments yet. Be the first to share your thoughts!
+                </p>
               )}
             </div>
 
             {!currentUser && (
-              <div className="text-center py-4 bg-[#E6EEF5] rounded-xl">
-                <p className="text-sm text-[#5E6A76]">
-                  <a href="/login" className="text-[#1D3C5A] hover:text-[#12283F] font-semibold">
+              <div className="text-center py-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
+                <p className="text-xs text-[#64748B]">
+                  <a href="/login" className="text-[#6D3DF5] hover:text-[#5B2FD6] font-bold">
                     Login
                   </a> to join the conversation
                 </p>
@@ -361,44 +359,43 @@ export const PostCard = ({ post, index }) => {
   );
 };
 
-const AvatarImage = ({ name, className }) => {
-  const initial = (name || '').trim().charAt(0).toUpperCase() || '?';
-  return <div className={className}>{initial}</div>;
-};
 const CommentItem = ({ node, depth, onReply, replyFor, replyText, setReplyText, submitReply, onLike }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex gap-3 group/comment"
-      style={{ marginLeft: depth * 24 }}
+      className="flex items-start gap-2.5 min-w-0"
+      style={{ marginLeft: depth * 20 }}
     >
-      <AvatarImage
-        src={node.author.avatar}
+      <Avatar
         name={node.author.name}
-        className="w-8 h-8 rounded-full object-cover ring-1 ring-[#C9D8E4] bg-[#E6EEF5] flex items-center justify-center text-[#1D3C5A] font-bold text-xs"
+        src={node.author.avatar}
+        className="w-7 h-7 rounded-full flex-shrink-0 object-cover"
+        initialsClassName="text-[10px] font-bold text-white"
       />
-      <div className="flex-1 bg-[#E6EEF5] rounded-xl px-4 py-3 border border-[#C9D8E4]">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm text-[#12283F]">
-            {node.author.name}
-          </span>
-          <span className="text-[10px] font-bold text-[#1D3C5A] bg-[#D3E3EE] px-2 py-0.5 rounded-full uppercase tracking-wider">
-            {node.author.role}
-          </span>
-          <span className="text-xs text-[#728494] ml-auto">
+      <div className="flex-1 bg-[#F8FAFC] rounded-xl p-3 border border-[#F1F5F9] min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-bold text-xs text-[#0F172A] truncate">
+              {node.author.name}
+            </span>
+            <span className="text-[10px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full capitalize shrink-0">
+              {node.author.role}
+            </span>
+          </div>
+          <span className="text-[10px] text-[#94A3B8] shrink-0">
             {node.timestamp}
           </span>
         </div>
-        <p className="text-sm text-[#5E6A76] leading-relaxed">
+        <p className="text-xs text-[#334155] mt-1 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word]">
           {node.content}
         </p>
         <div className="flex items-center gap-4 mt-2">
-          <button onClick={() => onLike(node.id)} className={`flex items-center gap-1 text-xs ${node.isLiked ? 'text-[#A5632E]' : 'text-[#728494] hover:text-[#A5632E]'} transition-colors`}>
-            <Heart size={12} />
+          <button onClick={() => onLike(node.id)} className={`flex items-center gap-1 text-xs font-semibold ${node.isLiked ? 'text-[#6D3DF5]' : 'text-[#94A3B8] hover:text-[#6D3DF5]'} transition-colors`}>
+            <Heart size={12} fill={node.isLiked ? "#6D3DF5" : "none"} />
             <span>{node.likes || 0}</span>
           </button>
-          <button onClick={() => onReply(node.id)} className="text-xs text-[#728494] hover:text-[#1D3C5A] transition-colors">
+          <button onClick={() => onReply(node.id)} className="text-xs font-semibold text-[#94A3B8] hover:text-[#0F172A] transition-colors">
             Reply
           </button>
         </div>
@@ -409,12 +406,12 @@ const CommentItem = ({ node, depth, onReply, replyFor, replyText, setReplyText, 
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="Write a reply..."
-              className="flex-1 bg-white border border-[#C9D8E4] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#4B7EA3] focus:ring-2 focus:ring-[#4B7EA3]/10 transition-all text-[#12283F]"
+              className="flex-1 min-w-0 bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all text-[#0F172A]"
             />
             <button
               type="submit"
               disabled={!replyText.trim()}
-              className="bg-[#1D3C5A] hover:bg-[#12283F] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-xl transition-colors text-xs"
+              className="bg-[#6D3DF5] hover:bg-[#5B2FD6] disabled:bg-slate-200 disabled:text-slate-400 text-white px-3 py-2 rounded-xl transition-colors text-xs font-bold shrink-0"
             >
               <Send size={14} />
             </button>

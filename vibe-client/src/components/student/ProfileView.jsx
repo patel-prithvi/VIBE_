@@ -3,25 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { auth } from '../../utils/auth';
 import api from '../../services/api';
 import Avatar from '../shared/Avatar';
-import { 
-  User, 
-  GraduationCap, 
-  Lock, 
-  CheckCircle2, 
-  ChevronRight, 
-  ChevronLeft, 
-  Eye, 
+import { useToast } from '../Toast';
+import {
+  User,
+  GraduationCap,
+  Lock,
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Eye,
   EyeOff,
   Briefcase,
   Calendar,
-  Clock,
+  Users,
   ArrowRight,
-  ShieldCheck,
   Edit3,
   Loader2
 } from 'lucide-react';
 
 export const ProfileView = ({ user, onProfileUpdate }) => {
+  const toast = useToast();
   const [internships, setInternships] = useState([]);
 
   const [step, setStep] = useState(1);
@@ -52,10 +53,10 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
         onProfileUpdate(updatedUser);
       }
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -90,162 +91,234 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
     })();
     return () => { mounted = false; };
   }, []);
-  
-  const inputClasses = `w-full px-5 py-3.5 rounded-2xl border border-white/60 bg-white/40 backdrop-blur-md focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all text-gray-800 placeholder-gray-400 font-medium shadow-sm hover:bg-white/60 ${!isEditing ? 'opacity-70 cursor-not-allowed' : ''}`;
+
+  const inputClasses =
+    "w-full px-3.5 py-2.5 rounded-xl border border-[#E1E8F2] bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#172554] placeholder-[#94A3B8] text-sm font-medium hover:border-[#CBD5E1]";
+
+  const filledFields = [
+    formData.name,
+    formData.mobileNo,
+    formData.dob,
+    formData.institutionName,
+    formData.degree,
+    formData.branch,
+    formData.currentYear,
+  ].filter((v) => v && String(v).trim()).length;
+  const completion = Math.round((filledFields / 7) * 100);
+
+  const normStatus = (s) => {
+    const v = String(s || '').toLowerCase();
+    if (v === 'hired' || v === 'offer' || v === 'approved' || v === 'selected') return 'SELECTED';
+    if (v === 'rejected') return 'REJECTED';
+    return 'ACTIVE';
+  };
+  const selectedCount = internships.filter((i) => normStatus(i.status) === 'SELECTED').length;
+  const activeCount = internships.filter((i) => normStatus(i.status) === 'ACTIVE').length;
 
   return (
-    <div className="space-y-12 pb-20">
-      {/* 1. Profile Header */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
+    /* Centered content container with a sensible max width (~1150px) */
+    <div className="max-w-[1150px] mx-auto w-full space-y-6 pb-12">
+      {/* 1. Profile Header Card */}
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-xl rounded-[3rem] p-6 md:p-10 border border-white shadow-xl flex flex-col md:flex-row items-center gap-8"
+        className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col md:flex-row items-center justify-between gap-6"
       >
-        <div className="relative group">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-[2rem] md:rounded-[2.5rem] bg-gradient-to-tr from-orange-500 to-amber-300 p-1">
-            <Avatar 
-              name={user.name} 
-              src={user.avatar} 
-              className="w-full h-full rounded-[1.8rem] md:rounded-[2.2rem] border-4 border-white" 
-              initialsClassName="text-3xl md:text-4xl"
-            />
-          </div>
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute -inset-2 rounded-[2.3rem] md:rounded-[2.8rem] border-2 border-dashed border-orange-500/30 -z-10"
-          />
-        </div>
-        
-        <div className="flex-1 text-center md:text-left space-y-2 w-full">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{user.name}</h2>
-            <span className="px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-[10px] md:text-xs font-black uppercase tracking-widest ring-1 ring-orange-200">
-              {user.role}
-            </span>
-          </div>
-          <p className="text-gray-500 font-medium text-sm md:text-base">
-            {formData.degree} Student • {formData.branch || 'Engineering'}
-          </p>
-          
-          <div className="pt-4 max-w-sm mx-auto md:mx-0">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs md:text-sm font-bold text-gray-400">Profile Completion</span>
-              <span className="text-xs md:text-sm font-black text-orange-600">85%</span>
-            </div>
-            <div className="h-2.5 md:h-3 w-full bg-gray-100 rounded-full overflow-hidden p-0.5">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: '85%' }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+        <div className="flex flex-col md:flex-row items-center gap-5 w-full md:w-auto">
+          {/* Avatar Container with Purple Theme */}
+          <div className="relative group flex-shrink-0">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#6D3DF5] p-0.5 shadow-sm">
+              <Avatar
+                name={user.name}
+                src={user.avatar}
+                variant="purple"
+                className="w-full h-full rounded-[14px]"
+                initialsClassName="text-xl md:text-2xl text-white font-bold"
               />
             </div>
           </div>
+
+          {/* Details & Info */}
+          <div className="text-center md:text-left space-y-1 w-full">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+              <h2 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">
+                {user.name}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#F2ECFF] text-[#6D3DF5] text-[10px] font-bold uppercase tracking-wider border border-[#E9E1FF]">
+                {user.role || "Student"}
+              </span>
+            </div>
+            <p className="text-[#64748B] font-medium text-xs md:text-sm">
+              {formData.degree} Student • {formData.branch || "General"}
+            </p>
+
+            {/* Profile Completion Bar */}
+            <div className="pt-2 w-full max-w-xs mx-auto md:mx-0">
+              <div className="flex items-center justify-between mb-1 px-0.5">
+                <span className="text-xs font-semibold text-[#64748B]">
+                  Profile Completion
+                </span>
+                <span className="text-xs font-bold text-[#6D3DF5]">
+                  {completion}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-[#F2ECFF] rounded-full overflow-hidden p-0.5 border border-[#E9E1FF]">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${completion}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-[#6D3DF5] rounded-full"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button 
+        {/* Edit Profile Action Button */}
+        <button
           onClick={handleEditClick}
           disabled={loading}
-          className={`w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${isEditing ? 'bg-orange-600 text-white shadow-orange-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'} shadow-lg`}
+          className={`w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex-shrink-0 ${
+            isEditing
+              ? "bg-[#6D3DF5] text-white shadow-xs hover:bg-[#5B2FD6]"
+              : "bg-[#F8FAFC] text-[#172554] hover:bg-[#F2ECFF] hover:text-[#6D3DF5] border border-[#E1E8F2]"
+          }`}
         >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <Edit3 size={18} />}
-          <span>{isEditing ? 'Save Changes' : 'Edit Profile'}</span>
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Edit3 size={16} />}
+          <span>{isEditing ? "Save Changes" : "Edit Profile"}</span>
         </button>
       </motion.section>
 
       {/* 2. Stepper Form Section */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl ${step === 1 ? 'bg-orange-500 text-white' : 'bg-white text-orange-500 border border-orange-100'} shadow-lg transition-colors`}>
-            <User size={24} />
+      <section className="space-y-4">
+        {/* Stepper Header */}
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              step === 1
+                ? "bg-[#6D3DF5] text-white shadow-xs"
+                : "bg-white text-[#64748B] border border-[#E1E8F2]"
+            } transition-colors flex-shrink-0`}
+          >
+            <User size={18} />
           </div>
-          <div className="h-px w-4 md:w-8 bg-gray-200" />
-          <div className={`p-3 rounded-2xl ${step === 2 ? 'bg-orange-500 text-white' : 'bg-white text-orange-500 border border-orange-100'} shadow-lg transition-colors`}>
-            <GraduationCap size={24} />
+          <div className="h-px w-4 md:w-6 bg-[#CBD5E1]" />
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              step === 2
+                ? "bg-[#6D3DF5] text-white shadow-xs"
+                : "bg-white text-[#64748B] border border-[#E1E8F2]"
+            } transition-colors flex-shrink-0`}
+          >
+            <GraduationCap size={18} />
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-gray-900 ml-2">
-            {step === 1 ? 'Personal Information' : 'Academic Information'}
+          <h3 className="text-lg font-bold text-[#172554] ml-1.5">
+            {step === 1 ? "Personal Information" : "Academic Information"}
           </h3>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border border-white shadow-xl">
+        {/* Form Container */}
+        <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <AnimatePresence mode="wait">
             {step === 1 ? (
-              <motion.div 
+              <motion.div
                 key="step1"
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+                exit={{ opacity: 0, x: 12 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
               >
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <input 
-                    type="text" 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={inputClasses} 
-                    placeholder="Enter full name" 
+                    className={inputClasses}
+                    placeholder="Enter full name"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                  <input type="email" value={user.email} disabled className={inputClasses + " opacity-60 cursor-not-allowed"} />
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className={inputClasses + " opacity-60 cursor-not-allowed bg-[#F8FAFC]"}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Mobile Number</label>
-                  <input 
-                    type="tel" 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Mobile Number
+                  </label>
+                  <input
+                    type="tel"
                     name="mobileNo"
                     value={formData.mobileNo}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={inputClasses} 
+                    className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Date of Birth</label>
-                  <input 
-                    type="date" 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
                     name="dob"
                     value={formData.dob}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={inputClasses} 
+                    className={inputClasses}
                   />
                 </div>
-                <div className="md:col-span-2 flex justify-end pt-4">
-                  <button onClick={() => setStep(2)} className="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:bg-gray-800 transition-all group">
-                    Next Step <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
+                <div className="md:col-span-2 flex justify-end pt-2">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#6D3DF5] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all group"
+                  >
+                    Next Step{" "}
+                    <ChevronRight
+                      size={16}
+                      className="group-hover:translate-x-0.5 transition-transform"
+                    />
                   </button>
                 </div>
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="step2"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+                exit={{ opacity: 0, x: -12 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
               >
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">College Name</label>
-                  <input 
-                    type="text" 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    College Name
+                  </label>
+                  <input
+                    type="text"
                     name="institutionName"
                     value={formData.institutionName}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    placeholder="Enter college name" 
-                    className={inputClasses} 
+                    placeholder="Enter college name"
+                    className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Degree</label>
-                  <select 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Degree
+                  </label>
+                  <select
                     name="degree"
                     value={formData.degree}
                     onChange={handleInputChange}
@@ -258,21 +331,25 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     <option>MCA</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Branch / Specialization</label>
-                  <input 
-                    type="text" 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Branch / Specialization
+                  </label>
+                  <input
+                    type="text"
                     name="branch"
                     value={formData.branch}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    placeholder="e.g. Computer Science" 
-                    className={inputClasses} 
+                    placeholder="e.g. Computer Science"
+                    className={inputClasses}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Current Year</label>
-                  <select 
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider ml-0.5">
+                    Current Year
+                  </label>
+                  <select
                     name="currentYear"
                     value={formData.currentYear}
                     onChange={handleInputChange}
@@ -285,17 +362,19 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                     <option>4th Year</option>
                   </select>
                 </div>
-                <div className="md:col-span-2 flex flex-col md:flex-row justify-between gap-4 pt-4">
-                  <button onClick={() => setStep(1)} className="flex items-center justify-center gap-2 text-gray-500 font-bold px-4 py-2 hover:text-gray-900 transition-colors">
-                    <ChevronLeft size={18} /> Back
+                <div className="md:col-span-2 flex flex-col md:flex-row justify-between gap-3 pt-2">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex items-center justify-center gap-1.5 text-[#64748B] text-sm font-bold px-3 py-2 hover:text-[#6D3DF5] transition-colors"
+                  >
+                    <ChevronLeft size={16} /> Back
                   </button>
-                  <button 
+                  <button
                     onClick={handleUpdateProfile}
                     disabled={!isEditing || loading}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-orange-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-orange-200 hover:bg-orange-700 transition-all"
+                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#6D3DF5] text-white px-7 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all disabled:opacity-50"
                   >
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                    Complete Profile 
+                    {loading ? 'Updating...' : 'Update Profile'} <CheckCircle2 size={16} />
                   </button>
                 </div>
               </motion.div>
@@ -303,117 +382,136 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
           </AnimatePresence>
         </div>
       </section>
-      {/* 3. Change Password Section */}
-      <section className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border border-white shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-        <div className="lg:col-span-1 space-y-4">
-          <div className="w-16 h-16 rounded-[1.5rem] bg-rose-50 text-rose-500 flex items-center justify-center shadow-lg shadow-rose-100">
-            <ShieldCheck size={32} />
+
+      {/* 3. Security Center Section (~35% description / ~65% form) */}
+      <section className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (~35% / col-span-4) */}
+        <div className="lg:col-span-4 space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center">
+            <Lock size={20} />
           </div>
-          <h3 className="text-2xl font-black text-gray-900">Security Center</h3>
-          <p className="text-gray-500 font-medium leading-relaxed text-sm md:text-base">
-            Protect your account by using a strong password. We recommend a mix of symbols, numbers, and capital letters.
+          <h3 className="text-lg font-bold text-[#172554]">Security Center</h3>
+          <p className="text-[#64748B] font-medium leading-relaxed text-xs md:text-sm">
+            Protect your account by using a strong password. We recommend a mix
+            of symbols, numbers, and capital letters.
           </p>
-          <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-            <p className="text-xs text-orange-700 font-bold leading-relaxed">
-              Last password change was 3 months ago. Security experts recommend changing it every 6 months.
-            </p>
-          </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        {/* Right Column (~65% / col-span-8) */}
+        <div className="lg:col-span-8 space-y-3.5">
           <div className="relative">
-            <input 
-              type={showPassword ? "text" : "password"} 
-              placeholder="Current Password" 
-              className={inputClasses + " pr-12"} 
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Current Password"
+              className={inputClasses + " pr-10"}
             />
-            <button 
+            <button
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-orange-500 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#94A3B8] hover:text-[#6D3DF5] transition-colors"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input type="password" placeholder="New Password" className={inputClasses} />
-            <input type="password" placeholder="Confirm Password" className={inputClasses} />
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 px-1">
-              <span>Password Strength</span>
-              <span className="text-orange-600">Strong</span>
-            </div>
-            <div className="flex gap-1.5 h-1.5">
-              <div className="flex-1 rounded-full bg-orange-500" />
-              <div className="flex-1 rounded-full bg-orange-500" />
-              <div className="flex-1 rounded-full bg-orange-500" />
-              <div className="flex-1 rounded-full bg-orange-200" />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <input
+              type="password"
+              placeholder="New Password"
+              className={inputClasses}
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className={inputClasses}
+            />
           </div>
 
-          <button 
-            className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-3"
-          >
-            Update Password <Lock size={18} />
+          <button className="w-full md:w-auto px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all flex items-center justify-center gap-2">
+            Update Password <Lock size={16} />
           </button>
         </div>
       </section>
-      {/* 4. Internship Tracker */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-200">
-              <Briefcase size={24} />
-            </div>
-            <h3 className="text-xl md:text-2xl font-black text-gray-900">Internship Tracker</h3>
+
+      {/* 4. Statistics Section (3 equal-width cards) */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
+            <Briefcase size={22} />
           </div>
-          <button className="text-sm font-bold text-orange-600 hover:underline">View All History</button>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Applications
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              {internships.length}
+            </span>
+          </div>
         </div>
 
-        <div className="grid gap-6">
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Active
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              {activeCount}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0] flex items-center justify-center flex-shrink-0">
+            <Users size={22} />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
+              Selected
+            </span>
+            <span className="text-2xl font-black text-[#172554] tracking-tight">
+              {selectedCount}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Internship Tracker */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
+              <Briefcase size={18} />
+            </div>
+            <h3 className="text-lg font-bold text-[#172554]">Internship Tracker</h3>
+          </div>
+        </div>
+
+        <div className="grid gap-4">
           {internships.length > 0 ? (
             internships.map((intern, i) => (
-              <motion.div 
+              <motion.div
                 key={intern.id}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 border border-white shadow-xl hover:shadow-2xl hover:shadow-orange-100/50 transition-all group overflow-hidden"
+                transition={{ delay: i * 0.05 }}
+                className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-all group overflow-hidden"
               >
-                <div className="flex flex-col lg:flex-row lg:items-center gap-8">
-                  <div className="flex items-center gap-5 min-w-fit md:min-w-[200px]">
-                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-xl text-gray-300 shrink-0">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                  <div className="flex items-center gap-4 min-w-fit md:min-w-[200px]">
+                    <div className="w-12 h-12 rounded-xl bg-[#F8FAFC] border border-[#E1E8F2] flex items-center justify-center font-bold text-lg text-[#64748B] shrink-0">
                       {intern.company[0]}
                     </div>
                     <div>
-                      <h4 className="text-lg md:text-xl font-black text-gray-900">{intern.company}</h4>
-                      <p className="text-orange-600 font-bold text-xs md:text-sm">{intern.role}</p>
-                      <div className="flex items-center gap-1.5 text-gray-400 text-[10px] md:text-xs font-bold mt-1 uppercase tracking-wider">
+                      <h4 className="text-base font-bold text-[#172554]">{intern.company}</h4>
+                      <p className="text-[#6D3DF5] font-bold text-xs">{intern.role}</p>
+                      <div className="flex items-center gap-1.5 text-[#94A3B8] text-[11px] font-semibold mt-1 uppercase tracking-wider">
                         <Calendar size={12} /> {intern.appliedDate}
                       </div>
                       {(() => {
-                        const norm = (s) => {
-                          const v = String(s || '').toLowerCase();
-                          if (v === 'applied' || v === 'pending') return 'APPLIED';
-                          if (v === 'shortlisted' || v === 'task') return 'SHORTLISTED';
-                          if (v === 'submitted' || v === 'reviewed') return 'SUBMITTED';
-                          if (v === 'interview_scheduled' || v === 'interview') return 'INTERVIEW_SCHEDULED';
-                          if (v === 'hired' || v === 'offer' || v === 'approved') return 'SELECTED';
-                          if (v === 'rejected') return 'REJECTED';
-                          return 'APPLIED';
-                        };
-                        const badge = norm(intern.status);
-                        const cls = {
-                          APPLIED: 'bg-slate-100 text-slate-700 border border-slate-200',
-                          SHORTLISTED: 'bg-amber-100 text-amber-700 border border-amber-200',
-                          SUBMITTED: 'bg-teal-100 text-teal-700 border border-teal-200',
-                          INTERVIEW_SCHEDULED: 'bg-blue-100 text-blue-700 border border-blue-200',
-                          SELECTED: 'bg-green-100 text-green-700 border border-green-200',
-                          REJECTED: 'bg-red-100 text-red-700 border border-red-200'
-                        }[badge] || 'bg-slate-100 text-slate-700 border border-slate-200';
+                        const badge = normBadge(intern.status);
                         return (
-                          <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-black ${cls}`}>
+                          <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-[10px] font-bold ${badgeCls(badge)}`}>
                             {badge.replace('_',' ')}
                           </span>
                         );
@@ -423,19 +521,7 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                   <div className="flex-1 w-full">
                     <div className="hidden sm:flex items-center justify-between w-full overflow-x-auto py-2 no-scrollbar">
                       {(() => {
-                        const norm = (s) => {
-                          const v = String(s || '').toLowerCase();
-                          if (v === 'applied' || v === 'pending') return 'APPLIED';
-                          if (v === 'shortlisted' || v === 'task') return 'SHORTLISTED';
-                          if (v === 'submitted' || v === 'reviewed') return 'SUBMITTED';
-                          if (v === 'interview_scheduled' || v === 'interview') return 'INTERVIEW_SCHEDULED';
-                          if (v === 'hired' || v === 'offer' || v === 'approved') return 'SELECTED';
-                          if (v === 'rejected') return 'REJECTED';
-                          return 'APPLIED';
-                        };
-                        const st = norm(intern.status);
-                        const appliedActive = true;
-                        const appliedComplete = true;
+                        const st = normBadge(intern.status);
                         const shortlistedActive = st !== 'APPLIED';
                         const shortlistedComplete = ['SUBMITTED','INTERVIEW_SCHEDULED','SELECTED'].includes(st);
                         const submittedActive = ['SUBMITTED','INTERVIEW_SCHEDULED','SELECTED'].includes(st);
@@ -443,39 +529,25 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                         const interviewActive = ['INTERVIEW_SCHEDULED','SELECTED'].includes(st);
                         const interviewComplete = st === 'SELECTED';
                         const resultActive = ['SELECTED','REJECTED'].includes(st);
-                        const resultComplete = ['SELECTED','REJECTED'].includes(st);
-                        const resultPulse = st === 'SELECTED';
                         return (
                           <>
-                            <TrackerStep label="Applied" active={appliedActive} complete={appliedComplete} orientation="horizontal" />
-                            <TrackerLine active={appliedActive} orientation="horizontal" />
+                            <TrackerStep label="Applied" active complete orientation="horizontal" />
+                            <TrackerLine active orientation="horizontal" />
                             <TrackerStep label="Shortlisted" active={shortlistedActive} complete={shortlistedComplete} orientation="horizontal" />
                             <TrackerLine active={shortlistedActive} orientation="horizontal" />
                             <TrackerStep label="Submitted" active={submittedActive} complete={submittedComplete} orientation="horizontal" />
                             <TrackerLine active={submittedActive} orientation="horizontal" />
                             <TrackerStep label="Interview" active={interviewActive} complete={interviewComplete} orientation="horizontal" />
                             <TrackerLine active={interviewActive} orientation="horizontal" />
-                            <TrackerStep label="Result" active={resultActive} complete={resultComplete} pulse={resultPulse} orientation="horizontal" />
+                            <TrackerStep label="Result" active={resultActive} complete={resultActive} pulse={st === 'SELECTED'} orientation="horizontal" />
                           </>
                         );
                       })()}
                     </div>
                     <div className="flex sm:hidden flex-col gap-0 pl-7 relative">
-                      <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gray-100 -z-0" />
+                      <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-[#F1F5F9] -z-0" />
                       {(() => {
-                        const norm = (s) => {
-                          const v = String(s || '').toLowerCase();
-                          if (v === 'applied' || v === 'pending') return 'APPLIED';
-                          if (v === 'shortlisted' || v === 'task') return 'SHORTLISTED';
-                          if (v === 'submitted' || v === 'reviewed') return 'SUBMITTED';
-                          if (v === 'interview_scheduled' || v === 'interview') return 'INTERVIEW_SCHEDULED';
-                          if (v === 'hired' || v === 'offer' || v === 'approved') return 'SELECTED';
-                          if (v === 'rejected') return 'REJECTED';
-                          return 'APPLIED';
-                        };
-                        const st = norm(intern.status);
-                        const appliedActive = true;
-                        const appliedComplete = true;
+                        const st = normBadge(intern.status);
                         const shortlistedActive = st !== 'APPLIED';
                         const shortlistedComplete = ['SUBMITTED','INTERVIEW_SCHEDULED','SELECTED'].includes(st);
                         const submittedActive = ['SUBMITTED','INTERVIEW_SCHEDULED','SELECTED'].includes(st);
@@ -483,31 +555,29 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                         const interviewActive = ['INTERVIEW_SCHEDULED','SELECTED'].includes(st);
                         const interviewComplete = st === 'SELECTED';
                         const resultActive = ['SELECTED','REJECTED'].includes(st);
-                        const resultComplete = ['SELECTED','REJECTED'].includes(st);
-                        const resultPulse = st === 'SELECTED';
                         return (
                           <>
-                            <TrackerStep label="Applied" active={appliedActive} complete={appliedComplete} orientation="vertical" />
+                            <TrackerStep label="Applied" active complete orientation="vertical" />
                             <TrackerStep label="Shortlisted" active={shortlistedActive} complete={shortlistedComplete} orientation="vertical" />
                             <TrackerStep label="Submitted" active={submittedActive} complete={submittedComplete} orientation="vertical" />
                             <TrackerStep label="Interview" active={interviewActive} complete={interviewComplete} orientation="vertical" />
-                            <TrackerStep label="Result" active={resultActive} complete={resultComplete} pulse={resultPulse} orientation="vertical" />
+                            <TrackerStep label="Result" active={resultActive} complete={resultActive} pulse={st === 'SELECTED'} orientation="vertical" />
                           </>
                         );
                       })()}
                     </div>
                   </div>
-                  <button className="w-full lg:w-auto p-4 rounded-2xl bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
-                    <span className="lg:hidden font-bold">Details</span>
-                    <ArrowRight size={20} />
+                  <button className="w-full lg:w-auto p-3 rounded-xl bg-[#F8FAFC] text-[#64748B] border border-[#E1E8F2] hover:bg-[#F2ECFF] hover:text-[#6D3DF5] hover:border-[#E9E1FF] transition-all shadow-xs flex items-center justify-center gap-2 shrink-0">
+                    <span className="lg:hidden text-xs font-bold">Details</span>
+                    <ArrowRight size={18} />
                   </button>
                 </div>
               </motion.div>
             ))
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-orange-100 p-8 text-center">
-              <h4 className="text-lg font-bold text-slate-900 mb-2">No internships yet</h4>
-              <p className="text-sm text-slate-600">Apply to tasks and submit your work to see your progress here.</p>
+            <div className="bg-white rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] p-8 text-center">
+              <h4 className="text-base font-bold text-[#172554] mb-1.5">No internships yet</h4>
+              <p className="text-xs text-[#64748B]">Apply to tasks and submit your work to see your progress here.</p>
             </div>
           )}
         </div>
@@ -516,41 +586,63 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
   );
 };
 
-const TrackerStep = ({ 
-  label, 
-  active, 
-  complete, 
-  pulse, 
-  orientation = "horizontal" 
+const normBadge = (s) => {
+  const v = String(s || '').toLowerCase();
+  if (v === 'applied' || v === 'pending') return 'APPLIED';
+  if (v === 'shortlisted' || v === 'task') return 'SHORTLISTED';
+  if (v === 'submitted' || v === 'reviewed') return 'SUBMITTED';
+  if (v === 'interview_scheduled' || v === 'interview') return 'INTERVIEW_SCHEDULED';
+  if (v === 'hired' || v === 'offer' || v === 'approved') return 'SELECTED';
+  if (v === 'rejected') return 'REJECTED';
+  return 'APPLIED';
+};
+
+const badgeCls = (badge) => {
+  return {
+    APPLIED: 'bg-slate-100 text-slate-700 border border-slate-200',
+    SHORTLISTED: 'bg-amber-100 text-amber-700 border border-amber-200',
+    SUBMITTED: 'bg-[#F3EEFF] text-[#6D3DF5] border border-[#E9E1FF]',
+    INTERVIEW_SCHEDULED: 'bg-[#F5F1FF] text-[#7C3AED] border border-[#EDE9FE]',
+    SELECTED: 'bg-green-100 text-green-700 border border-green-200',
+    REJECTED: 'bg-red-100 text-red-700 border border-red-200'
+  }[badge] || 'bg-slate-100 text-slate-700 border border-slate-200';
+};
+
+const TrackerStep = ({
+  label,
+  active,
+  complete,
+  pulse,
+  orientation = "horizontal"
 }) => {
   if (orientation === 'horizontal') {
     return (
       <div className="flex flex-col items-center gap-2 px-1 text-center shrink-0">
-        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-500 ${complete ? 'bg-orange-500 text-white' : active ? 'bg-orange-100 text-orange-600 ring-4 ring-orange-50' : 'bg-gray-50 text-gray-300'} ${pulse ? 'animate-bounce' : ''}`}>
+        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-500 ${complete ? 'bg-[#6D3DF5] text-white' : active ? 'bg-[#F3EEFF] text-[#6D3DF5] ring-4 ring-[#F3EEFF]/60' : 'bg-[#F8FAFC] text-[#CBD5E1]'} ${pulse ? 'animate-bounce' : ''}`}>
           {complete ? <CheckCircle2 size={16} /> : <div className="w-1.5 h-1.5 rounded-full bg-current" />}
         </div>
-        <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${active ? 'text-gray-900' : 'text-gray-300'}`}>{label}</span>
+        <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${active ? 'text-[#172554]' : 'text-[#CBD5E1]'}`}>{label}</span>
       </div>
     );
   }
 
   return (
     <div className="flex items-center gap-4 py-2 relative z-10">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 shrink-0 ${complete ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : active ? 'bg-orange-100 text-orange-600 ring-4 ring-orange-50' : 'bg-white border-2 border-gray-100 text-gray-300'} ${pulse ? 'animate-pulse' : ''}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 shrink-0 ${complete ? 'bg-[#6D3DF5] text-white shadow-xs' : active ? 'bg-[#F3EEFF] text-[#6D3DF5] ring-4 ring-[#F3EEFF]/60' : 'bg-white border-2 border-[#E1E8F2] text-[#CBD5E1]'} ${pulse ? 'animate-pulse' : ''}`}>
         {complete ? <CheckCircle2 size={16} /> : <div className="w-2 h-2 rounded-full bg-current" />}
       </div>
-      <span className={`text-xs font-black uppercase tracking-widest ${active ? 'text-gray-900' : 'text-gray-300'}`}>{label}</span>
+      <span className={`text-xs font-bold uppercase tracking-widest ${active ? 'text-[#172554]' : 'text-[#CBD5E1]'}`}>{label}</span>
     </div>
   );
 };
 
 const TrackerLine = ({ active, orientation = "horizontal" }) => (
-  <div className={`flex-1 rounded-full overflow-hidden ${orientation === 'horizontal' ? 'h-1 bg-gray-50 mx-1' : 'w-1 bg-gray-50 my-1'}`}>
-    <motion.div 
+  <div className={`flex-1 rounded-full overflow-hidden ${orientation === 'horizontal' ? 'h-1 bg-[#F1F5F9] mx-1' : 'w-1 bg-[#F1F5F9] my-1'}`}>
+    <motion.div
       initial={{ width: 0, height: 0 }}
       animate={orientation === 'horizontal' ? { width: active ? '100%' : '0%' } : { height: active ? '100%' : '0%' }}
       transition={{ duration: 1, ease: "easeInOut" }}
-      className={`bg-orange-500 ${orientation === 'horizontal' ? 'h-full' : 'w-full'}`}
+      className={`bg-[#6D3DF5] ${orientation === 'horizontal' ? 'h-full' : 'w-full'}`}
     />
   </div>
 );

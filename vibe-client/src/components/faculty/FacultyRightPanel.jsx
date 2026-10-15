@@ -14,11 +14,13 @@ import {
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import api from "../../services/api";
+import { useToast } from "../Toast";
 
 export const FacultyRightPanel = ({
   onNavigate,
   onOpenCreatePost,
 }) => {
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -68,10 +70,10 @@ export const FacultyRightPanel = ({
         resources: [],
       });
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
-      alert("Mentorship request accepted!");
+      toast.success("Mentorship request accepted!");
     } catch (err) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to update request");
+      toast.error(err.response?.data?.message || "Failed to update request");
     } finally {
       setActionLoadingId(null);
     }
@@ -84,17 +86,17 @@ export const FacultyRightPanel = ({
         status: "rejected",
       });
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
-      alert("Mentorship request declined.");
+      toast.info("Mentorship request declined.");
     } catch (err) {
       console.error("Error declining request:", err);
-      alert(err.response?.data?.message || "Failed to decline request");
+      toast.error(err.response?.data?.message || "Failed to decline request");
     } finally {
       setActionLoadingId(null);
     }
   };
 
   const handleCvAnalysisClick = () => {
-    alert("AI-Powered CV Analysis: This advanced module is currently connected to the student Virtual CV evaluation engine.");
+    toast.info("AI-Powered CV Analysis: This advanced module is currently connected to the student Virtual CV evaluation engine.");
   };
 
   return (

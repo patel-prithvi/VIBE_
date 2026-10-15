@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth } from "../../utils/auth";
 import Avatar from "../shared/Avatar";
+import { useToast } from "../Toast";
 import {
   User,
   Building,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 
 export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -49,10 +51,10 @@ export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
         onProfileUpdate(updatedUser);
       }
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }

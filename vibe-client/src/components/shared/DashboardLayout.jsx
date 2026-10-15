@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
 import { Sidebar as StudentSidebar } from "../student/Sidebar";
 import { Sidebar as FacultySidebar } from "../faculty/Sidebar";
+import { useToast } from "../Toast";
 
 const SidebarItem = ({
   icon: Icon,
@@ -84,17 +85,21 @@ export const DashboardLayout = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const currentUser = user || auth.getCurrentUser();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const handleLogout = async () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-    if (confirmLogout) {
+    const confirmed = await toast.confirm({
+      title: "Logout?",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true,
+    });
+    if (confirmed) {
       await auth.logout();
       navigate("/");
-      setTimeout(() => {
-        alert("You have been successfully logged out!");
-      }, 100);
+      toast.success("You have been successfully logged out!");
     }
   };
 

@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import PWAInstaller from './components/PWAInstaller';
 import PWAStatus from './components/PWAStatus';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ToastProvider } from './components/Toast';
 import Home from './pages/Home';
 import HowItWorks from './pages/HowItWorks';
 import Features from './pages/Features';
@@ -95,7 +96,9 @@ const App = () => {
 const AppWrapper = () => {
   return (
     <Router>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </Router>
   );
 };

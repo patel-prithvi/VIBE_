@@ -33,10 +33,12 @@ import {
 } from '../components/public/Doodles';
 import { auth } from '../utils/auth';
 import api from '../services/api';
+import { useToast } from '../components/Toast';
 
 const Signup = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -351,10 +353,10 @@ const Signup = () => {
     setIsLoading(true);
     try {
       await api.post('/users/register', userData);
-      alert("✅ Verification code resent successfully!");
+      toast.success("Verification code resent successfully!");
     } catch (error) {
       console.error("Resend OTP error:", error);
-      alert("❌ Failed to resend verification code.");
+      toast.error("Failed to resend verification code.");
     } finally {
       setIsLoading(false);
     }
@@ -889,7 +891,7 @@ const Signup = () => {
                               nextStep();
                             } catch (error) {
                               if (error.response && error.response.status === 409) {
-                                alert("❌ User with this email already exists.");
+                                toast.error("User with this email already exists.");
                               } else {
                                 console.error("Send OTP error:", error);
                               }
@@ -976,21 +978,21 @@ const Signup = () => {
                               });
 
                               if (role === 'industry') {
-                                alert('✅ Application Submitted!\n\nYour company registration has been submitted for verification. Please login to continue.');
+                                toast.success('Application Submitted! Your company registration has been submitted for verification. Please login to continue.');
                                 navigate('/login');
                               } else {
                                 // Show success message
                                 const successMessage = role === 'student'
-                                  ? '🎉 Welcome to VIBE!\n\nYour student account has been created successfully. Please login to access your dashboard.'
-                                  : '🎉 Welcome to VIBE!\n\nYour faculty account has been created successfully. Please login to access your dashboard.';
+                                  ? 'Welcome to VIBE! Your student account has been created successfully. Please login to access your dashboard.'
+                                  : 'Welcome to VIBE! Your faculty account has been created successfully. Please login to access your dashboard.';
 
-                                alert(successMessage);
+                                toast.success(successMessage);
 
                                 // Redirect to login for all users
                                 navigate('/login');
                               }
                             } catch (error) {
-                              alert('❌ Error creating account. Please check the OTP and try again.');
+                              toast.error('Error creating account. Please check the OTP and try again.');
                               console.error('Signup error:', error);
                             } finally {
                               setIsLoading(false);

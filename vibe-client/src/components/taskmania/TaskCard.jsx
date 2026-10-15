@@ -34,27 +34,21 @@ export const TaskCard = ({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl p-6 shadow-xl shadow-orange-100/50 border border-orange-50 relative overflow-hidden group flex flex-col h-full"
+      className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-shadow relative overflow-hidden group flex flex-col h-full"
     >
       {/* Decorative Gradient Blob */}
-      <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-50 rounded-full blur-3xl group-hover:bg-orange-100 transition-colors duration-500 z-0" />
+      <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#F3EEFF] rounded-full blur-3xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0" />
 
       <div className="relative z-10 flex-1">
         <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-orange-100/50">
+          <div className="flex items-center gap-2 text-[#6D3DF5] bg-[#F3EEFF] px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-[#E9E1FF]">
             {CATEGORY_ICONS[task.category]}
             <span>{task.category}</span>
           </div>
 
           <div className="flex flex-col items-end gap-2">
             {/* Mode Badge */}
-            <div
-              className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
-                task.mode === "Remote"
-                  ? "bg-blue-50 text-blue-600 border-blue-100"
-                  : "bg-orange-50 text-orange-600 border-orange-100"
-              }`}
-            >
+            <div className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border bg-[#F3EEFF] text-[#6D3DF5] border-[#E9E1FF]">
               {task.mode === "Remote" ? (
                 <Globe size={12} />
               ) : (
@@ -83,13 +77,13 @@ export const TaskCard = ({
           </div>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors line-clamp-2">
+        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-[#6D3DF5] transition-colors line-clamp-2">
           {task.title}
         </h3>
 
         {/* Company Name */}
         <div className="flex items-center gap-2 mb-5 mt-3">
-          <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+          <div className="p-1.5 bg-[#EDE9FE] text-[#6D3DF5] rounded-lg">
             <Building2 size={14} />
           </div>
           <span className="text-sm font-bold text-gray-700 tracking-tight">
@@ -98,7 +92,7 @@ export const TaskCard = ({
         </div>
 
         <div className="flex items-center gap-2 mb-6 text-sm text-gray-600 bg-gray-50/50 p-2 rounded-lg">
-          <Briefcase size={16} className="text-orange-500" />
+          <Briefcase size={16} className="text-[#6D3DF5]" />
           <span className="truncate">
             Role:{" "}
             <span className="text-gray-900 font-semibold">{task.role}</span>
@@ -131,7 +125,7 @@ export const TaskCard = ({
               ? 'bg-green-50/50 border-green-100 shadow-sm' 
               : mentorRequest.status === 'rejected'
               ? 'bg-red-50/50 border-red-100'
-              : 'bg-blue-50/50 border-blue-100'
+              : 'bg-[#F3EEFF]/70 border-[#E9E1FF]'
           }`}>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -142,7 +136,7 @@ export const TaskCard = ({
                   ? 'bg-green-100 text-green-700 border-green-200'
                   : mentorRequest.status === 'rejected'
                   ? 'bg-red-100 text-red-700 border-red-200'
-                  : 'bg-blue-100 text-blue-700 border-blue-200'
+                  : 'bg-[#EDE9FE] text-[#6D3DF5] border-[#E9E1FF]'
               }`}>
                 {mentorRequest.status === 'accepted' ? <CheckCircle2 size={10} /> : 
                  mentorRequest.status === 'rejected' ? <XCircle size={10} /> : <Clock size={10} />}
@@ -201,7 +195,7 @@ export const TaskCard = ({
             )}
             
             {mentorRequest.status === 'pending' && (
-              <p className="text-xs text-blue-600 italic">Waiting for mentor to review your request...</p>
+              <p className="text-xs text-[#6D3DF5] italic">Waiting for mentor to review your request...</p>
             )}
           </div>
         )}
@@ -210,7 +204,7 @@ export const TaskCard = ({
       <div className="border-t border-gray-100 pt-5 mt-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center text-gray-500 text-xs font-medium bg-gray-50 px-2 py-1 rounded">
-            <Calendar size={14} className="mr-1.5 text-orange-400" />
+            <Calendar size={14} className="mr-1.5 text-[#94A3B8]" />
             <span>Due {task.deadline}</span>
           </div>
         </div>
@@ -218,7 +212,7 @@ export const TaskCard = ({
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             onClick={() => onOpenInstructions(task)}
-            className="px-3 py-2.5 text-sm font-medium text-orange-600 border border-orange-200 rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-orange-600 hover:text-white hover:border-orange-600"
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
           >
             <FileText
               size={16}
@@ -229,7 +223,7 @@ export const TaskCard = ({
 
           <button
             onClick={() => onOpenMentorRequest(task)}
-            className="px-3 py-2.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-blue-600 hover:text-white hover:border-blue-600"
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
           >
             <UserPlus
               size={16}
@@ -259,7 +253,7 @@ export const TaskCard = ({
               onClick={() => {
                 if (!isClosed) onOpenApply(task);
               }}
-              className="px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 rounded-xl shadow-md shadow-orange-200 flex items-center justify-center gap-2"
+              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2"
             >
               Apply Now <ChevronRight size={16} />
             </button>

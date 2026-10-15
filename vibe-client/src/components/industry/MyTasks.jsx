@@ -30,6 +30,7 @@ import {
   GraduationCap,
   RotateCcw,
 } from "lucide-react";
+import { useToast } from "../Toast";
 
 export const MyTasks = ({
   tasks,
@@ -39,6 +40,7 @@ export const MyTasks = ({
   onUpdateApplicantStatus,
   user,
 }) => {
+  const toast = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -153,7 +155,7 @@ export const MyTasks = ({
       case "SHORTLISTED":
         return "bg-amber-100 text-amber-700 border border-amber-200";
       case "INTERVIEW_SCHEDULED":
-        return "bg-blue-100 text-blue-700 border border-blue-200";
+        return "bg-[#F5F1FF] text-[#7C3AED] border border-[#EDE9FE]";
       case "SELECTED":
         return "bg-green-100 text-green-700 border border-green-200";
       case "REJECTED":
@@ -168,7 +170,7 @@ export const MyTasks = ({
 
     const handleScheduleSave = (appId) => {
       if (!interviewData.date || !interviewData.time || !interviewData.mode) {
-        alert("Please fill interview date, time and mode.");
+        toast.error("Please fill interview date, time and mode.");
         return;
       }
       handleStatusUpdate(appId, "INTERVIEW_SCHEDULED", {
@@ -183,10 +185,10 @@ export const MyTasks = ({
 
     return (
       <div className="fixed inset-0 z-50 flex items-stretch bg-slate-900/40 backdrop-blur-sm">
-        <div className="ml-auto h-full w-full max-w-5xl bg-white rounded-l-3xl shadow-2xl border-l border-orange-100 flex flex-col">
-          <div className="p-6 border-b border-orange-100 flex items-start justify-between">
+        <div className="ml-auto h-full w-full max-w-5xl bg-white rounded-l-3xl shadow-2xl border-l border-[#EDE9FE] flex flex-col">
+          <div className="p-6 border-b border-[#EDE9FE] flex items-start justify-between">
             <div>
-              <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+              <span className="inline-block px-3 py-1 bg-[#EDE9FE] text-[#5B2FD6] rounded-full text-xs font-bold uppercase tracking-wider mb-2">
                 Applicants
               </span>
               <h3 className="text-2xl font-black text-slate-900 leading-tight">
@@ -227,7 +229,7 @@ export const MyTasks = ({
                             <img
                               src={a.avatar}
                               alt={a.name}
-                              className="w-10 h-10 rounded-full border-2 border-orange-50 object-cover"
+                              className="w-10 h-10 rounded-full border-2 border-[#F3EEFF] object-cover"
                             />
                             <div>
                               <div className="text-sm font-bold text-slate-900">
@@ -290,7 +292,7 @@ export const MyTasks = ({
                                 target="_blank"
                                 rel="noreferrer"
                                 title={link}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200 transition-colors"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#EDE9FE] text-[#5B2FD6] hover:bg-[#E9E1FF] border border-[#E9E1FF] transition-colors"
                               >
                                 <LinkIcon size={13} /> Link
                               </a>
@@ -310,7 +312,7 @@ export const MyTasks = ({
                           <div className="mb-2">
                             <button
                               onClick={() => setSelectedApplicant(a)}
-                              className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 transition-all flex items-center gap-2"
+                              className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-[#F3EEFF] hover:border-[#C4B5FD] hover:text-[#5B2FD6] transition-all flex items-center gap-2"
                             >
                               <FileText size={14} /> View Submission
                             </button>
@@ -320,7 +322,7 @@ export const MyTasks = ({
                             <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={() => handleStatusUpdate(a.id, "SHORTLISTED")}
-                                className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                                className="px-3 py-2 rounded-xl text-xs font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-sm"
                               >
                                 Shortlist
                               </button>
@@ -521,7 +523,7 @@ export const MyTasks = ({
 
   const handlePublish = () => {
     if (!formData.title || !formData.role || !formData.deadline) {
-      alert("Please fill in the required fields (Title, Role, Deadline).");
+      toast.error("Please fill in the required fields (Title, Role, Deadline).");
       return;
     }
 
@@ -595,9 +597,9 @@ export const MyTasks = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
         {/* Modal Header - Fixed */}
-        <div className="p-8 pb-4 bg-white border-b border-orange-50 shrink-0">
+        <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
           <div className="flex justify-between items-start mb-2">
-            <span className="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase tracking-widest mb-2">
+            <span className="flex items-center gap-2 text-xs font-bold text-[#6D3DF5] uppercase tracking-widest mb-2">
               <BookOpen size={16} /> Task Instructions
             </span>
             <button
@@ -624,14 +626,14 @@ export const MyTasks = ({
           </div>
 
           {/* Steps */}
-          <div className="bg-orange-50/50 rounded-2xl p-6 border border-orange-100/50">
+          <div className="bg-[#F3EEFF]/50 rounded-2xl p-6 border border-[#EDE9FE]/50">
             <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
               Steps to Complete
             </h3>
             <div className="space-y-4">
               {task.instructions?.steps.map((step, idx) => (
                 <div key={idx} className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white border border-orange-200 flex items-center justify-center text-orange-600 font-bold text-sm shadow-sm shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white border border-[#E9E1FF] flex items-center justify-center text-[#6D3DF5] font-bold text-sm shadow-sm shrink-0">
                     {idx + 1}
                   </div>
                   <p className="text-slate-700 text-sm pt-1.5">{step}</p>
@@ -689,9 +691,9 @@ export const MyTasks = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
         {/* Header */}
-        <div className="p-8 pb-4 bg-white border-b border-orange-50 shrink-0">
+        <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
           <div className="flex justify-between items-start mb-2">
-            <span className="flex items-center gap-2 text-xs font-bold text-orange-600 uppercase tracking-widest mb-2">
+            <span className="flex items-center gap-2 text-xs font-bold text-[#6D3DF5] uppercase tracking-widest mb-2">
               <Check size={16} /> Solution Submitted
             </span>
             <button
@@ -715,7 +717,7 @@ export const MyTasks = ({
                 href={applicant.submission.githubLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F3EEFF] text-[#5B2FD6] hover:bg-[#EDE9FE] border border-[#E9E1FF] transition-colors"
                 title="Open GitHub repository"
               >
                 <Github size={14} /> View GitHub
@@ -741,7 +743,7 @@ export const MyTasks = ({
                   href={applicant.submission.githubLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm font-bold text-orange-700 hover:text-orange-800 underline break-all"
+                  className="text-sm font-bold text-[#5B2FD6] hover:text-[#4C1D95] underline break-all"
                 >
                   {applicant.submission.githubLink}
                 </a>
@@ -797,13 +799,13 @@ export const MyTasks = ({
                   href={applicant.submission.githubLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 transition-all group"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-[#C4B5FD] hover:bg-[#F3EEFF]/50 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-orange-600 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-[#6D3DF5] transition-colors">
                     <Github size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-orange-700">
+                    <p className="text-sm font-bold text-slate-800 group-hover:text-[#5B2FD6]">
                       GitHub Repository
                     </p>
                     <p className="text-xs text-slate-500 truncate">
@@ -812,7 +814,7 @@ export const MyTasks = ({
                   </div>
                   <ExternalLink
                     size={16}
-                    className="text-slate-300 group-hover:text-orange-400"
+                    className="text-slate-300 group-hover:text-[#8B5CF6]"
                   />
                 </a>
               )}
@@ -876,20 +878,20 @@ export const MyTasks = ({
                   href={link}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50/50 transition-all group"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-[#C4B5FD] hover:bg-[#F3EEFF]/50 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-orange-600 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-[#6D3DF5] transition-colors">
                     <LinkIcon size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-orange-700">
+                    <p className="text-sm font-bold text-slate-800 group-hover:text-[#5B2FD6]">
                       Link #{i + 1}
                     </p>
                     <p className="text-xs text-slate-500 truncate">{link}</p>
                   </div>
                   <ExternalLink
                     size={16}
-                    className="text-slate-300 group-hover:text-orange-400"
+                    className="text-slate-300 group-hover:text-[#8B5CF6]"
                   />
                 </a>
               ))}
@@ -933,7 +935,7 @@ export const MyTasks = ({
               </button>
               <button
                 onClick={() => handleStatusUpdate(applicant.id, "Approved")}
-                className="px-6 py-2.5 rounded-xl font-bold bg-orange-600 text-white hover:bg-orange-700 shadow-lg shadow-orange-500/20 transition-all text-sm flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all text-sm flex items-center gap-2"
               >
                 <Check size={16} /> Approve Solution
               </button>
@@ -971,9 +973,9 @@ export const MyTasks = ({
   return (
     <div className="animate-in fade-in duration-500 relative pb-20">
       {/* Enhanced Animated Header */}
-      <div className="mb-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-xl shadow-orange-500/20 relative overflow-hidden group">
+      <div className="mb-8 bg-gradient-to-r from-[#6D3DF5] to-[#6D3DF5] rounded-3xl p-8 text-white shadow-xl shadow-[#6D3DF5]/20 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl group-hover:bg-white/15 transition-all duration-1000"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-400/20 rounded-full translate-y-1/3 -translate-x-1/4 blur-2xl group-hover:scale-110 transition-transform duration-1000"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#8B5CF6]/20 rounded-full translate-y-1/3 -translate-x-1/4 blur-2xl group-hover:scale-110 transition-transform duration-1000"></div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3 animate-in slide-in-from-bottom-2 duration-700 delay-100">
@@ -987,7 +989,7 @@ export const MyTasks = ({
           <h1 className="text-3xl md:text-4xl font-bold mb-3 animate-in slide-in-from-bottom-3 duration-700 delay-200 drop-shadow-sm">
             Manage Your Industry
           </h1>
-          <p className="text-orange-50 max-w-xl text-sm md:text-base font-medium leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300">
+          <p className="text-[#F3EEFF] max-w-xl text-sm md:text-base font-medium leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300">
             Create new challenges, track applicant submissions in real-time, and
             discover the perfect talent for your next big project.
           </p>
@@ -998,7 +1000,7 @@ export const MyTasks = ({
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div className="relative w-full md:w-96 group">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#6D3DF5] transition-colors"
             size={20}
           />
           <input
@@ -1006,7 +1008,7 @@ export const MyTasks = ({
             placeholder="Search tasks by title, role, or skills..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3.5 bg-white border border-orange-100 rounded-xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none text-sm transition-all shadow-sm"
+            className="w-full pl-10 pr-4 py-3.5 bg-white border border-[#EDE9FE] rounded-xl focus:ring-4 focus:ring-[#6D3DF5]/10 focus:border-[#6D3DF5] outline-none text-sm transition-all shadow-sm"
           />
         </div>
         <button
@@ -1014,7 +1016,7 @@ export const MyTasks = ({
             setEditingId(null);
             setShowCreateModal(true);
           }}
-          className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 border border-orange-400/20"
+          className="w-full md:w-auto bg-[#6D3DF5] hover:bg-[#6D3DF5] text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-[#6D3DF5]/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 border border-[#8B5CF6]/20"
         >
           <Plus size={20} />{" "}
           <span className="whitespace-nowrap">Create New Task</span>
@@ -1026,11 +1028,11 @@ export const MyTasks = ({
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-[2rem] p-5 shadow-md border border-slate-100 hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 hover:scale-[1.02] hover:ring-4 hover:ring-orange-500/20 transition-all duration-300 flex flex-col h-full group relative overflow-hidden"
+              className="bg-white rounded-[2rem] p-5 shadow-md border border-slate-100 hover:border-[#8B5CF6] hover:shadow-xl hover:shadow-[#6D3DF5]/10 hover:scale-[1.02] hover:ring-4 hover:ring-[#6D3DF5]/20 transition-all duration-300 flex flex-col h-full group relative overflow-hidden"
             >
               {/* Top Row: Badges & Edit */}
               <div className="flex justify-between items-start mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6D3DF5] border border-[#EDE9FE]">
                   {getCategoryIcon(task.category)}
                   <span className="text-xs font-bold uppercase tracking-wider">
                     {task.category}
@@ -1040,7 +1042,7 @@ export const MyTasks = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEditClick(task)}
-                      className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-[#F3EEFF] rounded-lg transition-colors"
                       title="Edit Task"
                     >
                       <Pencil size={14} />
@@ -1064,14 +1066,14 @@ export const MyTasks = ({
 
               {/* Title (Company Name Removed) */}
               <div className="mb-3 h-[3.5rem]">
-                <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-orange-600 transition-colors line-clamp-2">
+                <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-[#6D3DF5] transition-colors line-clamp-2">
                   {task.title}
                 </h3>
               </div>
 
               {/* Role Info */}
               <div className="flex items-center gap-3 mb-3">
-                <Briefcase size={16} className="text-orange-500 shrink-0" />
+                <Briefcase size={16} className="text-[#6D3DF5] shrink-0" />
                 <span className="text-sm font-bold text-slate-800 truncate">
                   Role: {task.role}
                 </span>
@@ -1093,12 +1095,12 @@ export const MyTasks = ({
 
               {/* Perks (Enhanced UI) */}
               <div className="mb-3 flex-1">
-                <div className="flex items-start gap-2 p-3 bg-gradient-to-br from-orange-50 to-transparent border border-orange-100 rounded-xl">
-                  <div className="p-1.5 bg-white rounded-lg text-orange-500 shadow-sm shrink-0">
+                <div className="flex items-start gap-2 p-3 bg-gradient-to-br from-[#F3EEFF] to-transparent border border-[#EDE9FE] rounded-xl">
+                  <div className="p-1.5 bg-white rounded-lg text-[#6D3DF5] shadow-sm shrink-0">
                     <Sparkles size={14} />
                   </div>
                   <div>
-                    <span className="text-sm font-bold text-orange-700 block mb-0.5">
+                    <span className="text-sm font-bold text-[#5B2FD6] block mb-0.5">
                       Perks & Benefits
                     </span>
                     <p className="text-sm text-slate-600 leading-snug line-clamp-2">
@@ -1110,7 +1112,7 @@ export const MyTasks = ({
 
               {/* Footer: Date & Buttons */}
               <div className="mt-auto pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-orange-400 text-sm font-bold mb-3">
+                <div className="flex items-center gap-2 text-[#8B5CF6] text-sm font-bold mb-3">
                   <Calendar size={14} />{" "}
                   <span className="text-slate-500">Due {task.deadline}</span>
                 </div>
@@ -1118,7 +1120,7 @@ export const MyTasks = ({
                 <div className="flex gap-3">
                   <button
                     onClick={() => setPreviewInstructions(task)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-orange-200 text-orange-600 font-bold text-sm hover:bg-orange-50 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-[#E9E1FF] text-[#6D3DF5] font-bold text-sm hover:bg-[#F3EEFF] transition-colors"
                   >
                     <FileText size={16} /> Instructions
                   </button>
@@ -1127,7 +1129,7 @@ export const MyTasks = ({
                       setActiveTask(task);
                       setShowApplicantsDrawer(true);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-orange-600 text-white font-bold text-sm hover:bg-orange-700 shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98]"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#6D3DF5] text-white font-bold text-sm hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all active:scale-[0.98]"
                   >
                     Applicants <ChevronRight size={16} />
                   </button>
@@ -1137,8 +1139,8 @@ export const MyTasks = ({
           ))
         ) : (
           <div className="col-span-full py-20 text-center flex flex-col items-center justify-center opacity-70 animate-in fade-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mb-4">
-              <Search size={32} className="text-orange-300" />
+            <div className="w-20 h-20 bg-[#F3EEFF] rounded-full flex items-center justify-center mb-4">
+              <Search size={32} className="text-[#C4B5FD]" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">
               No tasks found
@@ -1184,12 +1186,12 @@ export const MyTasks = ({
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="sticky top-0 bg-white px-8 py-5 border-b border-orange-100 flex justify-between items-center z-10">
+            <div className="sticky top-0 bg-white px-8 py-5 border-b border-[#EDE9FE] flex justify-between items-center z-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 {editingId ? (
-                  <Pencil className="text-orange-500" />
+                  <Pencil className="text-[#6D3DF5]" />
                 ) : (
-                  <Plus className="text-orange-500" />
+                  <Plus className="text-[#6D3DF5]" />
                 )}
                 {editingId ? "Edit Task" : "Create New Task"}
               </h2>
@@ -1213,7 +1215,7 @@ export const MyTasks = ({
                     value={formData.title}
                     onChange={handleInputChange}
                     type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm font-medium"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
                     placeholder="e.g. Backend API Development"
                   />
                 </div>
@@ -1226,7 +1228,7 @@ export const MyTasks = ({
                     value={formData.role}
                     onChange={handleInputChange}
                     type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm font-medium"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
                     placeholder="e.g. Backend Developer"
                   />
                 </div>
@@ -1240,7 +1242,7 @@ export const MyTasks = ({
                       name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none bg-white text-sm font-medium appearance-none"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none bg-white text-sm font-medium appearance-none"
                     >
                       <option>Development</option>
                       <option>Design</option>
@@ -1260,7 +1262,7 @@ export const MyTasks = ({
                     value={formData.deadline}
                     onChange={handleInputChange}
                     type="date"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium text-slate-600"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium text-slate-600"
                   />
                 </div>
               </div>
@@ -1280,7 +1282,7 @@ export const MyTasks = ({
                         onChange={(e) =>
                           handleRadioChange("payment", e.target.value)
                         }
-                        className="accent-orange-500 w-4 h-4"
+                        className="accent-[#6D3DF5] w-4 h-4"
                       />
                       <span className="text-sm font-medium text-slate-700">
                         Paid
@@ -1295,7 +1297,7 @@ export const MyTasks = ({
                         onChange={(e) =>
                           handleRadioChange("payment", e.target.value)
                         }
-                        className="accent-orange-500 w-4 h-4"
+                        className="accent-[#6D3DF5] w-4 h-4"
                       />
                       <span className="text-sm font-medium text-slate-700">
                         Unpaid
@@ -1317,7 +1319,7 @@ export const MyTasks = ({
                         onChange={(e) =>
                           handleRadioChange("type", e.target.value)
                         }
-                        className="accent-orange-500 w-4 h-4"
+                        className="accent-[#6D3DF5] w-4 h-4"
                       />
                       <span className="text-sm font-medium text-slate-700">
                         Remote
@@ -1332,7 +1334,7 @@ export const MyTasks = ({
                         onChange={(e) =>
                           handleRadioChange("type", e.target.value)
                         }
-                        className="accent-orange-500 w-4 h-4"
+                        className="accent-[#6D3DF5] w-4 h-4"
                       />
                       <span className="text-sm font-medium text-slate-700">
                         Onsite
@@ -1353,7 +1355,7 @@ export const MyTasks = ({
                     value={formData.skills}
                     onChange={handleInputChange}
                     type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
                     placeholder="e.g. React, Figma"
                   />
                 </div>
@@ -1366,7 +1368,7 @@ export const MyTasks = ({
                     value={formData.perks}
                     onChange={handleInputChange}
                     type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
                     placeholder="e.g. Certificate, Stipend"
                   />
                 </div>
@@ -1375,7 +1377,7 @@ export const MyTasks = ({
               {/* Detailed Instructions Section */}
               <div className="border-t border-slate-100 pt-6">
                 <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <BookOpen size={18} className="text-orange-500" />
+                  <BookOpen size={18} className="text-[#6D3DF5]" />
                   Task Instructions for Students
                 </h3>
 
@@ -1389,7 +1391,7 @@ export const MyTasks = ({
                       value={formData.overview}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none resize-none text-sm font-medium"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none resize-none text-sm font-medium"
                       placeholder="Briefly describe the task..."
                     ></textarea>
                   </div>
@@ -1410,7 +1412,7 @@ export const MyTasks = ({
                             onChange={(e) =>
                               handleStepChange(index, e.target.value)
                             }
-                            className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm"
+                            className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm"
                             placeholder={`Step ${index + 1}`}
                           />
                           {newSteps.length > 1 && (
@@ -1426,7 +1428,7 @@ export const MyTasks = ({
                     </div>
                     <button
                       onClick={handleAddStep}
-                      className="mt-3 text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                      className="mt-3 text-sm font-bold text-[#6D3DF5] hover:text-[#5B2FD6] flex items-center gap-1"
                     >
                       <Plus size={16} /> Add Step
                     </button>
@@ -1441,7 +1443,7 @@ export const MyTasks = ({
                       value={formData.note}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none text-sm font-medium"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
                       placeholder="e.g. Ensure you follow security best practices."
                     />
                   </div>
@@ -1458,7 +1460,7 @@ export const MyTasks = ({
               </button>
               <button
                 onClick={handlePublish}
-                className="px-6 py-2.5 rounded-xl font-bold bg-orange-600 text-white hover:bg-orange-700 shadow-lg shadow-orange-500/20 transition-all text-sm flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all text-sm flex items-center gap-2"
               >
                 <Check size={16} />{" "}
                 {editingId ? "Save Changes" : "Publish Task"}

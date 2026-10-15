@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Loader2, Github, AlertTriangle, Youtube, HardDrive, Link as LinkIcon, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { useToast } from '../Toast';
 
-export const ApplicationFormModal = ({ 
-  isOpen, 
-  onClose, 
+export const ApplicationFormModal = ({
+  isOpen,
+  onClose,
   task,
-  onSubmit 
+  onSubmit
 }) => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     projectTitle: '',
     description: '',
@@ -109,7 +111,7 @@ export const ApplicationFormModal = ({
     e.preventDefault();
     if (!task) return;
     if (typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs) {
-      alert("This task is closed. The deadline has passed.");
+      toast.error("This task is closed. The deadline has passed.");
       return;
     }
 
@@ -181,10 +183,10 @@ export const ApplicationFormModal = ({
           ) : (
             <>
               {/* Header */}
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 flex justify-between items-start text-white flex-shrink-0">
+              <div className="bg-[#6D3DF5] p-6 flex justify-between items-start text-white flex-shrink-0">
                 <div>
                   <h2 className="text-2xl font-bold">Submit Solution</h2>
-                  <p className="text-orange-100 text-sm mt-1 opacity-90">Applying for: {task.title}</p>
+                  <p className="text-[#EDE9FE] text-sm mt-1 opacity-90">Applying for: {task.title}</p>
                 </div>
                 <button 
                   onClick={onClose}
@@ -211,7 +213,7 @@ export const ApplicationFormModal = ({
                         placeholder="e.g., E-Commerce Analytics Dashboard"
                         value={formData.projectTitle}
                         onChange={(e) => setFormData({...formData, projectTitle: e.target.value})}
-                        className={`w-full px-4 py-3 rounded-lg border ${errors.projectTitle ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-100 focus:border-orange-400'} focus:outline-none focus:ring-4 transition-all`}
+                        className={`w-full px-4 py-3 rounded-lg border ${errors.projectTitle ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5]'} focus:outline-none focus:ring-4 transition-all`}
                       />
                       {errors.projectTitle && (
                         <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -230,7 +232,7 @@ export const ApplicationFormModal = ({
                         placeholder="Explain your approach, technologies used, and any challenges faced..."
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        className={`w-full px-4 py-3 rounded-lg border ${errors.description ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-100 focus:border-orange-400'} focus:outline-none focus:ring-4 transition-all resize-none`}
+                        className={`w-full px-4 py-3 rounded-lg border ${errors.description ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5]'} focus:outline-none focus:ring-4 transition-all resize-none`}
                       />
                       {errors.description && (
                         <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -255,7 +257,7 @@ export const ApplicationFormModal = ({
                           placeholder="https://github.com/..."
                           value={formData.githubUrl}
                           onChange={(e) => setFormData({...formData, githubUrl: e.target.value})}
-                          className={`w-full px-4 py-3 rounded-lg border ${errors.githubUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-100 focus:border-orange-400'} focus:outline-none focus:ring-4 transition-all`}
+                          className={`w-full px-4 py-3 rounded-lg border ${errors.githubUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5]'} focus:outline-none focus:ring-4 transition-all`}
                         />
                         {errors.githubUrl && (
                           <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -274,7 +276,7 @@ export const ApplicationFormModal = ({
                           placeholder="https://youtube.com/..."
                           value={formData.videoUrl}
                           onChange={(e) => setFormData({...formData, videoUrl: e.target.value})}
-                          className={`w-full px-4 py-3 rounded-lg border ${errors.videoUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-100 focus:border-orange-400'} focus:outline-none focus:ring-4 transition-all`}
+                          className={`w-full px-4 py-3 rounded-lg border ${errors.videoUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5]'} focus:outline-none focus:ring-4 transition-all`}
                         />
                         {errors.videoUrl && (
                           <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -299,7 +301,7 @@ export const ApplicationFormModal = ({
                         placeholder="https://drive.google.com/..."
                         value={formData.googleDriveUrl}
                         onChange={(e) => setFormData({...formData, googleDriveUrl: e.target.value})}
-                        className={`w-full px-4 py-3 rounded-lg border ${errors.googleDriveUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-orange-100 focus:border-orange-400'} focus:outline-none focus:ring-4 transition-all`}
+                        className={`w-full px-4 py-3 rounded-lg border ${errors.googleDriveUrl ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5]'} focus:outline-none focus:ring-4 transition-all`}
                       />
                       {errors.googleDriveUrl && (
                         <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -318,7 +320,7 @@ export const ApplicationFormModal = ({
                         <div className="mb-3 space-y-2">
                           {formData.additionalLinks.map((link, idx) => (
                             <div key={idx} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200 group">
-                              <div className="p-1.5 bg-white rounded-md shadow-sm text-orange-500">
+                              <div className="p-1.5 bg-white rounded-md shadow-sm text-[#6D3DF5]">
                                 <LinkIcon size={14} />
                               </div>
                               <span className="text-sm text-gray-600 truncate flex-1">{link}</span>
@@ -346,7 +348,7 @@ export const ApplicationFormModal = ({
                               addAdditionalLink();
                             }
                           }}
-                          className={`flex-1 px-4 py-2 rounded-lg border ${errors.newLink ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-400 transition-all text-sm`}
+                          className={`flex-1 px-4 py-2 rounded-lg border ${errors.newLink ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:ring-4 focus:ring-[#6D3DF5]/15 focus:border-[#6D3DF5] transition-all text-sm`}
                         />
                         <button 
                           type="button"
@@ -379,7 +381,7 @@ export const ApplicationFormModal = ({
                 <button 
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium shadow-lg shadow-orange-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl hover:bg-[#5B2FD6] transition-colors font-medium shadow-lg shadow-[#6D3DF5]/20 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>

@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Image as ImageIcon, Send, ChevronDown, Loader2 } from "lucide-react";
 import api from "../../services/api";
+import { useToast } from "../Toast";
 
 export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
+  const toast = useToast();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
@@ -28,10 +30,15 @@ export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       form.append("type", "Post");
       form.append("tags", JSON.stringify(tagsArray));
       attachments.forEach((file) => form.append("attachments", file));
+      const sentAttachmentCount = attachments.length;
 
       const res = await api.post("/posts/create", form);
 
       if (res.data && res.data.data) {
+        const savedAttachments = res.data.data.attachments || [];
+        if (sentAttachmentCount > 0 && savedAttachments.length === 0) {
+          toast.error("Post created, but the image upload failed on the server. Please check the server's Cloudinary configuration and try again.");
+        }
         if (onPostCreated) {
           onPostCreated(res.data.data);
         }
@@ -44,7 +51,7 @@ export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       }
     } catch (error) {
       console.error("Error creating post:", error);
-      alert(error.response?.data?.message || "Failed to create post. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to create post. Please try again.");
     } finally {
       setIsLoading(false);
     }
