@@ -67,31 +67,6 @@ const CountUpNumber = ({ target, suffix = "", duration = 1.6 }) => {
 const HowItWorks = () => {
   return (
     <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
-      {/* Scoped CSS animations for gentle floaters (Home-style) */}
-      <style>{`
-        @keyframes vibeFloatSubtle1 {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-7px); }
-        }
-        @keyframes vibeFloatSubtle2 {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(6px); }
-        }
-        .vibe-doodle-float-1 {
-          animation: vibeFloatSubtle1 4.5s ease-in-out infinite;
-        }
-        .vibe-doodle-float-2 {
-          animation: vibeFloatSubtle2 5.2s ease-in-out infinite;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .vibe-doodle-float-1,
-          .vibe-doodle-float-2 {
-            animation: none !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
       {/* ======================================================== */}
       {/* 1. HERO INTRO SECTION                                    */}
       {/* ======================================================== */}

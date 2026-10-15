@@ -102,7 +102,7 @@ export const FacultyRightPanel = ({
       {/* ======================================================== */}
       {/* A. Student Mentorship Requests Card                      */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0">
+      <div className="vibe-card p-4 sm:p-5">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9] min-w-0">
           <h3 className="font-bold text-sm text-[#0F172A] tracking-tight truncate">
@@ -221,7 +221,7 @@ export const FacultyRightPanel = ({
       {/* ======================================================== */}
       {/* C. Quick Actions (2x2 Grid)                              */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0">
+      <div className="vibe-card p-4 sm:p-5">
         <h3 className="font-bold text-xs uppercase tracking-wider text-[#64748B] mb-3">
           Quick Actions
         </h3>

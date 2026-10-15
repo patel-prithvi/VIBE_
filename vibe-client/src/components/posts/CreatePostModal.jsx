@@ -74,16 +74,16 @@ export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-xs z-[60]"
+            className="vibe-modal-backdrop"
           />
 
           {/* Modal Container */}
-          <div className="fixed inset-0 flex items-center justify-center p-4 z-[70] pointer-events-none">
+          <div className="vibe-modal-container">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-[#E2E8F0] pointer-events-auto overflow-hidden flex flex-col max-h-[90vh]"
+              className="w-full max-w-xl vibe-modal-dialog flex flex-col"
             >
               {/* Header */}
               <div className="px-6 py-4 border-b border-[#F1F5F9] flex items-center justify-between">

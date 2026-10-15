@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Search, Bell, MessageSquare, ChevronDown, LogOut, User } from "lucide-react";
-import ButterflyLogo from "../public/ButterflyLogo";
+import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
 
 export const StudentTopHeader = ({ user, onLogout, onNavigate, onSearch }) => {
@@ -37,7 +37,7 @@ export const StudentTopHeader = ({ user, onLogout, onNavigate, onSearch }) => {
           onClick={() => onNavigate && onNavigate("home")} 
           className="flex items-center cursor-pointer flex-shrink-0 select-none hover:opacity-90 transition-opacity"
         >
-          <ButterflyLogo size="md" />
+          <VibeLogo size="md" />
         </div>
 
         {/* Center: Search Field */}
@@ -52,7 +52,7 @@ export const StudentTopHeader = ({ user, onLogout, onNavigate, onSearch }) => {
               value={searchValue}
               onChange={handleSearchChange}
               placeholder="Search posts, people, mentors, resources..."
-              className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
+              className="vibe-search-input"
             />
           </div>
         </div>

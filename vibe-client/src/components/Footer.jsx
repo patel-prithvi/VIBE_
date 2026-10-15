@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Download,
 } from "lucide-react";
-import ButterflyLogo from "./public/ButterflyLogo";
+import VibeLogo from "./public/VibeLogo";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -31,7 +31,7 @@ const Footer = () => {
           {/* Brand & Socials Column (Spans 2 columns on lg) */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="inline-block group">
-              <ButterflyLogo size="md" />
+              <VibeLogo size="md" />
             </Link>
             <p className="text-sm text-[#5A6482] max-w-sm leading-relaxed">
               VIBE (Verified Internship & Mentorship) connects students with certified faculty mentors and real industry opportunities in a trusted, transparent ecosystem.

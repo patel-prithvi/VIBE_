@@ -10,7 +10,7 @@ import {
   Briefcase,
   Building2,
 } from "lucide-react";
-import ButterflyLogo from "./public/ButterflyLogo";
+import VibeLogo from "./public/VibeLogo";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -85,7 +85,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo on Left */}
           <Link to="/" className="flex items-center group">
-            <ButterflyLogo size="md" />
+            <VibeLogo size="md" />
           </Link>
 
           {/* Desktop Nav Links in Center */}

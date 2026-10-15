@@ -346,8 +346,8 @@ const Home = () => {
       avatar:
         "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces",
       quote:
-        "TaskMania completely changed my internship search. Instead of sending 50 cold resumes, I completed one real micro-task posted by CloudScale and landed an interview within 48 hours!",
-      tag: "Hired via TaskMania",
+        "Task Mania completely changed my internship search. Instead of sending 50 cold resumes, I completed one real micro-task posted by CloudScale and landed an interview within 48 hours!",
+      tag: "Hired via Task Mania",
     },
     {
       name: "Dr. Shalini Gupta",
@@ -403,48 +403,6 @@ const Home = () => {
 
   return (
     <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
-      {/* Scoped CSS animations for Marquee and gentle floaters */}
-      <style>{`
-        @keyframes vibeContinuousMarquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes vibeFloatSubtle1 {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-7px); }
-        }
-        @keyframes vibeFloatSubtle2 {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(6px); }
-        }
-        .animate-vibe-marquee {
-          display: flex;
-          width: max-content;
-          animation: vibeContinuousMarquee 38s linear infinite;
-        }
-        .animate-vibe-marquee:hover {
-          animation-play-state: paused;
-        }
-        .vibe-doodle-float-1 {
-          animation: vibeFloatSubtle1 4.5s ease-in-out infinite;
-        }
-        .vibe-doodle-float-2 {
-          animation: vibeFloatSubtle2 5.2s ease-in-out infinite;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .animate-vibe-marquee {
-            animation: none !important;
-            overflow-x: auto;
-          }
-          .vibe-doodle-float-1,
-          .vibe-doodle-float-2 {
-            animation: none !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
-
       {/* ======================================================== */}
       {/* 1. HERO SECTION                                         */}
       {/* ======================================================== */}
@@ -783,7 +741,7 @@ const Home = () => {
         <FeatureRow
           reversed
           tag="Practical Tasks"
-          title="TaskMania"
+          title="Task Mania"
           emoji="⚡"
           description="Solve vetted industry challenges posted by real tech teams. Submit working solutions and get noticed by recruiters on merit."
           bullets={[
@@ -857,7 +815,7 @@ const Home = () => {
           bullets={[
             "Authenticated college identity and enrollment status",
             "Peer endorsements and mentor rating breakdowns",
-            "Comprehensive timeline of solved TaskMania challenges",
+            "Comprehensive timeline of solved Task Mania challenges",
           ]}
           ctaText="Build Your Profile"
           ctaPath="/signup"
@@ -911,7 +869,7 @@ const Home = () => {
               {/* Badges Bar */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6482]">
                 <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
-                  <Award size={14} className="text-[#7540F5]" /> TaskMania Top 5%
+                  <Award size={14} className="text-[#7540F5]" /> Task Mania Top 5%
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
                   <Sparkles size={14} className="text-[#FBBF24]" /> 18 Day Streak
@@ -1162,7 +1120,7 @@ const Home = () => {
                   </h4>
                 </div>
                 <p className="text-xs sm:text-sm text-[#5A6482] leading-relaxed">
-                  Virtual CV entries and TaskMania completions are signed and time-stamped to guarantee authenticity and eliminate resume inflation.
+                  Virtual CV entries and Task Mania completions are signed and time-stamped to guarantee authenticity and eliminate resume inflation.
                 </p>
               </div>
 

@@ -21,7 +21,7 @@ export const StudentLeftSidebar = ({ activeView, onNavigate, onLogout }) => {
 
   return (
     <aside className="w-full lg:w-[260px] min-w-0 flex-shrink-0">
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] sticky top-20">
+      <div className="vibe-sidebar-card sticky top-20">
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -35,10 +35,10 @@ export const StudentLeftSidebar = ({ activeView, onNavigate, onLogout }) => {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left ${
+                className={`vibe-nav-item ${
                   isActive
-                    ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold shadow-xs"
-                    : "text-[#1E293B] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                    ? "vibe-nav-item-active shadow-xs"
+                    : "vibe-nav-item-inactive"
                 }`}
               >
                 <Icon

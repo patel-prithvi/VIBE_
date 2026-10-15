@@ -94,7 +94,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          className="vibe-modal-backdrop"
         />
 
         {/* Modal Content */}
@@ -102,7 +102,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-2xl vibe-modal-dialog !rounded-3xl overflow-hidden"
         >
           {/* Header */}
           <div className="p-6 border-b border-[#F1F5F9] flex justify-between items-center bg-[#F8FAFC]">

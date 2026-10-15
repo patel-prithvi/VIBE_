@@ -156,7 +156,7 @@ export const StudentRightPanel = ({ onNavigate }) => {
       {/* ======================================================== */}
       {/* 1. Recommended Mentors Card                              */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0">
+      <div className="vibe-card p-4 sm:p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-sm text-[#0F172A] tracking-tight">
             Recommended Mentors
@@ -272,7 +272,7 @@ export const StudentRightPanel = ({ onNavigate }) => {
       {/* ======================================================== */}
       {/* 2. AI-Powered CV Analysis Card                           */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0">
+      <div className="vibe-card p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-7 h-7 rounded-lg bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center flex-shrink-0">
             <Sparkles size={16} />
