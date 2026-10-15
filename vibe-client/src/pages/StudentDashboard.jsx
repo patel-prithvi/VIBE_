@@ -274,7 +274,7 @@ const StudentDashboard = () => {
           setPosts([mappedPost, ...posts]);
         }}
       />
-    </div>
+    </>
   );
 };
 

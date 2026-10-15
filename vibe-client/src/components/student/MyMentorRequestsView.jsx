@@ -274,63 +274,9 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Mentor Requests</h1>
-          <p className="text-gray-500">Track and view the status of your mentorship requests</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex">
-            {["all", "pending", "accepted", "rejected"].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
-                  filter === f
-                    ? "bg-[#6D3DF5] text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search by mentor name, task or company..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all"
-          />
-        </div>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-[#6D3DF5] animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Loading requests...</p>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-red-900 mb-2">Error Loading Requests</h3>
-          <p className="text-red-600 mb-6">{error}</p>
-          <button
-            onClick={onBackToFeed}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] transition-colors self-start sm:self-auto cursor-pointer"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Feed</span>
-          </button>
-        )}
+      <div>
+        <h1 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">Mentorship</h1>
+        <p className="text-xs md:text-sm text-[#64748B] font-medium">Find faculty mentors and track your requests</p>
       </div>
 
       {/* 2. Top Tabs: Find Mentors vs My Requests */}
@@ -767,41 +713,13 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
               onClick={() => setIsConnectModalOpen(false)}
               className="absolute top-4 right-4 text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
             >
-              {/* Card Header */}
-              <div className="p-5 border-b border-gray-50 flex justify-between items-start">
-                <div className="flex gap-4">
-                  <img
-                    src={request.faculty.avatar}
-                    alt={request.faculty.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-[#EDE9FE]"
-                  />
-                  <div>
-                    <h3 className="font-bold text-gray-900">{request.faculty.name}</h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Clock size={12} /> {request.requestDate}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(
-                    request.status,
-                  )}`}
-                >
-                  {request.status.toUpperCase()}
-                </div>
-              </div>
-            </div>
+              <X size={18} />
+            </button>
 
-              {/* Card Body */}
-              <div className="p-5 space-y-4">
-                <div>
-                  <p className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider mb-1">
-                    Task Details
-                  </p>
-                  <h4 className="font-bold text-gray-800 line-clamp-1">
-                    {request.task.title}
-                  </h4>
-                  <p className="text-sm text-gray-500">{request.task.company}</p>
+            {connectSuccess ? (
+              <div className="p-5 space-y-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#ECFDF5] text-[#059669] border border-[#A7F3D0] flex items-center justify-center mx-auto">
+                  <Check size={20} strokeWidth={3} />
                 </div>
                 <h4 className="text-sm font-bold text-[#0F172A]">Request Sent!</h4>
                 <p className="text-xs text-[#64748B]">
@@ -895,7 +813,7 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
                 <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
                         selectedRequest.status,
                     )} mx-4`}
                 >
