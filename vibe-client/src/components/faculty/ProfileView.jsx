@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { auth } from "../../utils/auth";
 import api from "../../services/api";
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 
 export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -442,13 +444,25 @@ export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
             />
           </div>
 
-          <button
-            onClick={handleUpdatePassword}
-            disabled={pwLoading}
-            className="w-full md:w-auto px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {pwLoading ? 'Updating...' : 'Update Password'} <Lock size={16} />
-          </button>
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <button
+              onClick={handleUpdatePassword}
+              disabled={pwLoading}
+              className="w-full md:w-auto px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {pwLoading ? 'Updating...' : 'Update Password'} <Lock size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const targetEmail = user?.email || auth.getCurrentUser()?.email || '';
+                navigate(`/forgot-password?email=${encodeURIComponent(targetEmail)}`);
+              }}
+              className="text-xs sm:text-sm font-bold text-[#6D3DF5] hover:text-[#5B2ED0] hover:underline transition-colors"
+            >
+              Forgot current password?
+            </button>
+          </div>
         </div>
       </section>
 

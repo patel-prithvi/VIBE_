@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mail, 
   ArrowLeft, 
@@ -21,11 +21,12 @@ import { auth } from '../utils/auth';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
 
   // Wizard Step: 1 = Email, 2 = Verify OTP, 3 = New Password, 4 = Success
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +36,14 @@ const ForgotPassword = () => {
   // Loading & Timer States
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Prefill email from query parameter if provided (e.g. from profile)
+  useEffect(() => {
+    const qEmail = searchParams.get('email');
+    if (qEmail) {
+      setEmail(qEmail);
+    }
+  }, [searchParams]);
 
   // Resend Countdown Timer
   useEffect(() => {
