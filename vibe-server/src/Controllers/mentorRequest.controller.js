@@ -4,6 +4,7 @@ import TaskMania from "../models/TaskMania.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { notify } from "../services/notify.js";
 import mongoose from "mongoose";
 
 // Create a new Mentor Request
@@ -44,6 +45,17 @@ const createMentorRequest = asyncHandler(async (req, res) => {
     task: taskId,
     message: message || "",
     skills: skills || [],
+  });
+
+  // In-app notification for the faculty (fire-and-forget)
+  await notify({
+    recipient: facultyId,
+    sender: studentId,
+    type: "mentor_request",
+    title: "New mentorship request",
+    message: `${req.user?.name || "A student"} requested your mentorship for "${task.title || "a task"}"`,
+    link: "/dashboard/faculty",
+    meta: { requestId: newRequest._id, taskId },
   });
 
   return res
@@ -128,6 +140,20 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
     }
   }
   await request.save();
+
+  // In-app notification for the student (fire-and-forget)
+  await notify({
+    recipient: request.student,
+    sender: req.user._id,
+    type: status === "accepted" ? "request_accepted" : "request_rejected",
+    title: status === "accepted" ? "Mentorship request accepted" : "Mentorship request declined",
+    message:
+      status === "accepted"
+        ? `${req.user?.name || "Your mentor"} accepted your request${meetLink ? ` — meet link: ${meetLink}` : ""}`
+        : `${req.user?.name || "Your mentor"} declined your mentorship request`,
+    link: "/dashboard/student",
+    meta: { requestId: request._id },
+  });
 
   return res
     .status(200)

@@ -5,6 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { sendZohoEmail } from "../services/zohoMail.js";
+import { notify } from "../services/notify.js";
 import { User } from "../models/Users.js";
 
 // Get all tasks
@@ -63,7 +64,6 @@ export const createSubmission = asyncHandler(async (req, res) => {
 
   const submission = new TaskSubmission({...req.body, createdBy: req.user.id});
   await submission.save();
-
   task.submissions.push(submission._id);
   await task.save();
 
@@ -75,12 +75,24 @@ export const createSubmission = asyncHandler(async (req, res) => {
 
 
 
+
   // await sendZohoEmail(user.email,"submission",{
   //   taskTitle : task.title,
   //   link : `https://www.curioteach.com/community/manage-tasks/${submission._id}`
   // })
 
-
+  // In-app notification for the task creator (fire-and-forget, skip self-submits)
+  if (task.createdBy && String(task.createdBy) !== String(req.user.id)) {
+    await notify({
+      recipient: task.createdBy,
+      sender: req.user.id,
+      type: "submission_received",
+      title: "New submission received",
+      message: `${req.user?.name || "Someone"} submitted work for "${task.title || "your task"}"`,
+      link: "/dashboard/industry",
+      meta: { submissionId: submission._id, taskId: task._id },
+    });
+  }
 
   res.status(201).json(new ApiResponse(201, submission, "Submission created successfully"));
 });
@@ -114,27 +126,61 @@ export const updateSubmission = asyncHandler(async (req, res) => {
 
   // --- REVIEWED MAIL ---
   if (updatedSubmission.status === "reviewed") {
-    await sendBrevoEmail(mailId, "review", {
-      candidateName: candidate?.name,
-      taskTitle: task?.title,
-      score: updatedSubmission.score,
-      feedback: updatedSubmission.reviewFeedback,
-      reviewer: reviewer?.name,
-      reviewLink: `https://www.curioteach.com/submissions/${updatedSubmission._id}`,
-    });
+    try {
+      await sendBrevoEmail(mailId, "review", {
+        candidateName: candidate?.name,
+        taskTitle: task?.title,
+        score: updatedSubmission.score,
+        feedback: updatedSubmission.reviewFeedback,
+        reviewer: reviewer?.name,
+        reviewLink: `https://www.curioteach.com/submissions/${updatedSubmission._id}`,
+      });
+    } catch (mailErr) {
+      console.error("Review email failed:", mailErr.message || mailErr);
+    }
+
+    // In-app notification for the candidate (fire-and-forget)
+    if (candidate?._id) {
+      await notify({
+        recipient: candidate._id,
+        sender: req.user.id,
+        type: "submission_reviewed",
+        title: "Your submission was reviewed",
+        message: `${reviewer?.name || "A reviewer"} reviewed your work for "${task?.title || "a task"}"`,
+        link: "/dashboard/student",
+        meta: { submissionId: updatedSubmission._id },
+      });
+    }
   }
 
   // --- HIRED MAIL ---
   if (updatedSubmission.status === "hired") {
-    await sendZohoEmail(mailId, "hired", {
-      candidateName: candidate?.name,
-      roleOffered: task?.roleOffered,
-      packageRange: task?.packageRange,
-      companyName: task?.companyName,
-      skillsRequired: task?.skillsRequired,
-      hrContact: task?.createdBy?.email || "hr@curioteach.com",
-      detailsLink: `https://www.curioteach.com/offers/${updatedSubmission._id}`,
-    });
+    try {
+      await sendZohoEmail(mailId, "hired", {
+        candidateName: candidate?.name,
+        roleOffered: task?.roleOffered,
+        packageRange: task?.packageRange,
+        companyName: task?.companyName,
+        skillsRequired: task?.skillsRequired,
+        hrContact: task?.createdBy?.email || "hr@curioteach.com",
+        detailsLink: `https://www.curioteach.com/offers/${updatedSubmission._id}`,
+      });
+    } catch (mailErr) {
+      console.error("Hired email failed:", mailErr.message || mailErr);
+    }
+
+    // In-app notification for the candidate (fire-and-forget)
+    if (candidate?._id) {
+      await notify({
+        recipient: candidate._id,
+        sender: req.user.id,
+        type: "hired",
+        title: "You're hired!",
+        message: `Congratulations! You were hired for "${task?.roleOffered || task?.title || "a role"}" at ${task?.companyName || "a company"}`,
+        link: "/dashboard/student",
+        meta: { submissionId: updatedSubmission._id },
+      });
+    }
   }
 
   res

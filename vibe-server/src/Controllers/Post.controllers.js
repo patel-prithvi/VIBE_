@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { notify } from "../services/notify.js";
 // import { sendZohoEmail } from "../services/zohMail.js";
 
 
@@ -93,6 +94,19 @@ export const createComment = asyncHandler(async (req, res) => {
   //     // don't throw error, we still want to return success
   //   }
   // }
+
+  // In-app notification for the post author (fire-and-forget, skip self-comments)
+  if (parentPost.author?._id && String(parentPost.author._id) !== String(author)) {
+    await notify({
+      recipient: parentPost.author._id,
+      sender: author,
+      type: "comment",
+      title: "New comment on your post",
+      message: `${req.user?.name || "Someone"} commented: "${String(content || "").slice(0, 120)}"`,
+      link: "",
+      meta: { postId: parentPost._id, commentId: newComment._id },
+    });
+  }
 
   res
     .status(201)

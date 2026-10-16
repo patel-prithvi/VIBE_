@@ -64,6 +64,7 @@ import userRouter from "./routes/userRoutes.js";
 import postRouter from "./routes/postRoutes.js";
 import taskRouter from "./routes/taskRoutes.js";
 import submissionRouter from "./routes/taskSubmissionRoutes.js";
+import notificationRouter from "./routes/notification.routes.js";
 import virtualresume from "./routes/VirtualResume.js";  
 import mentorRequestRouter from "./routes/mentorRequest.routes.js";
 
@@ -76,6 +77,7 @@ app.use("/api/v1/users", checkDbConnection, userRouter);
 app.use("/api/v1/posts", checkDbConnection, postRouter);
 app.use("/api/v1/tasks", checkDbConnection, taskRouter);
 app.use("/api/v1/submissions", checkDbConnection, submissionRouter);
+app.use("/api/v1/notifications", checkDbConnection, notificationRouter);
 app.use("/api/v1/virtualresume", checkDbConnection, virtualresume);
 
 // 404 handler
