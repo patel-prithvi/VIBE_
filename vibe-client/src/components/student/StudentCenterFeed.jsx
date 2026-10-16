@@ -20,6 +20,8 @@ export const StudentCenterFeed = ({
   onOpenCreatePost,
   loading = false,
   searchQuery = "",
+  bookmarkedIds = new Set(),
+  onToggleBookmark,
 }) => {
   const [composerText, setComposerText] = useState("");
 
@@ -91,8 +93,8 @@ export const StudentCenterFeed = ({
         </div>
 
         {/* Action Options Row + Post Button */}
-        <div className="mt-3 pt-3 border-t border-[#F1F5F9] flex flex-wrap items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-1 sm:gap-2 text-[#475569] text-xs font-semibold overflow-x-auto pb-1 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden min-w-0">
+        <div className="mt-3 pt-3 border-t border-[#F1F5F9] flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-2 text-[#475569] text-xs font-semibold overflow-x-auto pb-1 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden min-w-0 flex-1">
             <button
               onClick={() => onOpenCreatePost && onOpenCreatePost()}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#F8FAFC] hover:text-[#0F172A] transition-colors shrink-0"
@@ -202,9 +204,18 @@ export const StudentCenterFeed = ({
         )
       ) : (
         <div className="space-y-4">
-          {visiblePosts.map((post, index) => (
-            <PostCard post={post} index={index} key={post.id} />
-          ))}
+          {visiblePosts.map((post, index) => {
+            const pId = post.id || post._id;
+            return (
+              <PostCard
+                post={post}
+                index={index}
+                key={pId}
+                isBookmarked={bookmarkedIds?.has ? bookmarkedIds.has(pId) : false}
+                onToggleBookmark={onToggleBookmark}
+              />
+            );
+          })}
         </div>
       )}
     </div>

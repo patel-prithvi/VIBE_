@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Share2, MoreHorizontal, Send, Heart, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Share2, MoreHorizontal, Send, Heart, Bookmark } from 'lucide-react';
 import Avatar from '../shared/Avatar';
 import { useToast } from '../Toast';
 import { auth } from '../../utils/auth';
 import api from '../../services/api';
 
-export const PostCard = ({ post, index }) => {
+export const PostCard = ({ post, index, isBookmarked = false, onToggleBookmark }) => {
   const toast = useToast();
   const currentUser = auth.getCurrentUser();
   const [isLiked, setIsLiked] = useState(currentUser && post.vibes && post.vibes[currentUser._id]);
@@ -181,7 +181,6 @@ export const PostCard = ({ post, index }) => {
               <span className="font-bold text-sm text-[#0F172A] leading-tight truncate">
                 {authorName}
               </span>
-              <CheckCircle2 size={14} className="text-[#3B82F6] fill-[#3B82F6] text-white flex-shrink-0" />
               <span className="text-[10px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-full border border-[#DBEAFE] capitalize flex-shrink-0">
                 {authorRole}
               </span>
@@ -281,6 +280,20 @@ export const PostCard = ({ post, index }) => {
             <span className="font-semibold text-[#0F172A]">Share</span>
           </button>
         </div>
+
+        {/* Real Bookmark Toggle */}
+        <button
+          onClick={() => onToggleBookmark && onToggleBookmark(post.id || post._id)}
+          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            isBookmarked
+              ? "text-[#6D3DF5] bg-[#F3EEFF]"
+              : "text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+          }`}
+          aria-label={isBookmarked ? "Remove Bookmark" : "Bookmark Post"}
+          title={isBookmarked ? "Remove Bookmark" : "Bookmark Post"}
+        >
+          <Bookmark size={16} fill={isBookmarked ? "#6D3DF5" : "none"} />
+        </button>
       </div>
 
       {/* 4. Comments Section */}

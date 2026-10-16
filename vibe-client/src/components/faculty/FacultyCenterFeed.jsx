@@ -31,9 +31,7 @@ export const FacultyCenterFeed = ({
 
   const tabs = [
     { id: "for-you", label: "For You" },
-    { id: "following", label: "Following" },
     { id: "students", label: "Students" },
-    { id: "mentorship", label: "Mentorship" },
     { id: "resources", label: "Resources" },
   ];
 

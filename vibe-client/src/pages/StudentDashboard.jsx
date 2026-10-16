@@ -1,23 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
-import { StudentLeftSidebar } from '../components/student/StudentLeftSidebar';
-import { StudentCenterFeed } from '../components/student/StudentCenterFeed';
-import { StudentRightPanel } from '../components/student/StudentRightPanel';
-import { ProfileView } from '../components/student/ProfileView';
-import { CreatePostModal } from '../components/posts/CreatePostModal';
-import { VirtualCVView } from '../components/student/VirtualCVView';
-import { TaskManiaView } from '../components/taskmania/TaskManiaView';
-import { MyMentorRequestsView } from '../components/student/MyMentorRequestsView';
-import { auth } from '../utils/auth';
-import api from '../services/api';
-import { useToast } from '../components/Toast';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FacultyTopHeader } from "../components/faculty/FacultyTopHeader";
+import { StudentLeftSidebar } from "../components/student/StudentLeftSidebar";
+import { StudentCenterFeed } from "../components/student/StudentCenterFeed";
+import { StudentRightPanel } from "../components/student/StudentRightPanel";
+import { ProfileView } from "../components/student/ProfileView";
+import { CreatePostModal } from "../components/posts/CreatePostModal";
+import { VirtualCVView } from "../components/student/VirtualCVView";
+import { TaskManiaView } from "../components/taskmania/TaskManiaView";
+import { MyMentorRequestsView } from "../components/student/MyMentorRequestsView";
+import { StudentBookmarksView } from "../components/student/StudentBookmarksView";
+import { MobileBottomNav } from "../components/shared/MobileBottomNav";
+import { auth } from "../utils/auth";
+import api from "../services/api";
+import { useToast } from "../components/Toast";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const [activeView, setActiveView] = useState(() => localStorage.getItem('vibe_student_tab') || 'posts');
-  const [activeFeedTab, setActiveFeedTab] = useState('for-you');
+  const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_student_tab") || "home");
+  const [activeFeedTab, setActiveFeedTab] = useState("for-you");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("vibe_sidebar_collapsed") === "true"
@@ -26,7 +28,7 @@ const StudentDashboard = () => {
   const [posts, setPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState("");
 
@@ -58,7 +60,6 @@ const StudentDashboard = () => {
             role: post.author?.accountType || "Student",
             accountType: post.author?.accountType || "Student",
             avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || "default"}/200`,
-            verified: true,
             details: post.author?.Profile?.Branch 
               ? `${post.author?.Profile?.YearOfStudy ? `${post.author.Profile.YearOfStudy} year` : "Student"}, ${post.author?.Profile?.Branch}`
               : "VIBE Member",
@@ -93,7 +94,6 @@ const StudentDashboard = () => {
               role: post.author?.accountType || "Student",
               accountType: post.author?.accountType || "Student",
               avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || "default"}/200`,
-              verified: true,
               details: post.author?.Profile?.Branch 
                 ? `${post.author?.Profile?.YearOfStudy ? `${post.author.Profile.YearOfStudy} year` : "Student"}, ${post.author?.Profile?.Branch}`
                 : "VIBE Member",
@@ -138,9 +138,9 @@ const StudentDashboard = () => {
   }, [activeView]);
 
   const handleSectionChange = (newSection) => {
-    const next = newSection === 'home' ? 'posts' : newSection;
+    const next = newSection === "home" ? "posts" : newSection;
     setActiveView(next);
-    localStorage.setItem('vibe_student_tab', next);
+    localStorage.setItem("vibe_student_tab", next);
   };
 
   const handleLogout = async () => {
@@ -157,17 +157,74 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleToggleBookmark = async (postId) => {
+    try {
+      const isCurrentlyBookmarked = bookmarkedIds.has(postId);
+      
+      // Optimistic update
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.delete(postId);
+        else next.add(postId);
+        return next;
+      });
+
+      if (isCurrentlyBookmarked) {
+        setBookmarkedPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+      } else {
+        const found = posts.find((p) => (p.id || p._id) === postId);
+        if (found) {
+          setBookmarkedPosts((prev) => [found, ...prev]);
+        }
+      }
+
+      await api.post("/posts/bookmark", { postId });
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      fetchPostsAndBookmarks();
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
-      case 'taskmania':
+      case "taskmania":
         return <TaskManiaView />;
-      case 'requests':
-        return <MyMentorRequestsView />;
-      case 'profile':
-        return <ProfileView user={user} onProfileUpdate={setUser} />;
-      case 'virtual-cv':
-        return <VirtualCVView user={user} />;
-      case 'posts':
+      case "mentorship":
+      case "requests":
+        return (
+          <MyMentorRequestsView
+            onBackToFeed={() => handleSectionChange("home")}
+            initialTab={activeView === "requests" ? "requests" : "explore"}
+          />
+        );
+      case "profile":
+        return (
+          <ProfileView
+            user={user}
+            onProfileUpdate={setUser}
+            onBackToFeed={() => handleSectionChange("home")}
+          />
+        );
+      case "virtual-cv":
+      case "cv-analysis":
+        return (
+          <VirtualCVView
+            user={user}
+            onBackToFeed={() => handleSectionChange("home")}
+          />
+        );
+      case "bookmarks":
+        return (
+          <StudentBookmarksView
+            user={user}
+            bookmarkedPosts={bookmarkedPosts}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={handleToggleBookmark}
+            onBackToFeed={() => handleSectionChange("home")}
+          />
+        );
+      case "posts":
+      case "home":
       default:
         return (
           <StudentCenterFeed
@@ -178,64 +235,90 @@ const StudentDashboard = () => {
             onOpenCreatePost={() => setIsCreatePostOpen(true)}
             loading={loadingPosts}
             searchQuery={searchQuery}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={handleToggleBookmark}
           />
         );
     }
   };
 
-  // Wide views (tasks, requests, profile, CV) get a 2-column layout; home feed gets the 3-column shell
-  const isWideView = activeView !== 'posts';
+  const isHomeDashboard = activeView === "posts" || activeView === "home";
 
   return (
-    <>
-      <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
-        {/* 1. Horizontal Header Aligned across the top */}
-        <FacultyTopHeader
-          user={user}
-          onLogout={handleLogout}
-          onNavigate={handleSectionChange}
-          onSearch={setSearchQuery}
-        />
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
+      {/* 1. Horizontal Header Aligned across the top */}
+      <FacultyTopHeader
+        user={user}
+        onLogout={handleLogout}
+        onNavigate={handleSectionChange}
+        onSearch={setSearchQuery}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={handleToggleSidebar}
+      />
 
-        {/* 2. Main Desktop Dashboard Container */}
-        <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          {isWideView ? (
-            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
-              {/* Column 1: Left Fixed-Width Sidebar */}
-              <StudentLeftSidebar
-                activeView={activeView}
-                onNavigate={handleSectionChange}
-                onLogout={handleLogout}
-              />
+      {/* 2. Main Desktop Dashboard Container with mobile padding pb-24 */}
+      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-5">
+        {isHomeDashboard ? (
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_260px]"
+                : "md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_260px]"
+            }`}
+          >
+            {/* Column 1: Left Sidebar (hidden on mobile, sticky on desktop) */}
+            <StudentLeftSidebar
+              activeView={activeView}
+              onNavigate={handleSectionChange}
+              onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
+            />
 
-              {/* Dedicated View Column (Full available width, no right panel) */}
-              <div className="min-w-0 w-full">
-                {renderContent()}
-              </div>
+            {/* Column 2: Center Feed (Primary content area) */}
+            <div className="min-w-0 w-full">
+              {renderContent()}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_260px] gap-5 items-start">
-              {/* Column 1: Left Fixed-Width Sidebar */}
-              <StudentLeftSidebar
-                activeView={activeView}
-                onNavigate={handleSectionChange}
-                onLogout={handleLogout}
-              />
 
-              {/* Column 2: Center Feed (Primary content area, visibly wider than sidebars) */}
-              <div className="min-w-0 w-full">
-                {renderContent()}
-              </div>
-
-              {/* Column 3: Right Sidebar — Equal width to left sidebar (260px) */}
+            {/* Column 3: Right Sidebar — Hidden on tablet (< lg) and mobile */}
+            <div className="hidden lg:block">
               <StudentRightPanel
                 onNavigate={handleSectionChange}
                 onOpenCreatePost={() => setIsCreatePostOpen(true)}
               />
             </div>
-          )}
-        </main>
-      </div>
+          </div>
+        ) : (
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)]"
+                : "md:grid-cols-[260px_minmax(0,1fr)]"
+            }`}
+          >
+            {/* Column 1: Left Sidebar */}
+            <StudentLeftSidebar
+              activeView={activeView}
+              onNavigate={handleSectionChange}
+              onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
+            />
+
+            {/* Dedicated View Column (Full available width, no right panel) */}
+            <div className="min-w-0 w-full">
+              {renderContent()}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Mobile Bottom Navigation Bar (app-style fixed bar for mobile screens) */}
+      <MobileBottomNav
+        role="student"
+        activeView={activeView}
+        onNavigate={handleSectionChange}
+        onLogout={handleLogout}
+        onOpenCreatePost={() => setIsCreatePostOpen(true)}
+      />
 
       {/* Create Post Modal */}
       <CreatePostModal
@@ -250,12 +333,12 @@ const StudentDashboard = () => {
               role: user?.accountType || user?.role || "Student",
               accountType: user?.accountType || user?.role || "Student",
               avatar: user?.ImageUrl || `https://picsum.photos/seed/${user?._id || "default"}/200`,
-              verified: true,
               details: user?.Profile?.Branch 
                 ? `${user?.Profile?.YearOfStudy ? `${user.Profile.YearOfStudy} year` : "Student"}, ${user.Profile.Branch}`
                 : "Student Member",
             },
-            timestamp: "Just now",
+            time: "Just now",
+            createdAt: new Date().toISOString(),
             tag: newPost.category || "General",
             category: newPost.category || "General",
             title: newPost.title,
@@ -271,7 +354,7 @@ const StudentDashboard = () => {
           setPosts([mappedPost, ...posts]);
         }}
       />
-    </>
+    </div>
   );
 };
 
