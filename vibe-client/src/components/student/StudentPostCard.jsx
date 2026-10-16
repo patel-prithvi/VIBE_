@@ -217,17 +217,20 @@ export const StudentPostCard = ({
       {/* 3. Footer Reaction Bar */}
       <div className="mt-4 pt-3 border-t border-[#F1F5F9] flex items-center justify-between text-xs font-semibold text-[#64748B]">
         <div className="flex items-center gap-1 sm:gap-4">
-          {/* Vibe / Clap Reaction */}
+          {/* Vibe Reaction */}
           <button
             onClick={handleToggleVibe}
-            className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl transition-all ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all ${
               isLiked
-                ? "text-[#6D3DF5] bg-[#F3EEFF] font-bold"
-                : "hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                : "hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A]"
             }`}
+            title={isLiked ? "Remove reaction" : "React"}
           >
-            <span className="text-base select-none">👏</span>
-            <span>{vibeCount}</span>
+            <span className="text-sm leading-none">🤘</span>
+            <span className={`font-semibold ${isLiked ? "text-[#6D3DF5]" : "text-[#0F172A]"}`}>
+              {vibeCount} vibe{vibeCount !== 1 ? 's' : ''}
+            </span>
           </button>
 
           {/* Comments Toggle */}
