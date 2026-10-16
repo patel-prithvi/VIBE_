@@ -17,7 +17,7 @@ const createMentorRequest = asyncHandler(async (req, res) => {
 
   // Verify that faculty exists and is indeed a faculty member
   const faculty = await User.findById(facultyId);
-  if (!faculty || faculty.accountType !== "faculty") {
+  if (!faculty || String(faculty.accountType || "").trim().toLowerCase() !== "faculty") {
     throw new ApiError(404, "Invalid faculty selected");
   }
 
@@ -55,8 +55,9 @@ const createMentorRequest = asyncHandler(async (req, res) => {
 const getFacultyRequests = asyncHandler(async (req, res) => {
   const facultyId = req.user._id;
 
-  if (req.user.accountType !== "faculty") {
-    throw new ApiError(403, "Only faculty members can view these requests");
+  const role = String(req.user.accountType || "").trim().toLowerCase();
+  if (role !== "faculty") {
+    throw new ApiError(403, `Only faculty members can view these requests (your accountType is '${req.user.accountType}')`);
   }
 
   const requests = await MentorRequest.find({ faculty: facultyId })
