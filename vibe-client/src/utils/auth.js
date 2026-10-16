@@ -118,5 +118,47 @@ export const auth = {
         localStorage.removeItem('vibe_access_token');
         localStorage.removeItem('vibe_refresh_token');
     }
+  },
+
+  // Forgot Password - Request OTP to email
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post('/users/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && (error.response.data.message || error.response.data.error)) ||
+        error.message ||
+        "Failed to send verification code";
+      throw new Error(message);
+    }
+  },
+
+  // Verify Reset OTP
+  verifyResetOtp: async (email, otp) => {
+    try {
+      const response = await api.post('/users/verify-reset-otp', { email, otp });
+      return response.data;
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && (error.response.data.message || error.response.data.error)) ||
+        error.message ||
+        "Invalid verification code";
+      throw new Error(message);
+    }
+  },
+
+  // Reset Password - Submit OTP and New Password
+  resetPassword: async (email, otp, newPassword) => {
+    try {
+      const response = await api.post('/users/reset-password', { email, otp, newPassword });
+      return response.data;
+    } catch (error) {
+      const message =
+        (error.response && error.response.data && (error.response.data.message || error.response.data.error)) ||
+        error.message ||
+        "Failed to reset password";
+      throw new Error(message);
+    }
   }
 };
