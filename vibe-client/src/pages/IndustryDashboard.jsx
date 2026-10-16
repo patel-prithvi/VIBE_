@@ -74,7 +74,7 @@ const IndustryDashboard = () => {
                 return {
                   id: sub._id,
                   name: studentName,
-                  avatar: studentUser.ImageUrl || `https://picsum.photos/seed/${studentUser._id || 'default'}/200`,
+                  avatar: studentUser.ImageUrl || studentUser.avatar || studentUser.Profile?.ImageUrl || "",
                   college: typeof studentUser.Profile?.InstituteName === "string" && studentUser.Profile.InstituteName.trim()
                     ? studentUser.Profile.InstituteName.trim()
                     : "Unknown Institute",

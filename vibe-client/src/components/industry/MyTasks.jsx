@@ -31,6 +31,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useToast } from "../Toast";
+import Avatar from "../shared/Avatar";
 
 export const MyTasks = ({
   tasks,
@@ -226,10 +227,11 @@ export const MyTasks = ({
                       <tr key={a.id} className="border-t border-slate-100 align-top">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            <img
+                            <Avatar
+                              name={a.name}
                               src={a.avatar}
-                              alt={a.name}
-                              className="w-10 h-10 rounded-full border-2 border-[#F3EEFF] object-cover"
+                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F3EEFF]"
+                              initialsClassName="text-xs font-bold text-white"
                             />
                             <div>
                               <div className="text-sm font-bold text-slate-900">
@@ -972,24 +974,21 @@ export const MyTasks = ({
   // ----------------------------------------------------------------------------------
   return (
     <div className="animate-in fade-in duration-500 relative pb-20">
-      {/* Enhanced Animated Header */}
-      <div className="mb-8 bg-gradient-to-r from-[#6D3DF5] to-[#6D3DF5] rounded-3xl p-8 text-white shadow-xl shadow-[#6D3DF5]/20 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl group-hover:bg-white/15 transition-all duration-1000"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#8B5CF6]/20 rounded-full translate-y-1/3 -translate-x-1/4 blur-2xl group-hover:scale-110 transition-transform duration-1000"></div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3 animate-in slide-in-from-bottom-2 duration-700 delay-100">
-            <div className="p-2 bg-white/20 backdrop-blur-md rounded-lg shadow-sm">
-              <Layers size={20} className="text-white" />
+      {/* Header Section */}
+      <div className="mb-8 bg-white rounded-2xl p-6 md:p-8 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
+              <Layers size={20} className="text-[#6D3DF5]" />
             </div>
-            <span className="font-bold tracking-widest uppercase text-xs bg-white/10 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
+            <span className="font-bold tracking-widest uppercase text-xs bg-[#F3EEFF] text-[#6D3DF5] px-3 py-1 rounded-full border border-[#E9D5FF]">
               Task Management
             </span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-3 animate-in slide-in-from-bottom-3 duration-700 delay-200 drop-shadow-sm">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#0F172A] mb-2 tracking-tight">
             Manage Your Industry
           </h1>
-          <p className="text-[#F3EEFF] max-w-xl text-sm md:text-base font-medium leading-relaxed animate-in slide-in-from-bottom-4 duration-700 delay-300">
+          <p className="text-[#64748B] max-w-2xl text-xs md:text-sm font-medium leading-relaxed">
             Create new challenges, track applicant submissions in real-time, and
             discover the perfect talent for your next big project.
           </p>
