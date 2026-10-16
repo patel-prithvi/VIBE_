@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   forgotPassword,
   resetPassword,
+  changePassword,
   sendOtp,
 } from "../Controllers/userControllers.js";
 
@@ -25,6 +26,7 @@ router.post("/reset-password", resetPassword);
 // Protected Routes
 router.get("/me", verifyJWT, getCurrentUser);
 router.post("/logout", verifyJWT, logoutUser);
+router.post("/change-password", verifyJWT, changePassword);
 
 router.post("/verify-token", verifyJWT, (req, res) => {
   res.status(200).json({ message: "Token is valid", user: req.user });
