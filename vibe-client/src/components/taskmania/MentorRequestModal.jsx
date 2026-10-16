@@ -83,18 +83,17 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
       )))
   );
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
+      {isOpen && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        {/* Backdrop */}
+        {/* Backdrop - single layer scoped to this wrapper */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="vibe-modal-backdrop"
+          className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[2px]"
         />
 
         {/* Modal Content */}
@@ -102,7 +101,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl vibe-modal-dialog !rounded-3xl overflow-hidden"
+          className="relative z-10 w-full max-w-2xl vibe-modal-dialog !rounded-3xl overflow-hidden"
         >
           {/* Header */}
           <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/50">
@@ -125,7 +124,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
 
           <div className="p-6 max-h-[70vh] overflow-y-auto">
             {success ? (
-              <div className="py-12 text-center">
+              <div className="py-8 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -139,7 +138,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Search & Mentor Selection */}
                 <div>
                   <label className="block text-xs font-bold text-[#1E293B] mb-2">
@@ -156,9 +155,9 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
                     {loading && mentors.length === 0 ? (
-                      <div className="col-span-2 text-center py-8 text-xs text-gray-500">Loading mentors...</div>
+                      <div className="col-span-2 text-center py-6 text-xs text-gray-500">Loading mentors...</div>
                     ) : filteredMentors.length > 0 ? (
                       filteredMentors.map((mentor) => (
                         <div
@@ -194,7 +193,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-2 text-center py-8 text-xs text-gray-500">No mentors found.</div>
+                      <div className="col-span-2 text-center py-6 text-xs text-gray-500">No mentors found.</div>
                     )}
                   </div>
                 </div>
@@ -208,8 +207,8 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
                     placeholder="Briefly describe what help you need from the mentor..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all resize-none"
+                    rows={3}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[#6D3DF5] outline-none transition-all resize-none"
                   />
                 </div>
 
@@ -225,17 +224,17 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
 
           {/* Footer */}
           {!success && (
-            <div className="p-4 border-t border-[#F1F5F9] bg-[#F8FAFC] flex gap-2.5 justify-end">
+            <div className="px-4 py-3 border-t border-[#F1F5F9] bg-[#F8FAFC] flex gap-2.5 justify-end">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-bold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] transition-all"
+                className="px-4 py-2.5 text-xs font-bold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-xl hover:bg-[#F8FAFC] transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || !selectedMentor}
-                className="flex-[2] px-4 py-3 text-sm font-bold text-white bg-[#6D3DF5] rounded-2xl hover:bg-[#5B2FD6] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                className="px-4 py-2.5 text-sm font-bold text-white bg-[#6D3DF5] rounded-xl hover:bg-[#5B2FD6] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -250,6 +249,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           )}
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };
