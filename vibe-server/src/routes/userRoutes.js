@@ -7,6 +7,7 @@ import {
   logoutUser,
   getCurrentUser,
   forgotPassword,
+  verifyResetOtp,
   resetPassword,
   changePassword,
   sendOtp,
@@ -21,6 +22,7 @@ router.post("/register", sendOtp);
 router.post("/verify-otp", registerUser);
 router.post("/login", loginUser);
 router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-otp", verifyResetOtp);
 router.post("/reset-password", resetPassword);
 
 // Protected Routes

@@ -192,45 +192,89 @@ const registerUser = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
-  if (!email) {
+  if (!email || !email.trim()) {
     throw new ApiError(400, "Email is required");
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw new ApiError(404, "User not found with this email address");
   }
 
   // Generate 6-digit OTP
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
   user.otp = {
     code: otpCode,
-    expiresAt: otpExpiresAt
+    expiresAt: otpExpiresAt,
+    attempts: 0
   };
   await user.save({ validateBeforeSave: false });
 
+  // Log OTP in server console for local testing / development
+  console.log(`\n==============================================`);
+  console.log(`🔑 [DEVELOPMENT RESET OTP GENERATED]`);
+  console.log(`Email: ${user.email}`);
+  console.log(`OTP Code: ${otpCode}`);
+  console.log(`Expires At: ${otpExpiresAt.toLocaleTimeString()}`);
+  console.log(`==============================================\n`);
+
   // Send Email
   try {
-    await sendZohoEmail(email, "reset", { otpCode: otpCode });
+    await sendZohoEmail(user.email, "reset", { otpCode: otpCode });
   } catch (error) {
-    console.error("Forgot Password Email Error:", error);
-    throw new ApiError(500, "Failed to send reset email");
+    console.error("Forgot Password Email Error (Zoho Mail):", error.message || error);
+    // In production, require email delivery; in dev, allow reset using logged OTP
+    if (process.env.NODE_ENV === "production") {
+      throw new ApiError(500, `Failed to send reset email: ${error.message}`);
+    }
   }
-
-  // try {
-  //   await sendGmail(email, "notification", {
-  //     message: `Your password reset code for VIBE is: <b>${otpCode}</b>. It is valid for 5 minutes.`,
-  //   });
-  // } catch (error) {
-  //   console.error("Forgot Password Email Error:", error);
-  //   throw new ApiError(500, "Failed to send reset email");
-  // }
   
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Reset code sent successfully"));
+    .json(new ApiResponse(200, { email: user.email }, "Verification code sent successfully to your email"));
+});
+
+// Verify Reset OTP - Pre-validation before entering new password
+const verifyResetOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and verification code are required");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.otp || !user.otp.code || !user.otp.expiresAt) {
+    throw new ApiError(400, "No password reset request found. Please request a new code.");
+  }
+
+  if (new Date() > new Date(user.otp.expiresAt)) {
+    user.otp = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(400, "Verification code has expired. Please request a new one.");
+  }
+
+  if ((user.otp.attempts || 0) >= 5) {
+    user.otp = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(400, "Too many failed attempts. Please request a new verification code.");
+  }
+
+  if (String(user.otp.code).trim() !== String(otp).trim()) {
+    user.otp.attempts = (user.otp.attempts || 0) + 1;
+    await user.save({ validateBeforeSave: false });
+    const remaining = 5 - user.otp.attempts;
+    throw new ApiError(400, `Invalid verification code. ${remaining > 0 ? `${remaining} attempts remaining.` : "Please request a new code."}`);
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { email: user.email, verified: true }, "Code verified successfully"));
 });
 
 // Reset Password - Verify OTP and Update Password
@@ -238,35 +282,52 @@ const resetPassword = asyncHandler(async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   if (!email || !otp || !newPassword) {
-    throw new ApiError(400, "Email, OTP and new password are required");
+    throw new ApiError(400, "Email, verification code and new password are required");
   }
 
-  const user = await User.findOne({ email });
+  if (String(newPassword).length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters long");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
   // Check OTP
   if (!user.otp || !user.otp.code || !user.otp.expiresAt) {
-     throw new ApiError(400, "No OTP request found. Please try again.");
+    throw new ApiError(400, "No reset request found. Please request a new code.");
   }
 
-  if (user.otp.code !== otp) {
-    throw new ApiError(400, "Invalid OTP");
+  if (new Date() > new Date(user.otp.expiresAt)) {
+    user.otp = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(400, "Verification code has expired. Please request a new one.");
   }
 
-  if (new Date() > user.otp.expiresAt) {
-    throw new ApiError(400, "OTP has expired. Please request a new one.");
+  if ((user.otp.attempts || 0) >= 5) {
+    user.otp = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(400, "Too many failed attempts. Please request a new verification code.");
   }
 
-  // Update Password
+  if (String(user.otp.code).trim() !== String(otp).trim()) {
+    user.otp.attempts = (user.otp.attempts || 0) + 1;
+    await user.save({ validateBeforeSave: false });
+    const remaining = 5 - user.otp.attempts;
+    throw new ApiError(400, `Invalid verification code. ${remaining > 0 ? `${remaining} attempts remaining.` : "Please request a new code."}`);
+  }
+
+  // Update Password & invalidate existing active sessions
   user.password = newPassword;
   user.otp = undefined; // Clear OTP
+  user.currentToken = null;
+  user.refreshToken = undefined;
   await user.save({ validateBeforeSave: false }); // Pre-save hook will hash the password
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Password reset successfully"));
+    .json(new ApiResponse(200, {}, "Password reset successfully. You can now login with your new password."));
 });
 
 // Change Password - Authenticated (verify current password)
@@ -465,4 +526,4 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, user, "User found"));
 });
 
-export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, resetPassword, changePassword };
+export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, verifyResetOtp, resetPassword, changePassword };

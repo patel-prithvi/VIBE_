@@ -78,6 +78,10 @@ const userSchema = new mongoose.Schema(
       expiresAt: { 
         type: Date  // Expiration time for the OTP
       },    
+      attempts: {
+        type: Number,
+        default: 0
+      }
     },
     isVerified: {
       type: Boolean,

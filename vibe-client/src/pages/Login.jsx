@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -13,6 +13,13 @@ import {
   BookOpen,
   Calendar,
   Lightbulb,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Loader2,
+  RefreshCw,
+  KeyRound,
+  Check,
 } from 'lucide-react';
 import Button from '../components/Button';
 import {
@@ -34,10 +41,26 @@ const Login = () => {
   
   // Forgot Password States
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password
+  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotResendCooldown, setForgotResendCooldown] = useState(0);
+
+  // Timer for OTP resend cooldown in modal
+  useEffect(() => {
+    let timer;
+    if (forgotResendCooldown > 0) {
+      timer = setInterval(() => {
+        setForgotResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [forgotResendCooldown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -401,20 +424,40 @@ const Login = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-[#E2E8F0] rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
             >
-              <div className="p-6 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFF]">
-                <h3 className="text-xl font-bold text-[#172554]">Reset Password</h3>
-                <button onClick={() => setShowForgotModal(false)} className="text-[#64748B] hover:text-[#172554]">
+              <div className="p-5 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFF]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#6D3DF5]/10 text-[#6D3DF5] flex items-center justify-center font-bold text-sm">
+                    {forgotStep}/3
+                  </div>
+                  <h3 className="text-lg font-bold text-[#172554]">
+                    {forgotStep === 1 && 'Reset Password'}
+                    {forgotStep === 2 && 'Verify Code'}
+                    {forgotStep === 3 && 'New Password'}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowForgotModal(false);
+                    setForgotStep(1);
+                  }} 
+                  className="text-[#64748B] hover:text-[#172554] p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                >
                   <span className="sr-only">Close</span>
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
               
               <div className="p-6 space-y-4">
-                {forgotStep === 1 ? (
-                  <>
-                    <p className="text-[#64748B] text-sm">Enter your email address and we'll send you a verification code to reset your password.</p>
+                {/* Step 1: Email Address */}
+                {forgotStep === 1 && (
+                  <div className="space-y-4">
+                    <p className="text-[#64748B] text-sm">
+                      Enter your account email address and we'll send a 6-digit verification code to reset your password.
+                    </p>
                     <InputField
                       label="Email Address"
                       icon={<Mail size={18} />}
@@ -424,80 +467,249 @@ const Login = () => {
                     />
                     <Button 
                       fullWidth
-                      className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5]"
+                      disabled={forgotLoading || !forgotEmail.trim()}
+                      className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5] !py-3 !rounded-xl !font-bold"
                       onClick={async () => {
-                        if (!forgotEmail) { toast.error("Please enter your email"); return; }
+                        const clean = forgotEmail.trim();
+                        if (!clean) { toast.error("Please enter your email"); return; }
+                        setForgotLoading(true);
                         try {
-                          const response = await api.post('/users/forgot-password', { email: forgotEmail });
-                          
-                          if (response.status === 200) {
-                            setForgotStep(2);
-                            toast.success("Verification code sent to your email!");
-                          }
+                          await auth.forgotPassword(clean);
+                          setForgotResendCooldown(60);
+                          setForgotStep(2);
+                          toast.success("Verification code sent to your email!");
                         } catch (err) {
-                          console.error(err);
-                          const msg = err.response?.data?.message || "Failed to send code";
-                          toast.error(msg);
+                          toast.error(err.message || "Failed to send reset code");
+                        } finally {
+                          setForgotLoading(false);
                         }
                       }}
                     >
-                      Send Reset Code
+                      {forgotLoading ? (
+                        <span className="flex items-center justify-center">
+                          <Loader2 className="mr-2 animate-spin" size={18} /> Sending Code...
+                        </span>
+                      ) : (
+                        "Send Verification Code"
+                      )}
                     </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[#64748B] text-sm">Enter the 6-digit code sent to <b className="text-[#172554]">{forgotEmail}</b> and your new password.</p>
-                    <InputField
-                      label="Verification Code"
-                      icon={<Lock size={18} />}
-                      placeholder="123456"
-                      value={forgotOtp}
-                      onChange={setForgotOtp}
-                    />
-                    <InputField
-                      label="New Password"
-                      icon={<Lock size={18} />}
-                      type="password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={setNewPassword}
-                    />
+                    <div className="text-center pt-1">
+                      <Link
+                        to="/forgot-password"
+                        onClick={() => setShowForgotModal(false)}
+                        className="text-xs text-[#6D3DF5] hover:underline font-semibold"
+                      >
+                        Prefer full screen? Open dedicated page
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Verify 6-digit OTP */}
+                {forgotStep === 2 && (
+                  <div className="space-y-4">
+                    <p className="text-[#64748B] text-sm">
+                      Enter the 6-digit verification code sent to <b className="text-[#172554]">{forgotEmail}</b>.
+                    </p>
+                    <div className="relative group">
+                      <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">Verification Code</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-colors">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          autoFocus
+                          value={forgotOtp}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setForgotOtp(val);
+                          }}
+                          className="vibe-auth-input font-mono font-bold tracking-[0.3em] text-center"
+                          placeholder="123456"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs text-slate-500 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotStep(1);
+                          setForgotOtp('');
+                        }}
+                        className="text-slate-500 hover:text-slate-800 font-medium"
+                      >
+                        Change email
+                      </button>
+
+                      {forgotResendCooldown > 0 ? (
+                        <span className="text-slate-400">
+                          Resend in <b className="text-[#6D3DF5]">{forgotResendCooldown}s</b>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={forgotLoading}
+                          onClick={async () => {
+                            setForgotLoading(true);
+                            try {
+                              await auth.forgotPassword(forgotEmail.trim());
+                              setForgotResendCooldown(60);
+                              toast.success("New code sent to your email!");
+                            } catch (err) {
+                              toast.error(err.message || "Failed to resend code");
+                            } finally {
+                              setForgotLoading(false);
+                            }
+                          }}
+                          className="text-[#6D3DF5] font-bold hover:underline flex items-center gap-1"
+                        >
+                          <RefreshCw size={12} className={forgotLoading ? 'animate-spin' : ''} />
+                          Resend Code
+                        </button>
+                      )}
+                    </div>
+
                     <Button 
                       fullWidth
-                      className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5]"
+                      disabled={forgotLoading || forgotOtp.trim().length < 6}
+                      className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5] !py-3 !rounded-xl !font-bold"
                       onClick={async () => {
-                        if (!forgotOtp || !newPassword) { toast.error("Please fill all fields"); return; }
+                        const cleanOtp = forgotOtp.trim();
+                        if (cleanOtp.length < 6) { toast.error("Enter the 6-digit code"); return; }
+                        setForgotLoading(true);
                         try {
-                          const response = await api.post('/users/reset-password', { 
-                            email: forgotEmail, 
-                            otp: forgotOtp, 
-                            newPassword 
-                          });
-                          
-                          if (response.status === 200) {
-                            toast.success("Password reset successfully! You can now login.");
-                            setShowForgotModal(false);
-                            setForgotStep(1);
-                            setForgotEmail('');
-                            setForgotOtp('');
-                            setNewPassword('');
-                          }
+                          await auth.verifyResetOtp(forgotEmail.trim(), cleanOtp);
+                          setForgotStep(3);
+                          toast.success("Code verified! Set your new password.");
                         } catch (err) {
-                          console.error(err);
-                          const msg = err.response?.data?.message || "Failed to reset password";
-                          toast.error(msg);
+                          toast.error(err.message || "Invalid verification code");
+                        } finally {
+                          setForgotLoading(false);
                         }
                       }}
                     >
-                      Reset Password
+                      {forgotLoading ? (
+                        <span className="flex items-center justify-center">
+                          <Loader2 className="mr-2 animate-spin" size={18} /> Verifying...
+                        </span>
+                      ) : (
+                        "Verify Code"
+                      )}
                     </Button>
-                    <button 
-                      onClick={() => setForgotStep(1)} 
-                      className="w-full text-sm text-[#64748B] hover:text-[#6D3DF5] font-medium mt-2 transition-colors"
+                  </div>
+                )}
+
+                {/* Step 3: Enter & Confirm New Password */}
+                {forgotStep === 3 && (
+                  <div className="space-y-4">
+                    <p className="text-[#64748B] text-sm">
+                      Create a strong new password with at least 6 characters.
+                    </p>
+
+                    {/* New Password */}
+                    <div className="relative group">
+                      <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">New Password</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]">
+                          <Lock size={18} />
+                        </div>
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="vibe-auth-input pr-11 font-medium"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div className="relative group">
+                      <label className="vibe-auth-label group-focus-within:text-[#6D3DF5]">Confirm Password</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]">
+                          <Lock size={18} />
+                        </div>
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="vibe-auth-input pr-11 font-medium"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Validation Hints */}
+                    <div className="bg-slate-50 rounded-xl p-3 text-xs space-y-1 text-slate-500">
+                      <div className={`flex items-center gap-1.5 ${newPassword.length >= 6 ? 'text-emerald-600 font-semibold' : ''}`}>
+                        <Check size={13} className={newPassword.length >= 6 ? 'text-emerald-500' : 'text-slate-300'} />
+                        <span>At least 6 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${newPassword && newPassword === confirmPassword ? 'text-emerald-600 font-semibold' : ''}`}>
+                        <Check size={13} className={newPassword && newPassword === confirmPassword ? 'text-emerald-500' : 'text-slate-300'} />
+                        <span>Passwords match</span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      fullWidth
+                      disabled={forgotLoading || newPassword.length < 6 || newPassword !== confirmPassword}
+                      className="!bg-[#6D3DF5] hover:!bg-[#5B2ED0] focus:!ring-[#6D3DF5] !py-3 !rounded-xl !font-bold"
+                      onClick={async () => {
+                        if (newPassword.length < 6) {
+                          toast.error("Password must be at least 6 characters");
+                          return;
+                        }
+                        if (newPassword !== confirmPassword) {
+                          toast.error("Passwords do not match");
+                          return;
+                        }
+                        setForgotLoading(true);
+                        try {
+                          await auth.resetPassword(forgotEmail.trim(), forgotOtp.trim(), newPassword);
+                          toast.success("Password reset successfully! You can now log in.");
+                          setEmail(forgotEmail.trim()); // Pre-fill login input
+                          setShowForgotModal(false);
+                          setForgotStep(1);
+                          setForgotOtp('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                        } catch (err) {
+                          toast.error(err.message || "Failed to reset password");
+                        } finally {
+                          setForgotLoading(false);
+                        }
+                      }}
                     >
-                      Back to Email
-                    </button>
-                  </>
+                      {forgotLoading ? (
+                        <span className="flex items-center justify-center">
+                          <Loader2 className="mr-2 animate-spin" size={18} /> Updating Password...
+                        </span>
+                      ) : (
+                        "Reset Password"
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </motion.div>
