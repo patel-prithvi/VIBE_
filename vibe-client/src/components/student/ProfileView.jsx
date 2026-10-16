@@ -32,6 +32,10 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -70,6 +74,33 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
       handleUpdateProfile();
     } else {
       setIsEditing(true);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirmation do not match');
+      return;
+    }
+    try {
+      setPwLoading(true);
+      await api.post('/users/change-password', { currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success('Password updated successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update password');
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -423,6 +454,8 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Current Password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
               className={inputClasses + " pr-10"}
             />
             <button
@@ -436,17 +469,25 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
             <input
               type="password"
               placeholder="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               className={inputClasses}
             />
             <input
               type="password"
               placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className={inputClasses}
             />
           </div>
 
-          <button className="w-full md:w-auto px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all flex items-center justify-center gap-2">
-            Update Password <Lock size={16} />
+          <button
+            onClick={handleUpdatePassword}
+            disabled={pwLoading}
+            className="w-full md:w-auto px-6 py-2.5 bg-[#6D3DF5] text-white rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {pwLoading ? 'Updating...' : 'Update Password'} <Lock size={16} />
           </button>
         </div>
       </section>

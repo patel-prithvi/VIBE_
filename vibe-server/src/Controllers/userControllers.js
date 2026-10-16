@@ -269,6 +269,40 @@ const resetPassword = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Password reset successfully"));
 });
 
+// Change Password - Authenticated (verify current password)
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Current password and new password are required");
+  }
+
+  if (String(newPassword).length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters long");
+  }
+
+  if (String(currentPassword) === String(newPassword)) {
+    throw new ApiError(400, "New password must be different from current password");
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const isMatch = await user.isPasswordCorrect(currentPassword);
+  if (!isMatch) {
+    throw new ApiError(400, "Current password is incorrect");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false }); // Pre-save hook will hash the password
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password updated successfully"));
+});
+
 //Login User
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -431,4 +465,4 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, user, "User found"));
 });
 
-export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, resetPassword };
+export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, resetPassword, changePassword };
