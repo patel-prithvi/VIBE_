@@ -23,12 +23,16 @@ export const MobileBottomNav = ({
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   // Active view helper matching dashboard logic
-  const isHomeActive = activeView === "home" || activeView === "posts";
+  const isHomeActive =
+    activeView === "home" || activeView === "posts" || activeView === "overview";
   const isMentorshipActive =
     activeView === "mentorship" || activeView === "requests";
   const isCvActive =
     activeView === "cv-analysis" || activeView === "virtual-cv";
-  const isTaskManiaActive = activeView === "taskmania";
+  const isTaskManiaActive =
+    activeView === "taskmania" || (role === "industry" && activeView === "tasks");
+  const isTasksActive = activeView === "tasks";
+  const isCommunityActive = activeView === "community";
   const isBookmarksActive = activeView === "bookmarks";
   const isProfileActive = activeView === "profile";
 
@@ -63,7 +67,7 @@ export const MobileBottomNav = ({
           {/* Tab 1: Home */}
           <button
             type="button"
-            onClick={() => handleTabClick("home")}
+            onClick={() => handleTabClick(role === "industry" ? "overview" : "home")}
             aria-label="Home Feed"
             className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
               isHomeActive
@@ -77,25 +81,59 @@ export const MobileBottomNav = ({
             </span>
           </button>
 
-          {/* Tab 2: Mentorship */}
-          <button
-            type="button"
-            onClick={() => handleTabClick("mentorship")}
-            aria-label="Mentorship"
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
-              isMentorshipActive
-                ? "text-[#6D3DF5] font-bold"
-                : "text-[#64748B] hover:text-[#0F172A]"
-            }`}
-          >
-            <Users size={20} strokeWidth={isMentorshipActive ? 2.5 : 2} />
-            <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
-              {role === "faculty" ? "Requests" : "Mentors"}
-            </span>
-          </button>
+          {/* Tab 2: Mentorship (Faculty/Student) or My Tasks (Industry) */}
+          {role === "industry" ? (
+            <button
+              type="button"
+              onClick={() => handleTabClick("tasks")}
+              aria-label="My Tasks"
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+                isTasksActive
+                  ? "text-[#6D3DF5] font-bold"
+                  : "text-[#64748B] hover:text-[#0F172A]"
+              }`}
+            >
+              <Briefcase size={20} strokeWidth={isTasksActive ? 2.5 : 2} />
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
+                My Tasks
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleTabClick("mentorship")}
+              aria-label="Mentorship"
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+                isMentorshipActive
+                  ? "text-[#6D3DF5] font-bold"
+                  : "text-[#64748B] hover:text-[#0F172A]"
+              }`}
+            >
+              <Users size={20} strokeWidth={isMentorshipActive ? 2.5 : 2} />
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
+                {role === "faculty" ? "Requests" : "Mentors"}
+              </span>
+            </button>
+          )}
 
-          {/* Role specific Tab 3 */}
-          {role === "student" ? (
+          {/* Tab 3: Virtual CV (Student), Bookmarks (Faculty), or Community (Industry) */}
+          {role === "industry" ? (
+            <button
+              type="button"
+              onClick={() => handleTabClick("community")}
+              aria-label="Community"
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+                isCommunityActive
+                  ? "text-[#6D3DF5] font-bold"
+                  : "text-[#64748B] hover:text-[#0F172A]"
+              }`}
+            >
+              <Users size={20} strokeWidth={isCommunityActive ? 2.5 : 2} />
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
+                Community
+              </span>
+            </button>
+          ) : role === "student" ? (
             <button
               type="button"
               onClick={() => handleTabClick("cv-analysis")}
@@ -129,8 +167,24 @@ export const MobileBottomNav = ({
             </button>
           )}
 
-          {/* Role specific Tab 4 */}
-          {role === "student" ? (
+          {/* Tab 4: TaskMania (Student), Profile (Faculty), or Profile (Industry) */}
+          {role === "industry" ? (
+            <button
+              type="button"
+              onClick={() => handleTabClick("profile")}
+              aria-label="My Profile"
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+                isProfileActive
+                  ? "text-[#6D3DF5] font-bold"
+                  : "text-[#64748B] hover:text-[#0F172A]"
+              }`}
+            >
+              <User size={20} strokeWidth={isProfileActive ? 2.5 : 2} />
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
+                Profile
+              </span>
+            </button>
+          ) : role === "student" ? (
             <button
               type="button"
               onClick={() => handleTabClick("taskmania")}
@@ -209,7 +263,9 @@ export const MobileBottomNav = ({
                   Navigation & Options
                 </h3>
                 <p className="text-xs text-[#64748B]">
-                  Access your profile, bookmarks, and account
+                  {role === "industry"
+                    ? "Access your profile, tasks, and account"
+                    : "Access your profile, bookmarks, and account"}
                 </p>
               </div>
               <button
@@ -255,6 +311,59 @@ export const MobileBottomNav = ({
                     <div className="flex items-center gap-3">
                       <Bookmark size={18} className={isBookmarksActive ? "text-[#6D3DF5]" : "text-[#64748B]"} />
                       <span>My Bookmarks</span>
+                    </div>
+                    <ChevronRight size={16} className="text-[#94A3B8]" />
+                  </button>
+                </>
+              )}
+
+              {/* If industry, show quick navigation items in More drawer */}
+              {role === "industry" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick("profile")}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
+                      isProfileActive
+                        ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                        : "text-[#1E293B] hover:bg-[#F8FAFC]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <User size={18} className={isProfileActive ? "text-[#6D3DF5]" : "text-[#64748B]"} />
+                      <span>My Profile</span>
+                    </div>
+                    <ChevronRight size={16} className="text-[#94A3B8]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick("tasks")}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
+                      isTasksActive
+                        ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                        : "text-[#1E293B] hover:bg-[#F8FAFC]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Briefcase size={18} className={isTasksActive ? "text-[#6D3DF5]" : "text-[#64748B]"} />
+                      <span>My Tasks</span>
+                    </div>
+                    <ChevronRight size={16} className="text-[#94A3B8]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick("community")}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
+                      isCommunityActive
+                        ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                        : "text-[#1E293B] hover:bg-[#F8FAFC]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Users size={18} className={isCommunityActive ? "text-[#6D3DF5]" : "text-[#64748B]"} />
+                      <span>Community</span>
                     </div>
                     <ChevronRight size={16} className="text-[#94A3B8]" />
                   </button>

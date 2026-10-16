@@ -7,6 +7,7 @@ import { Overview } from '../components/industry/Overview';
 import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
 import { Profile } from '../components/industry/Profile';
+import { MobileBottomNav } from '../components/shared/MobileBottomNav';
 import { auth } from '../utils/auth';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
@@ -15,10 +16,21 @@ const IndustryDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('vibe_industry_tab') || 'overview');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorage.getItem("vibe_industry_sidebar_collapsed") === "true"
+  );
   const [user, setUser] = useState(auth.getCurrentUser());
   const [tasks, setTasks] = useState([]);
   const [applicants, setApplicants] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("vibe_industry_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -311,17 +323,26 @@ const IndustryDashboard = () => {
         onLogout={handleLogout}
         onNavigate={handleSectionChange}
         onSearch={setSearchQuery}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={handleToggleSidebar}
       />
 
       {/* 2. Main Desktop Dashboard Container */}
-      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-5">
         {isWideView ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)]"
+                : "md:grid-cols-[260px_minmax(0,1fr)]"
+            }`}
+          >
             {/* Column 1: Left Fixed-Width Sidebar */}
             <IndustryLeftSidebar
               activeView={activeTab}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Dedicated View Column (Full available width, no right panel) */}
@@ -330,12 +351,19 @@ const IndustryDashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_260px] gap-5 items-start">
+          <div
+            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+              isSidebarCollapsed
+                ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_260px]"
+                : "md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_260px]"
+            }`}
+          >
             {/* Column 1: Left Fixed-Width Sidebar */}
             <IndustryLeftSidebar
               activeView={activeTab}
               onNavigate={handleSectionChange}
               onLogout={handleLogout}
+              isCollapsed={isSidebarCollapsed}
             />
 
             {/* Column 2: Center (Primary content area, visibly wider than sidebars) */}
@@ -343,16 +371,26 @@ const IndustryDashboard = () => {
               {renderContent()}
             </div>
 
-            {/* Column 3: Right Sidebar — Equal width to left sidebar (260px) */}
-            <IndustryRightPanel
-              applicants={applicants}
-              onUpdateApplicantStatus={handleUpdateApplicantStatus}
-              onNavigate={handleSectionChange}
-              onPostTask={() => handleSectionChange('tasks')}
-            />
+            {/* Column 3: Right Sidebar — Hidden on tablet (< lg) and mobile */}
+            <div className="hidden lg:block">
+              <IndustryRightPanel
+                applicants={applicants}
+                onUpdateApplicantStatus={handleUpdateApplicantStatus}
+                onNavigate={handleSectionChange}
+                onPostTask={() => handleSectionChange('tasks')}
+              />
+            </div>
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar (app-style fixed bar for mobile screens) */}
+      <MobileBottomNav
+        role="industry"
+        activeView={activeTab}
+        onNavigate={handleSectionChange}
+        onLogout={handleLogout}
+      />
     </div>
   );
 };
