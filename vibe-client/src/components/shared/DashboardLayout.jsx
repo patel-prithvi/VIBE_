@@ -8,7 +8,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   GraduationCap,
   User,
   BookOpen,
@@ -19,6 +18,7 @@ import {
 import { auth } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
+import { NotificationBell } from "./NotificationBell";
 import { Sidebar as StudentSidebar } from "../student/Sidebar";
 import { Sidebar as FacultySidebar } from "../faculty/Sidebar";
 import { useToast } from "../Toast";
@@ -349,14 +349,7 @@ export const DashboardLayout = ({
             )}
           </h1>
           <div className="flex items-center gap-4">
-            <button
-              className={`relative p-2 text-slate-400 ${config.hoverColor} transition-colors`}
-            >
-              <Bell size={20} />
-              <span
-                className={`absolute top-1 right-2 w-2 h-2 bg-${config.color}-500 rounded-full border border-white`}
-              ></span>
-            </button>
+            <NotificationBell />
             <div className="text-right">
               <p className="text-sm font-medium text-slate-800">
                 {new Date().toLocaleDateString("en-US", {

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, Bell, MessageSquare, ChevronDown, Check, LogOut, User, Menu } from "lucide-react";
+import { Search, MessageSquare, ChevronDown, Check, LogOut, User, Menu } from "lucide-react";
 import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
+import { NotificationBell } from "../shared/NotificationBell";
 
 export const FacultyTopHeader = ({
   user,
@@ -77,15 +78,8 @@ export const FacultyTopHeader = ({
 
         {/* Right: Actions & User Menu */}
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-          {/* Notifications Icon with unread badge */}
-          <button 
-            type="button"
-            aria-label="Notifications"
-            className="relative p-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] rounded-xl transition-colors"
-          >
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-[#EF4444] rounded-full ring-2 ring-white" />
-          </button>
+          {/* Notifications with live unread badge + dropdown */}
+          <NotificationBell />
 
           {/* Messages Icon */}
           <button 

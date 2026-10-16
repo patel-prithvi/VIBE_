@@ -7,10 +7,10 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
 } from "lucide-react";
 import { CURRENT_USER } from "../constants";
 import Avatar from "../shared/Avatar";
+import { NotificationBell } from "../shared/NotificationBell";
 
 const SidebarItem = ({ icon: Icon, label, id, activeTab, onClick }) => {
   const isActive = activeTab === id;
@@ -227,10 +227,7 @@ export const Layout = ({ children, activeTab, setActiveTab }) => {
             </h1>
           )}
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-orange-500 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1 right-2 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
-            </button>
+            <NotificationBell />
             <div className="text-right">
               <p className="text-sm font-medium text-slate-800">
                 {new Date().toLocaleDateString("en-US", {
