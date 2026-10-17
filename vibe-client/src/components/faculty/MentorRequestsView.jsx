@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import api from '../../services/api';
 import { useToast } from '../Toast';
+import Avatar from '../shared/Avatar';
 
 export const MentorRequestsView = ({ onBackToFeed }) => {
   const toast = useToast();
@@ -47,7 +48,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
           student: {
             name: req.student?.name || "Student",
             email: req.student?.email || "",
-            avatar: req.student?.ImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.student?.name || "Student")}&background=random`,
+            avatar: req.student?.ImageUrl || req.student?.avatar || req.student?.Profile?.ImageUrl || "",
             college: req.student?.Profile?.InstituteName || "N/A",
             year: req.student?.Profile?.YearOfStudy || "N/A",
             branch: req.student?.Profile?.Branch || "N/A",
@@ -245,11 +246,12 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
             >
               {/* Card Header */}
               <div className="p-5 border-b border-[#E1E8F2] flex justify-between items-start">
-                <div className="flex gap-4">
-                  <img
+                <div className="flex gap-4 items-center">
+                  <Avatar
+                    name={request.student.name}
                     src={request.student.avatar}
-                    alt={request.student.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-[#E1E8F2]"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-[#E2E8F0] flex-shrink-0"
+                    initialsClassName="text-sm font-bold text-white"
                   />
                   <div>
                     <h3 className="font-bold text-[#172554]">{request.student.name}</h3>
@@ -361,10 +363,11 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
               <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                 {/* Student Info */}
                 <div className="flex gap-4 items-center p-4 bg-gray-50 rounded-2xl">
-                  <img
+                  <Avatar
+                    name={selectedRequest.student.name}
                     src={selectedRequest.student.avatar}
-                    alt={selectedRequest.student.name}
-                    className="w-16 h-16 rounded-full border-2 border-white shadow-sm"
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-white shadow-sm flex-shrink-0"
+                    initialsClassName="text-base font-bold text-white"
                   />
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">

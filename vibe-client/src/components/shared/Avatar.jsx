@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Avatar = ({ 
   name = '', 
@@ -9,6 +9,10 @@ const Avatar = ({
 }) => {
   const [imageError, setImageError] = useState(false);
 
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
   const getInitials = (fullName) => {
     if (!fullName) return '?';
     const parts = fullName.trim().split(/\s+/);
@@ -16,7 +20,12 @@ const Avatar = ({
     return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
   };
 
-  const hasImage = src && !src.includes('picsum.photos') && !src.includes('placeholder') && !imageError;
+  const hasImage =
+    src &&
+    !src.includes('picsum.photos') &&
+    !src.includes('placeholder') &&
+    !src.includes('ui-avatars.com') &&
+    !imageError;
 
   if (hasImage) {
     return (
