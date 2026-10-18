@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, MessageSquare, ChevronDown, Check, LogOut, User, Menu } from "lucide-react";
+import { MessageSquare, ChevronDown, Check, LogOut, User, Menu } from "lucide-react";
 import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
 import { NotificationBell } from "../shared/NotificationBell";
@@ -12,7 +12,6 @@ export const FacultyTopHeader = ({
   isSidebarCollapsed = false,
   onToggleSidebar,
 }) => {
-  const [searchValue, setSearchValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -26,11 +25,6 @@ export const FacultyTopHeader = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSearchChange = (e) => {
-    setSearchValue(e.target.value);
-    if (onSearch) onSearch(e.target.value);
-  };
 
   const displayName = user?.name || "Dr. Meera Sharma";
   const displayRole = user?.role || "Faculty";
@@ -56,23 +50,6 @@ export const FacultyTopHeader = ({
             className="flex items-center cursor-pointer flex-shrink-0 select-none hover:opacity-90 transition-opacity"
           >
             <VibeLogo size="md" />
-          </div>
-        </div>
-
-        {/* Center: Search Field */}
-        <div className="flex-1 max-w-xl mx-2 sm:mx-6">
-          <div className="relative w-full">
-            <Search 
-              size={18} 
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" 
-            />
-            <input
-              type="text"
-              value={searchValue}
-              onChange={handleSearchChange}
-              placeholder="Search posts, students, resources, topics..."
-              className="vibe-search-input"
-            />
           </div>
         </div>
 

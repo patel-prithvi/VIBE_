@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
+import { StudentTopHeader } from '../components/student/StudentTopHeader';
 import { StudentLeftSidebar } from '../components/student/StudentLeftSidebar';
 import { StudentCenterFeed } from '../components/student/StudentCenterFeed';
 import { StudentRightPanel } from '../components/student/StudentRightPanel';
@@ -12,7 +12,6 @@ import { MyMentorRequestsView } from '../components/student/MyMentorRequestsView
 import { auth } from '../utils/auth';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
-
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -178,6 +177,7 @@ const StudentDashboard = () => {
             onOpenCreatePost={() => setIsCreatePostOpen(true)}
             loading={loadingPosts}
             searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         );
     }
@@ -190,7 +190,7 @@ const StudentDashboard = () => {
     <>
       <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
         {/* 1. Horizontal Header Aligned across the top */}
-        <FacultyTopHeader
+        <StudentTopHeader
           user={user}
           onLogout={handleLogout}
           onNavigate={handleSectionChange}

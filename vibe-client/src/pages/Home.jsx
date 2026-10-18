@@ -32,7 +32,6 @@ import {
   FolderGit2,
 } from "lucide-react";
 import {
-  HandUnderline,
   SparkDoodle,
   LoopDoodle,
   SpiralDoodle,
@@ -434,18 +433,62 @@ const Home = () => {
 
         {/* Main Headline (Friendly, bold, ClassDojo style) */}
         <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-[66px] font-black tracking-tight leading-[1.14] text-[#111B5E] max-w-5xl mx-auto"
         >
-          Where students find verified internships & mentorship they can{" "}
+          Turn student ambition into{" "}
+          <motion.span
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
+            className="bg-gradient-to-r from-[#2563EB] via-[#7540F5] to-[#6366F1] bg-clip-text text-transparent inline-block"
+          >
+            verified careers
+          </motion.span>{" "}
+          that top companies{" "}
           <span className="relative inline-block text-[#7540F5]">
-            trust
-            <HandUnderline
-              color="#FBBF24"
-              className="absolute -bottom-2.5 left-0 w-full pointer-events-none"
-            />
+            <motion.span
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="inline-block"
+            >
+              trust
+            </motion.span>
+            <span className="absolute -bottom-2.5 left-0 w-full pointer-events-none vibe-landing-underline">
+              <svg
+                className="w-full h-3 md:h-4 overflow-visible"
+                viewBox="0 0 200 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <motion.path
+                  d="M3 11C45 4 155 3 197 9C165 14 60 15 15 13"
+                  stroke="#FBBF24"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.85, delay: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </svg>
+            </span>
+            <motion.span
+              initial={{ scale: 0, rotate: -25, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 320,
+                damping: 16,
+                delay: 0.85,
+              }}
+              className="absolute -top-3 -right-6 hidden sm:inline-block pointer-events-none text-[#FBBF24]"
+            >
+              <Sparkles size={22} className="fill-[#FBBF24]/30 text-[#F59E0B]" />
+            </motion.span>
           </span>
         </motion.h1>
 
