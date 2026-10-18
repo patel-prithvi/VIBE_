@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Zap,
   Star,
-  TrendingUp,
   Target,
   Award,
   ExternalLink,
@@ -213,11 +212,10 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
       </motion.section>
 
       {/* 2. Performance Snapshot */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
         <StatCard icon={Briefcase} label="Internships" value="3" color="orange" />
         <StatCard icon={Target} label="Task Accuracy" value="98%" color="emerald" />
         <StatCard icon={Star} label="Mentor Rating" value="4.9" color="amber" />
-        <StatCard icon={TrendingUp} label="Skill Index" value="8.4" color="orange" />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -234,24 +232,21 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
             {skillCategories.map((cat) => (
               <div key={cat} className="space-y-3">
                 <h4 className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">{cat}</h4>
-                <div className="space-y-3.5">
+                <div className="space-y-2">
                   {displayedSkills.filter(s => s.category === cat).map((skill) => (
-                    <div key={skill.name} className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-[#172554] flex items-center gap-1.5">
-                          {skill.name}
-                          {skill.verified && <ShieldCheck size={14} className="text-[#6D3DF5]" />}
-                        </span>
-                        <span className="text-xs font-bold text-[#6D3DF5]">{skill.score}%</span>
-                      </div>
-                      <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${skill.score}%` }}
-                          transition={{ duration: 1 }}
-                          className="h-full bg-[#6D3DF5] rounded-full"
-                        />
-                      </div>
+                    <div
+                      key={skill.name}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60 hover:border-[#E9E1FF] hover:bg-[#FDFBFF] transition-all"
+                    >
+                      <span className="text-xs sm:text-sm font-semibold text-[#172554] flex items-center gap-1.5">
+                        {skill.name}
+                        {skill.verified && (
+                          <ShieldCheck size={14} className="text-[#6D3DF5] shrink-0" />
+                        )}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] shrink-0 uppercase tracking-wider">
+                        {skill.level || "Verified"}
+                      </span>
                     </div>
                   ))}
                 </div>

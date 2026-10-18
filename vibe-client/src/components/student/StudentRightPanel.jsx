@@ -7,6 +7,7 @@ import {
   FileText,
   Plus,
   Loader2,
+  Zap,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import api from "../../services/api";
@@ -20,6 +21,7 @@ const statusStyles = {
 export const StudentRightPanel = ({ onNavigate, onOpenCreatePost }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -150,67 +152,99 @@ export const StudentRightPanel = ({ onNavigate, onOpenCreatePost }) => {
       </div>
 
       {/* ======================================================== */}
-      {/* C. Quick Actions (2x2 Grid)                              */}
+      {/* C. Quick Actions (Small Square Button which opens up)    */}
       {/* ======================================================== */}
-      <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0">
-        <h3 className="font-bold text-xs uppercase tracking-wider text-[#64748B] mb-3">
-          Quick Actions
-        </h3>
-
-        <div className="grid grid-cols-2 gap-2.5 min-w-0">
-          {/* Action 1: Create Post */}
+      {!isQuickActionsOpen ? (
+        <div className="flex items-center gap-2.5 pt-1">
           <button
-            onClick={() => onOpenCreatePost && onOpenCreatePost()}
-            className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FAF5FF]/50 hover:bg-[#FAF5FF] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+            type="button"
+            onClick={() => setIsQuickActionsOpen(true)}
+            className="w-10 h-10 rounded-xl bg-white hover:bg-[#F3EEFF] border border-[#E2E8F0] hover:border-[#6D3DF5] text-[#6D3DF5] shadow-xs flex items-center justify-center transition-all cursor-pointer group shrink-0"
+            title="Open Quick Actions"
+            aria-label="Open Quick Actions"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#F3E8FF] text-[#8B5CF6] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Plus size={16} />
-            </div>
-            <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#6D3DF5] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
-              Create Post
-            </span>
+            <Zap size={18} className="group-hover:scale-110 transition-transform" />
           </button>
-
-          {/* Action 2: Browse Tasks */}
-          <button
-            onClick={() => onNavigate && onNavigate("taskmania")}
-            className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#EFF6FF]/50 hover:bg-[#EFF6FF] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+          <span
+            onClick={() => setIsQuickActionsOpen(true)}
+            className="text-xs font-bold uppercase tracking-wider text-[#64748B] hover:text-[#6D3DF5] cursor-pointer transition-colors select-none"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Briefcase size={16} />
-            </div>
-            <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#2563EB] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
-              Browse Tasks
-            </span>
-          </button>
-
-          {/* Action 3: My Requests */}
-          <button
-            onClick={() => onNavigate && onNavigate("requests")}
-            className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FEF2F2]/50 hover:bg-[#FEF2F2] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Users size={16} />
-            </div>
-            <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#EF4444] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
-              My Requests
-            </span>
-          </button>
-
-          {/* Action 4: Virtual CV */}
-          <button
-            onClick={() => onNavigate && onNavigate("virtual-cv")}
-            className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FFFBEB]/50 hover:bg-[#FFFBEB] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <FileText size={16} />
-            </div>
-            <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#D97706] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
-              Virtual CV
-            </span>
-          </button>
+            Quick Actions
+          </span>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#64748B] flex items-center gap-1.5">
+              <Zap size={14} className="text-[#6D3DF5]" />
+              Quick Actions
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsQuickActionsOpen(false)}
+              className="w-8 h-8 rounded-lg bg-[#F8FAFC] hover:bg-[#F3EEFF] text-[#64748B] hover:text-[#6D3DF5] border border-[#E2E8F0] flex items-center justify-center transition-all cursor-pointer"
+              title="Close Quick Actions"
+              aria-label="Close Quick Actions"
+            >
+              <Plus size={16} className="rotate-45" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 min-w-0">
+            {/* Action 1: Create Post */}
+            <button
+              onClick={() => onOpenCreatePost && onOpenCreatePost()}
+              className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FAF5FF]/50 hover:bg-[#FAF5FF] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#F3E8FF] text-[#8B5CF6] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Plus size={16} />
+              </div>
+              <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#6D3DF5] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
+                Create Post
+              </span>
+            </button>
+
+            {/* Action 2: Browse Tasks */}
+            <button
+              onClick={() => onNavigate && onNavigate("taskmania")}
+              className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#EFF6FF]/50 hover:bg-[#EFF6FF] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Briefcase size={16} />
+              </div>
+              <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#2563EB] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
+                Browse Tasks
+              </span>
+            </button>
+
+            {/* Action 3: My Requests */}
+            <button
+              onClick={() => onNavigate && onNavigate("requests")}
+              className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FEF2F2]/50 hover:bg-[#FEF2F2] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Users size={16} />
+              </div>
+              <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#EF4444] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
+                My Requests
+              </span>
+            </button>
+
+            {/* Action 4: Virtual CV */}
+            <button
+              onClick={() => onNavigate && onNavigate("virtual-cv")}
+              className="flex flex-col items-start justify-start gap-2 p-2.5 sm:p-3 rounded-xl border border-[#F1F5F9] hover:border-[#E2E8F0] bg-[#FFFBEB]/50 hover:bg-[#FFFBEB] text-left transition-all group min-w-0 w-full min-h-[84px] h-full"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <FileText size={16} />
+              </div>
+              <span className="text-xs font-bold text-[#1E293B] group-hover:text-[#D97706] transition-colors leading-tight whitespace-normal break-words [overflow-wrap:anywhere] [text-overflow:clip]">
+                Virtual CV
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

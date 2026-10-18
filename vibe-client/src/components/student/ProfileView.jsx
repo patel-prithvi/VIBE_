@@ -220,10 +220,27 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
                 {formData.branch || "Computer Science"} • {formData.currentYear}
               </span>
             </p>
-            <p className="text-xs text-[#64748B] flex items-center justify-center sm:justify-start gap-1.5">
-              <Building size={14} className="text-[#94A3B8]" />
-              <span>{formData.institutionName || "VIBE Academic Community"}</span>
-            </p>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1.5 pt-1 text-xs text-[#64748B]">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Building size={14} className="text-[#94A3B8] shrink-0" />
+                <span>{formData.institutionName || "VIBE Academic Community"}</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] text-[10px] font-bold uppercase tracking-wider">
+                  <Briefcase size={11} />
+                  <span>{internships.length} Applications</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] text-[10px] font-bold uppercase tracking-wider">
+                  <CheckCircle2 size={11} />
+                  <span>{activeCount} Active</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0] text-[10px] font-bold uppercase tracking-wider">
+                  <Users size={11} />
+                  <span>{selectedCount} Paid</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -506,52 +523,7 @@ export const ProfileView = ({ user, onProfileUpdate }) => {
         </div>
       </section>
 
-      {/* 4. Statistics Section (3 equal-width cards) */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
-            <Briefcase size={22} />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
-              Applications
-            </span>
-            <span className="text-2xl font-black text-[#172554] tracking-tight">
-              {internships.length}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 size={22} />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
-              Active
-            </span>
-            <span className="text-2xl font-black text-[#172554] tracking-tight">
-              {activeCount}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0] flex items-center justify-center flex-shrink-0">
-            <Users size={22} />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">
-              Selected
-            </span>
-            <span className="text-2xl font-black text-[#172554] tracking-tight">
-              {selectedCount}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Internship Tracker */}
+      {/* 4. Internship Tracker */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
