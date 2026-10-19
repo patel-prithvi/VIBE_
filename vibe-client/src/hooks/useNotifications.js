@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../services/api.js";
+import { useSmartPolling } from "./useSmartPolling.js";
 
 /**
  * Shared inbox state: recent notifications + unread count.
- * Polls every 45s so bells stay live without websockets.
+ * Uses smart polling (visibility-aware, focus-refetch, error backoff).
  */
-export const useNotifications = (pollMs = 45000) => {
+export const useNotifications = (pollMs = 30000) => {
   const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -23,12 +24,19 @@ export const useNotifications = (pollMs = 45000) => {
     }
   }, []);
 
+  // Initial fetch on mount
   useEffect(() => {
     refresh();
-    if (!pollMs) return undefined;
-    const t = setInterval(refresh, pollMs);
-    return () => clearInterval(t);
-  }, [refresh, pollMs]);
+  }, [refresh]);
+
+  // Smart polling (pauses when tab is hidden, refreshes immediately on focus)
+  useSmartPolling(refresh, {
+    intervalMs: pollMs,
+    enabled: Boolean(pollMs),
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pauseWhenHidden: true,
+  });
 
   const markRead = useCallback(
     async (id) => {

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartPolling } from "../hooks/useSmartPolling";
 import { StudentTopHeader } from "../components/student/StudentTopHeader";
 import { StudentLeftSidebar } from "../components/student/StudentLeftSidebar";
 import { StudentCenterFeed } from "../components/student/StudentCenterFeed";
@@ -40,10 +41,12 @@ const StudentDashboard = () => {
     });
   };
 
-  const fetchPostsAndBookmarks = async () => {
+  const fetchPostsAndBookmarks = useCallback(async (isBackground = false) => {
     try {
-      setLoadingPosts(true);
-      setPostsError("");
+      if (!isBackground) {
+        setLoadingPosts(true);
+        setPostsError("");
+      }
       const userData = await auth.fetchUser();
       setUser(userData);
 
@@ -119,15 +122,28 @@ const StudentDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching student dashboard data:", error);
-      setPostsError("Failed to load feed posts. Please check your connection and try again.");
+      if (!isBackground) {
+        setPostsError("Failed to load feed posts. Please check your connection and try again.");
+      }
     } finally {
-      setLoadingPosts(false);
+      if (!isBackground) {
+        setLoadingPosts(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPostsAndBookmarks();
-  }, []);
+    fetchPostsAndBookmarks(false);
+  }, [fetchPostsAndBookmarks]);
+
+  // Smart polling every 45s (visibility-aware, refetches on focus)
+  useSmartPolling(() => fetchPostsAndBookmarks(true), {
+    intervalMs: 45000,
+    enabled: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pauseWhenHidden: true,
+  });
 
   // Scroll to top when section changes
   useEffect(() => {

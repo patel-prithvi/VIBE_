@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSmartPolling } from "../hooks/useSmartPolling";
 import { FacultyTopHeader } from "../components/faculty/FacultyTopHeader";
 import { FacultyLeftSidebar } from "../components/faculty/FacultyLeftSidebar";
 import { FacultyCenterFeed } from "../components/faculty/FacultyCenterFeed";
@@ -40,10 +41,12 @@ const FacultyDashboard = () => {
     });
   };
 
-  const fetchPostsAndBookmarks = async () => {
+  const fetchPostsAndBookmarks = useCallback(async (isBackground = false) => {
     try {
-      setLoadingPosts(true);
-      setPostsError("");
+      if (!isBackground) {
+        setLoadingPosts(true);
+        setPostsError("");
+      }
       const userData = await auth.fetchUser();
       setUser(userData);
 
@@ -119,15 +122,28 @@ const FacultyDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching faculty dashboard data:", error);
-      setPostsError("Failed to load feed posts. Please check your connection and try again.");
+      if (!isBackground) {
+        setPostsError("Failed to load feed posts. Please check your connection and try again.");
+      }
     } finally {
-      setLoadingPosts(false);
+      if (!isBackground) {
+        setLoadingPosts(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPostsAndBookmarks();
-  }, []);
+    fetchPostsAndBookmarks(false);
+  }, [fetchPostsAndBookmarks]);
+
+  // Smart polling every 45s (visibility-aware, refetches on focus)
+  useSmartPolling(() => fetchPostsAndBookmarks(true), {
+    intervalMs: 45000,
+    enabled: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pauseWhenHidden: true,
+  });
 
   // Scroll to top when view changes
   useEffect(() => {
