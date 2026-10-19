@@ -16,15 +16,19 @@ import {
   XCircle,
   Clock,
   Building2,
+  Loader2,
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
 
 export const TaskCard = ({
   task,
-  isSubmitted,
+  isAccepted,
+  isSolutionSubmitted,
+  isApplying,
   mentorRequest,
   onOpenInstructions,
-  onOpenApply,
+  onApplyDirect,
+  onOpenSubmitTask,
   onOpenMentorRequest,
 }) => {
   const navigate = useNavigate();
@@ -71,12 +75,18 @@ export const TaskCard = ({
               {task.paid ? "Paid" : "Unpaid"}
             </div>
 
-            {/* Submitted Badge (icon only) */}
-            {isSubmitted && (
-              <div className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
-                <CheckCircle2 size={14} />
+            {/* Status Badges */}
+            {isSolutionSubmitted ? (
+              <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <CheckCircle2 size={13} className="text-emerald-600" />
+                <span>Submitted</span>
               </div>
-            )}
+            ) : isAccepted ? (
+              <div className="flex items-center gap-1.5 text-[#6D3DF5] text-xs font-bold bg-[#F3EEFF] px-2.5 py-1 rounded-full border border-[#E9E1FF]">
+                <Clock size={13} />
+                <span>In Progress</span>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -265,15 +275,7 @@ export const TaskCard = ({
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          {isSubmitted ? (
-            <button
-              disabled
-              onClick={(e) => e.stopPropagation()}
-              className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
-            >
-              <Lock size={16} /> Applied
-            </button>
-          ) : isClosed ? (
+          {isClosed ? (
             <button
               disabled
               onClick={(e) => e.stopPropagation()}
@@ -281,17 +283,50 @@ export const TaskCard = ({
             >
               <Lock size={16} /> Closed
             </button>
+          ) : isSolutionSubmitted ? (
+            <button
+              disabled
+              onClick={(e) => e.stopPropagation()}
+              className="px-3 py-2.5 text-sm font-bold text-emerald-700 bg-emerald-50 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-emerald-200"
+            >
+              <CheckCircle2 size={16} className="text-emerald-600" />
+              <span>Solution Submitted</span>
+            </button>
+          ) : isAccepted ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof onOpenSubmitTask === "function") {
+                  onOpenSubmitTask(task);
+                }
+              }}
+              className="px-3 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FileText size={16} />
+              <span>Submit Task</span>
+            </button>
           ) : (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (!isClosed && typeof onOpenApply === "function") {
-                  onOpenApply(task);
+                if (typeof onApplyDirect === "function") {
+                  onApplyDirect(task);
                 }
               }}
-              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isApplying}
+              className="px-3 py-2.5 text-sm font-bold text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-md shadow-[#6D3DF5]/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Apply Now <ChevronRight size={16} />
+              {isApplying ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Applying...</span>
+                </>
+              ) : (
+                <>
+                  <span>Apply Now</span>
+                  <ChevronRight size={16} />
+                </>
+              )}
             </button>
           )}
         </div>

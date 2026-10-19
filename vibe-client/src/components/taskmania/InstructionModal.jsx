@@ -11,6 +11,8 @@ import {
   Clock,
   Briefcase,
   AlertCircle,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { useScrollLock } from "../../hooks/useScrollLock";
 
@@ -18,8 +20,12 @@ export const InstructionModal = ({
   isOpen,
   onClose,
   task,
+  isAccepted,
+  isSolutionSubmitted,
+  isApplying,
   onViewDetails,
-  onOpenApply,
+  onApplyDirect,
+  onOpenSubmitTask,
 }) => {
   useScrollLock(Boolean(isOpen && task));
 
@@ -203,13 +209,46 @@ export const InstructionModal = ({
                 </button>
               )}
 
-              {onOpenApply && !isClosed && (
+              {isClosed ? (
                 <button
-                  onClick={() => onOpenApply(task)}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold shadow-md shadow-[#6D3DF5]/20 transition-all cursor-pointer"
+                  disabled
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200 cursor-not-allowed"
                 >
-                  <span>Apply Now</span>
-                  <ChevronRight size={14} />
+                  Submissions Closed
+                </button>
+              ) : isSolutionSubmitted ? (
+                <button
+                  disabled
+                  className="px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  <span>Solution Submitted</span>
+                </button>
+              ) : isAccepted ? (
+                <button
+                  onClick={() => onOpenSubmitTask(task)}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                >
+                  <FileText size={14} />
+                  <span>Submit Task</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onApplyDirect(task)}
+                  disabled={isApplying}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold shadow-md shadow-[#6D3DF5]/20 transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {isApplying ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Applying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Apply Now</span>
+                      <ChevronRight size={14} />
+                    </>
+                  )}
                 </button>
               )}
             </div>

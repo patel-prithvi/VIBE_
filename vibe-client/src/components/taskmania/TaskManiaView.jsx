@@ -26,7 +26,8 @@ export const TaskManiaView = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isMentorRequestOpen, setIsMentorRequestOpen] = useState(false);
-  const [submittedTasks, setSubmittedTasks] = useState([]);
+  const [userSubmissions, setUserSubmissions] = useState([]);
+  const [applyingTaskId, setApplyingTaskId] = useState(null);
   const [mentorRequests, setMentorRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,10 +72,7 @@ export const TaskManiaView = () => {
         }
 
         if (subsRes.data && Array.isArray(subsRes.data.data)) {
-          const appliedTaskIds = subsRes.data.data
-            .map((s) => String(s.taskId?._id || s.taskId))
-            .filter(Boolean);
-          setSubmittedTasks(appliedTaskIds);
+          setUserSubmissions(subsRes.data.data);
         }
 
         if (mentorRequestsRes.data && Array.isArray(mentorRequestsRes.data.data)) {
@@ -105,7 +103,34 @@ export const TaskManiaView = () => {
     setSelectedTaskForInstructions(task);
   };
 
-  const handleOpenApply = (task) => {
+  const handleApplyDirect = async (task) => {
+    const tId = task.id || task._id;
+    if (!tId) return;
+
+    try {
+      setApplyingTaskId(tId);
+      const res = await api.post(`/submissions/apply/${tId}`);
+      const newSub = res.data?.data || { taskId: tId, status: 'accepted' };
+
+      setUserSubmissions((prev) => {
+        const filtered = prev.filter(
+          (s) => String(s.taskId?._id || s.taskId) !== String(tId)
+        );
+        return [...filtered, newSub];
+      });
+
+      toast.success('Task applied successfully! You can now submit your task solution.');
+    } catch (error) {
+      console.error('Error applying for task:', error);
+      toast.error(
+        error.response?.data?.message || 'Failed to apply for task. Please try again.'
+      );
+    } finally {
+      setApplyingTaskId(null);
+    }
+  };
+
+  const handleOpenSubmitTask = (task) => {
     setSelectedTask(task);
     setIsApplicationOpen(true);
   };
@@ -127,16 +152,21 @@ export const TaskManiaView = () => {
         message: formData.description || ''
       };
 
-      await api.post('/submissions/submit', payload);
-      
-      // Add to submitted tasks
-      setSubmittedTasks(prev => [...prev, taskId]);
-      
-      toast.success('Application submitted successfully!');
+      const res = await api.post('/submissions/submit', payload);
+      const updatedSub = res.data?.data || { ...payload, status: 'submitted' };
+
+      setUserSubmissions((prev) => {
+        const filtered = prev.filter(
+          (s) => String(s.taskId?._id || s.taskId) !== String(taskId)
+        );
+        return [...filtered, updatedSub];
+      });
+
+      toast.success('Task solution submitted successfully!');
       setIsApplicationOpen(false);
     } catch (error) {
       console.error('Error submitting application:', error);
-      toast.error('Failed to submit application. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to submit application. Please try again.');
     }
   };
 
@@ -236,17 +266,41 @@ export const TaskManiaView = () => {
       {/* Tasks Grid */}
       {filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTasks.map((task, index) => (
-            <TaskCard
-                key={task.id}
+          {filteredTasks.map((task) => {
+            const taskId = task.id || task._id;
+            const sub = userSubmissions.find(
+              (s) => String(s.taskId?._id || s.taskId) === String(taskId)
+            );
+            const isAccepted = Boolean(sub && sub.status !== "rejected");
+            const isSolutionSubmitted = Boolean(
+              sub &&
+              (sub.repoUrl ||
+                sub.videoUrl ||
+                sub.driveUrl ||
+                sub.projectTitle ||
+                ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(
+                  String(sub.status || "").toLowerCase()
+                ))
+            );
+            const isApplying = applyingTaskId === taskId;
+
+            return (
+              <TaskCard
+                key={taskId}
                 task={task}
-                isSubmitted={submittedTasks.includes(task.id)}
-                mentorRequest={mentorRequests.find(req => String(req.task?._id || req.task) === task.id)}
+                isAccepted={isAccepted}
+                isSolutionSubmitted={isSolutionSubmitted}
+                isApplying={isApplying}
+                mentorRequest={mentorRequests.find(
+                  (req) => String(req.task?._id || req.task) === String(taskId)
+                )}
                 onOpenInstructions={handleOpenInstructions}
-                onOpenApply={handleOpenApply}
+                onApplyDirect={handleApplyDirect}
+                onOpenSubmitTask={handleOpenSubmitTask}
                 onOpenMentorRequest={handleOpenMentorRequest}
               />
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-12 text-center border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -259,25 +313,53 @@ export const TaskManiaView = () => {
       )}
 
       {/* Modals */}
-      <InstructionModal
-        isOpen={Boolean(selectedTaskForInstructions)}
-        onClose={() => setSelectedTaskForInstructions(null)}
-        task={selectedTaskForInstructions}
-        onViewDetails={(task) => {
-          setSelectedTaskForInstructions(null);
-          navigate(`/tasks/${task.id || task._id}`);
-        }}
-        onOpenApply={(task) => {
-          setSelectedTaskForInstructions(null);
-          handleOpenApply(task);
-        }}
-      />
+      {selectedTaskForInstructions && (() => {
+        const tId = selectedTaskForInstructions.id || selectedTaskForInstructions._id;
+        const sub = userSubmissions.find(
+          (s) => String(s.taskId?._id || s.taskId) === String(tId)
+        );
+        const isAccepted = Boolean(sub && sub.status !== "rejected");
+        const isSolutionSubmitted = Boolean(
+          sub &&
+          (sub.repoUrl ||
+            sub.videoUrl ||
+            sub.driveUrl ||
+            sub.projectTitle ||
+            ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(
+              String(sub.status || "").toLowerCase()
+            ))
+        );
+        const isApplying = applyingTaskId === tId;
+
+        return (
+          <InstructionModal
+            isOpen={Boolean(selectedTaskForInstructions)}
+            onClose={() => setSelectedTaskForInstructions(null)}
+            task={selectedTaskForInstructions}
+            isAccepted={isAccepted}
+            isSolutionSubmitted={isSolutionSubmitted}
+            isApplying={isApplying}
+            onViewDetails={(task) => {
+              setSelectedTaskForInstructions(null);
+              navigate(`/tasks/${task.id || task._id}`);
+            }}
+            onApplyDirect={handleApplyDirect}
+            onOpenSubmitTask={(task) => {
+              setSelectedTaskForInstructions(null);
+              handleOpenSubmitTask(task);
+            }}
+          />
+        );
+      })()}
 
       <ApplicationFormModal
         isOpen={isApplicationOpen}
         onClose={() => setIsApplicationOpen(false)}
         onSubmit={handleSubmitApplication}
         task={selectedTask}
+        existingData={userSubmissions.find(
+          (s) => String(s.taskId?._id || s.taskId) === String(selectedTask?.id || selectedTask?._id)
+        )}
       />
 
       <MentorRequestModal
