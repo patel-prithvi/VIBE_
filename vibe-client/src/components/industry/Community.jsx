@@ -46,7 +46,10 @@ export const Community = ({ searchQuery = "" }) => {
                timestamp: new Date(c.createdAt).toLocaleDateString(),
                likes: c.vibes ? Object.keys(c.vibes).length : 0,
                isLiked: !!(c.vibes && user && c.vibes[user._id]),
-            }))
+            })),
+            repostOf: post.repostOf || null,
+            repostComment: post.repostComment || "",
+            repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
           }));
           setPosts(mappedPosts);
         }
@@ -55,6 +58,50 @@ export const Community = ({ searchQuery = "" }) => {
       }
     };
     fetchData();
+
+    const handleDeleted = (e) => {
+      const { postId } = e.detail || {};
+      if (postId) {
+        setPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+      }
+    };
+
+    const handleUpdated = (e) => {
+      const { post: updated } = e.detail || {};
+      if (updated) {
+        const uId = updated._id || updated.id;
+        setPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+      }
+    };
+
+    const handleReposted = () => {
+      fetchData();
+    };
+
+    window.addEventListener("vibe:post_deleted", handleDeleted);
+    window.addEventListener("vibe:post_updated", handleUpdated);
+    window.addEventListener("vibe:post_reposted", handleReposted);
+
+    return () => {
+      window.removeEventListener("vibe:post_deleted", handleDeleted);
+      window.removeEventListener("vibe:post_updated", handleUpdated);
+      window.removeEventListener("vibe:post_reposted", handleReposted);
+    };
   }, []);
 
   const query = (searchQuery || "").trim().toLowerCase();

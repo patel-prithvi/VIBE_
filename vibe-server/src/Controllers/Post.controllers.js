@@ -164,7 +164,36 @@ export const getAllPosts = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "posts",
+        localField: "repostOf",
+        foreignField: "_id",
+        as: "repostOfDoc",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "repostOfDoc.author",
+        foreignField: "_id",
+        as: "repostOfAuthor",
+      },
+    },
+    {
       $addFields: {
+        repostOf: {
+          $cond: {
+            if: { $gt: [{ $size: "$repostOfDoc" }, 0] },
+            then: {
+              $mergeObjects: [
+                { $arrayElemAt: ["$repostOfDoc", 0] },
+                { author: { $arrayElemAt: ["$repostOfAuthor", 0] } },
+              ],
+            },
+            else: null,
+          },
+        },
+        repostCount: { $size: { $ifNull: ["$reposts", []] } },
         comments: {
           $map: {
             input: "$comments",
@@ -195,8 +224,17 @@ export const getAllPosts = asyncHandler(async (req, res) => {
     {
       $project: {
         "author.password": 0,
+        "author.refreshToken": 0,
+        "author.otp": 0,
         "comments.author.password": 0,
+        "comments.author.refreshToken": 0,
+        "comments.author.otp": 0,
+        "repostOf.author.password": 0,
+        "repostOf.author.refreshToken": 0,
+        "repostOf.author.otp": 0,
         commentAuthors: 0,
+        repostOfDoc: 0,
+        repostOfAuthor: 0,
       },
     },
     { $sort: { createdAt: -1 } },
@@ -247,47 +285,99 @@ export const getPostById = asyncHandler(async (req, res) => {
 
 export const deletePost = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user._id.toString();
 
   const post = await Post.findById(id);
   if (!post) {
     throw new ApiError(404, "Post not found");
   }
 
-  await Post.deleteMany({ $or: [{ _id: id }, { parent: id }] });
+  // Authorization check: Only the post's author can delete their post
+  if (post.author.toString() !== userId) {
+    throw new ApiError(403, "Unauthorized: You can only delete your own posts");
+  }
+
+  // If this post was a repost, remove this user from the original post's reposts list
+  if (post.repostOf) {
+    await Post.findByIdAndUpdate(post.repostOf, {
+      $pull: { reposts: req.user._id },
+    });
+  }
+
+  // Delete post, its comments, and any reposts pointing to it
+  await Post.deleteMany({ $or: [{ _id: id }, { parent: id }, { repostOf: id }] });
 
   res
     .status(200)
-    .json(new ApiResponse(200, null, "Post and comments deleted successfully"));
+    .json(new ApiResponse(200, { postId: id }, "Post deleted successfully"));
 });
 
 
 export const updatePost = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { title, content, category, tags } = req.body;
-  const author = req.user._id
+  const { title, content, category, tags, existingAttachments } = req.body;
+  const userId = req.user._id.toString();
 
   const post = await Post.findById(id);
   if (!post) throw new ApiError(404, "Post not found");
 
-  if (post.author.toString() !== author) {
-    throw new ApiError(403, "Unauthorized to update this post");
+  // Authorization check: Only the post's author can edit their post
+  if (post.author.toString() !== userId) {
+    throw new ApiError(403, "Unauthorized: You can only edit your own posts");
   }
 
-  let attachmentUrls = post.attachments;
-  if (req.files?.attachments) {
-    const attachmentsLocalPaths = req.files.attachments.map(
-      (file) => file.path
-    );
+  let attachmentUrls = [];
+  if (existingAttachments !== undefined) {
+    try {
+      attachmentUrls =
+        typeof existingAttachments === "string"
+          ? JSON.parse(existingAttachments)
+          : existingAttachments;
+    } catch {
+      attachmentUrls = Array.isArray(existingAttachments)
+        ? existingAttachments
+        : [existingAttachments];
+    }
+  } else if (req.body.attachments !== undefined) {
+    try {
+      attachmentUrls =
+        typeof req.body.attachments === "string"
+          ? JSON.parse(req.body.attachments)
+          : req.body.attachments;
+    } catch {
+      attachmentUrls = Array.isArray(req.body.attachments)
+        ? req.body.attachments
+        : [req.body.attachments];
+    }
+  } else {
+    attachmentUrls = post.attachments || [];
+  }
+
+  if (req.files?.attachments && req.files.attachments.length > 0) {
+    const attachmentsLocalPaths = req.files.attachments.map((file) => file.path);
     const uploadedAttachments = await Promise.all(
       attachmentsLocalPaths.map((path) => uploadOnCloudinary(path))
     );
-    attachmentUrls = uploadedAttachments.map((file) => file?.url || "");
+    const newUrls = uploadedAttachments
+      .map((file) => file?.url || "")
+      .filter(Boolean);
+    attachmentUrls = [...attachmentUrls, ...newUrls];
   }
 
-  post.title = title || post.title;
-  post.content = content || post.content;
-  post.category = category || post.category;
-  post.tags = tags || post.tags;
+  if (title !== undefined) post.title = title;
+  if (content !== undefined) post.content = content;
+  if (category !== undefined) post.category = category;
+  if (tags !== undefined) {
+    if (Array.isArray(tags)) post.tags = tags;
+    else if (typeof tags === "string") {
+      try {
+        const parsed = JSON.parse(tags);
+        post.tags = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        post.tags = tags.split(",").map((t) => t.trim()).filter(Boolean);
+      }
+    }
+  }
   post.attachments = attachmentUrls;
 
   await post.save();
@@ -297,6 +387,86 @@ export const updatePost = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, updatedPost, "Post updated successfully"));
+});
+
+
+export const repostPost = asyncHandler(async (req, res) => {
+  const { postId, comment = "" } = req.body;
+  const userId = req.user._id;
+
+  const targetPost = await Post.findById(postId);
+  if (!targetPost) {
+    throw new ApiError(404, "Original post not found");
+  }
+
+  // If the target post is already a repost, link directly to the original root post
+  const originalPostId = targetPost.repostOf ? targetPost.repostOf : targetPost._id;
+  const originalPost = await Post.findById(originalPostId);
+  if (!originalPost) {
+    throw new ApiError(404, "Original post not found");
+  }
+
+  // Prevent duplicate reposts by the same user
+  const existingRepost = await Post.findOne({
+    author: userId,
+    repostOf: originalPostId,
+  });
+
+  if (existingRepost) {
+    throw new ApiError(400, "You have already reposted this post");
+  }
+
+  // Create new repost post document
+  const newRepost = new Post({
+    type: "Post",
+    content: comment || originalPost.content,
+    title: originalPost.title,
+    category: originalPost.category,
+    tags: originalPost.tags,
+    attachments: originalPost.attachments,
+    author: userId,
+    repostOf: originalPostId,
+    repostComment: comment,
+  });
+
+  await newRepost.save();
+
+  // Add user to original post's reposts list
+  if (!originalPost.reposts) {
+    originalPost.reposts = [];
+  }
+  if (!originalPost.reposts.some((uId) => uId.toString() === userId.toString())) {
+    originalPost.reposts.push(userId);
+    await originalPost.save();
+  }
+
+  // Populate reposter author and original post
+  const populated = await Post.findById(newRepost._id)
+    .populate("author", "name ImageUrl accountType role Profile")
+    .populate({
+      path: "repostOf",
+      populate: {
+        path: "author",
+        select: "name ImageUrl accountType role Profile",
+      },
+    });
+
+  // Notify original post author
+  if (originalPost.author && originalPost.author.toString() !== userId.toString()) {
+    notify({
+      recipient: originalPost.author,
+      sender: userId,
+      type: "repost",
+      title: "Your post was reposted",
+      message: `${req.user?.name || "Someone"} reposted your post: "${originalPost.title || originalPost.content?.slice(0, 50)}"`,
+      link: "",
+      meta: { postId: originalPost._id, repostId: newRepost._id },
+    }).catch(() => {});
+  }
+
+  res
+    .status(201)
+    .json(new ApiResponse(201, populated, "Post reposted successfully!"));
 });
 
 

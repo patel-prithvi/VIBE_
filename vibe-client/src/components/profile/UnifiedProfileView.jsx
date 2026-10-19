@@ -174,6 +174,9 @@ export const UnifiedProfileView = ({
             vibeCount: p.vibes ? Object.keys(p.vibes).length : 0,
             commentCount: p.comments?.length || 0,
             comments: p.comments || [],
+            repostOf: p.repostOf || null,
+            repostComment: p.repostComment || "",
+            repostCount: p.repostCount || (Array.isArray(p.reposts) ? p.reposts.length : 0),
           }));
           setUserPosts(mapped);
         }
@@ -183,8 +186,44 @@ export const UnifiedProfileView = ({
         if (mounted) setPostsLoading(false);
       }
     })();
+
+    const handleDeleted = (e) => {
+      const { postId } = e.detail || {};
+      if (postId) {
+        setUserPosts((prev) => prev.filter((post) => (post.id || post._id) !== postId));
+      }
+    };
+
+    const handleUpdated = (e) => {
+      const { post: updated } = e.detail || {};
+      if (updated) {
+        const uId = updated._id || updated.id;
+        setUserPosts((prev) =>
+          prev.map((post) =>
+            (post.id || post._id) === uId
+              ? {
+                  ...post,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : post.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : post.attachments,
+                }
+              : post
+          )
+        );
+      }
+    };
+
+    window.addEventListener("vibe:post_deleted", handleDeleted);
+    window.addEventListener("vibe:post_updated", handleUpdated);
+
     return () => {
       mounted = false;
+      window.removeEventListener("vibe:post_deleted", handleDeleted);
+      window.removeEventListener("vibe:post_updated", handleUpdated);
     };
   }, [targetUserId, user]);
 

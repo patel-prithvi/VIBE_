@@ -46,6 +46,23 @@ const PostSchema = new mongoose.Schema(
       default: null,
     },
 
+    // repost functionality
+    repostOf: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      default: null,
+    },
+    repostComment: {
+      type: String,
+      default: "",
+    },
+    reposts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     vibes: {
       type: Map,
       of: mongoose.Schema.Types.Mixed,

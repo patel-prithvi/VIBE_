@@ -3,6 +3,8 @@ import {
   createComment,
   createPost,
   deletePost,
+  updatePost,
+  repostPost,
   getAllPosts,
   getPostById,
   getPostByUserId,
@@ -31,7 +33,19 @@ router.post(
 // posts
 router.get("/", getAllPosts);
 //router.get("/:id" ,getPostById);
+router.put(
+  "/:id",
+  verifyJWT,
+  upload.fields([
+    {
+      name: "attachments",
+      maxCount: 5,
+    },
+  ]),
+  updatePost
+);
 router.delete("/:id", verifyJWT, deletePost);
+router.post("/repost", verifyJWT, repostPost);
 router.get("/mypost", verifyJWT, getPostByUserId);
 router.get("/user/:userId", verifyJWT, getPostByUserId);
 

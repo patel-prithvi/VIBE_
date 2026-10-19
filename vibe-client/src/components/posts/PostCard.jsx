@@ -13,6 +13,12 @@ import {
   X,
   Maximize2,
   ChevronDown,
+  Repeat,
+  Edit3,
+  Trash2,
+  AlertTriangle,
+  Image as ImageIcon,
+  Check,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import { useToast } from "../Toast";
@@ -29,12 +35,24 @@ export const REACTION_TYPES = [
   { id: "funny", label: "Funny", emoji: "😂", color: "#0891B2", activeBg: "#ECFEFF", activeBorder: "#A5F3FC" },
 ];
 
+export const POST_CATEGORIES = [
+  "Doubt Sharing",
+  "Knowledge Base",
+  "Inspiration",
+  "General",
+  "Doubt",
+  "Knowledge",
+];
+
 export const PostCard = ({
   post,
   index = 0,
   currentUser: propUser,
   isBookmarked = false,
   onToggleBookmark,
+  onPostDeleted,
+  onPostUpdated,
+  onPostReposted,
 }) => {
   const navigate = useNavigate();
   let toast;
@@ -50,6 +68,222 @@ export const PostCard = ({
   const user = propUser || auth.getCurrentUser();
   const userId = user?._id?.toString() || user?.id?.toString();
 
+  // Check if this post is a repost
+  const isRepost = Boolean(post.repostOf && typeof post.repostOf === "object");
+  const targetPost = isRepost ? post.repostOf : post;
+
+  // Local post editable state
+  const [postData, setPostData] = useState({
+    title: targetPost.title || "",
+    content: targetPost.content || "",
+    category: targetPost.category || targetPost.tag || "General",
+    tags: Array.isArray(targetPost.tags) ? targetPost.tags : [],
+    attachments: Array.isArray(targetPost.attachments) ? targetPost.attachments : [],
+  });
+
+  // Keep postData in sync if prop changes
+  useEffect(() => {
+    const curTarget = post.repostOf && typeof post.repostOf === "object" ? post.repostOf : post;
+    setPostData({
+      title: curTarget.title || "",
+      content: curTarget.content || "",
+      category: curTarget.category || curTarget.tag || "General",
+      tags: Array.isArray(curTarget.tags) ? curTarget.tags : [],
+      attachments: Array.isArray(curTarget.attachments) ? curTarget.attachments : [],
+    });
+  }, [post]);
+
+  // Ownership verification: compare logged-in user ID with post author ID
+  const currentUserId = user?._id?.toString() || user?.id?.toString();
+  const postAuthorId =
+    post.author?._id?.toString() ||
+    post.author?.id?.toString() ||
+    post.authorId?.toString() ||
+    (typeof post.author === "string" ? post.author : "");
+
+  const isAuthor = Boolean(
+    currentUserId && postAuthorId && currentUserId === postAuthorId
+  );
+
+  // Three-dot dropdown menu state
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isMenuOpen]);
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      const pId = post.id || post._id;
+      await api.delete(`/posts/${pId}`);
+      if (toast?.success) toast.success("Post deleted successfully");
+      setIsDeleteModalOpen(false);
+      if (onPostDeleted) onPostDeleted(pId);
+      window.dispatchEvent(
+        new CustomEvent("vibe:post_deleted", { detail: { postId: pId } })
+      );
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      const msg = err.response?.data?.message || "Failed to delete post";
+      if (toast?.error) toast.error(msg);
+      else alert(msg);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editCategory, setEditCategory] = useState("General");
+  const [editTags, setEditTags] = useState("");
+  const [editExistingAttachments, setEditExistingAttachments] = useState([]);
+  const [editNewFiles, setEditNewFiles] = useState([]);
+
+  const openEditModal = () => {
+    setEditTitle(postData.title);
+    setEditContent(postData.content);
+    setEditCategory(postData.category);
+    setEditTags(postData.tags.join(", "));
+    setEditExistingAttachments(postData.attachments);
+    setEditNewFiles([]);
+    setIsEditModalOpen(true);
+  };
+
+  const handleRemoveExistingAttachment = (indexToRemove) => {
+    setEditExistingAttachments((prev) =>
+      prev.filter((_, i) => i !== indexToRemove)
+    );
+  };
+
+  const handleRemoveNewFile = (indexToRemove) => {
+    setEditNewFiles((prev) => prev.filter((_, i) => i !== indexToRemove));
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editTitle.trim() || !editContent.trim()) {
+      if (toast?.error) toast.error("Title and content are required");
+      return;
+    }
+
+    try {
+      setIsSavingEdit(true);
+      const targetId = targetPost.id || targetPost._id;
+
+      const formData = new FormData();
+      formData.append("title", editTitle.trim());
+      formData.append("content", editContent.trim());
+      formData.append("category", editCategory);
+
+      const parsedTags = editTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      formData.append("tags", JSON.stringify(parsedTags));
+      formData.append(
+        "existingAttachments",
+        JSON.stringify(editExistingAttachments)
+      );
+
+      editNewFiles.forEach((file) => {
+        formData.append("attachments", file);
+      });
+
+      const res = await api.put(`/posts/${targetId}`, formData);
+      if (res.data && res.data.data) {
+        const updated = res.data.data;
+        const newPostState = {
+          title: updated.title,
+          content: updated.content,
+          category: updated.category,
+          tags: Array.isArray(updated.tags) ? updated.tags : parsedTags,
+          attachments: Array.isArray(updated.attachments)
+            ? updated.attachments
+            : editExistingAttachments,
+        };
+        setPostData(newPostState);
+        setIsEditModalOpen(false);
+        if (toast?.success) toast.success("Post updated successfully");
+        if (onPostUpdated) onPostUpdated(updated);
+        window.dispatchEvent(
+          new CustomEvent("vibe:post_updated", { detail: { post: updated } })
+        );
+      }
+    } catch (err) {
+      console.error("Error updating post:", err);
+      const msg = err.response?.data?.message || "Failed to update post";
+      if (toast?.error) toast.error(msg);
+      else alert(msg);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Repost modal state
+  const [isRepostModalOpen, setIsRepostModalOpen] = useState(false);
+  const [repostCommentText, setRepostCommentText] = useState("");
+  const [isReposting, setIsReposting] = useState(false);
+  const [repostCount, setRepostCount] = useState(
+    post.repostCount ||
+      (Array.isArray(post.reposts) ? post.reposts.length : 0)
+  );
+
+  const handleRepostSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setIsReposting(true);
+      const targetId = targetPost.id || targetPost._id || post.id || post._id;
+      const res = await api.post("/posts/repost", {
+        postId: targetId,
+        comment: repostCommentText.trim(),
+      });
+
+      if (res.data && res.data.data) {
+        setIsRepostModalOpen(false);
+        setRepostCommentText("");
+        setRepostCount((prev) => prev + 1);
+        if (toast?.success) toast.success("Post reposted to your feed!");
+        if (onPostReposted) onPostReposted(res.data.data);
+        window.dispatchEvent(
+          new CustomEvent("vibe:post_reposted", {
+            detail: { post: res.data.data },
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Error reposting post:", err);
+      const msg = err.response?.data?.message || "Failed to repost";
+      if (toast?.error) toast.error(msg);
+      else alert(msg);
+    } finally {
+      setIsReposting(false);
+    }
+  };
+
   // Helper to get active reaction for current user
   const getUserReactionFromData = (vibesData, uId) => {
     if (!vibesData || !uId) return null;
@@ -60,7 +294,8 @@ export const PostCard = ({
       val = vibesData[uId];
     }
     if (val === true || val === "true") return "vibe";
-    if (typeof val === "string" && REACTION_TYPES.some((r) => r.id === val)) return val;
+    if (typeof val === "string" && REACTION_TYPES.some((r) => r.id === val))
+      return val;
     return null;
   };
 
@@ -206,8 +441,9 @@ export const PostCard = ({
 
   // Description "See more" expansion state
   const [isExpanded, setIsExpanded] = useState(false);
-  const content = post.content || "";
-  const isLongContent = content.length > 220 || (content.match(/\n/g) || []).length > 2;
+  const content = postData.content || "";
+  const isLongContent =
+    content.length > 220 || (content.match(/\n/g) || []).length > 2;
 
   const displayContent =
     isLongContent && !isExpanded
@@ -263,7 +499,9 @@ export const PostCard = ({
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentCount, setCommentCount] = useState(
-    Array.isArray(post.comments) ? post.comments.length : post.commentCount || 0
+    Array.isArray(post.comments)
+      ? post.comments.length
+      : post.commentCount || 0
   );
   const [replyFor, setReplyFor] = useState(null);
   const [replyText, setReplyText] = useState("");
@@ -424,7 +662,9 @@ export const PostCard = ({
         const cId = c.id || c._id;
         if (cId !== commentId) return c;
         const nextLiked = !c.isLiked;
-        const nextLikes = nextLiked ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1);
+        const nextLikes = nextLiked
+          ? (c.likes || 0) + 1
+          : Math.max(0, (c.likes || 0) - 1);
         return { ...c, isLiked: nextLiked, likes: nextLikes };
       })
     );
@@ -439,7 +679,9 @@ export const PostCard = ({
           const cId = c.id || c._id;
           if (cId !== commentId) return c;
           const prevLiked = !c.isLiked;
-          const prevLikes = prevLiked ? (c.likes || 0) + 1 : Math.max(0, (c.likes || 0) - 1);
+          const prevLikes = prevLiked
+            ? (c.likes || 0) + 1
+            : Math.max(0, (c.likes || 0) - 1);
           return { ...c, isLiked: prevLiked, likes: prevLikes };
         })
       );
@@ -458,23 +700,25 @@ export const PostCard = ({
     }
   };
 
-  // Author & post details
-  const authorName = post.author?.name || "Anonymous";
-  const authorAvatar = post.author?.avatar || post.author?.ImageUrl;
-  const authorRole = post.author?.role || post.author?.accountType || "User";
+  // Author & original post details
+  const authorName = targetPost.author?.name || "Anonymous";
+  const authorAvatar =
+    targetPost.author?.avatar || targetPost.author?.ImageUrl;
+  const authorRole =
+    targetPost.author?.role || targetPost.author?.accountType || "User";
   const isFacultyAuthor = authorRole.toLowerCase() === "faculty";
   const isCompanyAuthor =
     authorRole.toLowerCase() === "company" ||
     authorRole.toLowerCase() === "industry";
 
   const authorDetails =
-    post.author?.details ||
-    (post.author?.Profile?.Branch
+    targetPost.author?.details ||
+    (targetPost.author?.Profile?.Branch
       ? `${
-          post.author?.Profile?.YearOfStudy
-            ? `${post.author.Profile.YearOfStudy} year`
+          targetPost.author?.Profile?.YearOfStudy
+            ? `${targetPost.author.Profile.YearOfStudy} year`
             : "Student"
-        }, ${post.author?.Profile?.Branch}`
+        }, ${targetPost.author?.Profile?.Branch}`
       : isFacultyAuthor
       ? "Faculty Member"
       : isCompanyAuthor
@@ -482,9 +726,11 @@ export const PostCard = ({
       : "VIBE Member");
 
   const timestamp =
-    post.time ||
-    post.timestamp ||
-    (post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "Recently");
+    targetPost.time ||
+    targetPost.timestamp ||
+    (targetPost.createdAt
+      ? new Date(targetPost.createdAt).toLocaleDateString()
+      : "Recently");
 
   const activeReactionConfig = REACTION_TYPES.find(
     (r) => r.id === currentUserReaction
@@ -498,16 +744,35 @@ export const PostCard = ({
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.3) }}
       className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-shadow hover:shadow-sm w-full min-w-0 overflow-hidden box-border"
     >
-      {/* 1. Header */}
+      {/* Repost attribution header banner if this post is a repost */}
+      {isRepost && (
+        <div className="flex items-center gap-2 text-xs text-[#64748B] mb-3 pb-2.5 border-b border-[#F1F5F9]">
+          <Repeat size={14} className="text-[#6D3DF5] shrink-0" />
+          <span className="font-bold text-[#0F172A]">
+            {post.author?.name || "Member"}
+          </span>
+          <span>reposted</span>
+          {post.time && <span className="text-[#94A3B8]"> • {post.time}</span>}
+        </div>
+      )}
+
+      {/* Reposter commentary if present */}
+      {isRepost && post.repostComment && (
+        <p className="text-xs sm:text-sm text-[#0F172A] font-medium mb-3 whitespace-pre-line leading-relaxed">
+          {post.repostComment}
+        </p>
+      )}
+
+      {/* 1. Post Header */}
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div
           onClick={(e) => {
             e.stopPropagation();
             const authorId =
-              post.author?._id ||
-              post.author?.id ||
-              post.authorId ||
-              (typeof post.author === "string" ? post.author : null);
+              targetPost.author?._id ||
+              targetPost.author?.id ||
+              targetPost.authorId ||
+              (typeof targetPost.author === "string" ? targetPost.author : null);
             if (authorId) navigate(`/profile/${authorId}`);
           }}
           className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group/author"
@@ -541,26 +806,88 @@ export const PostCard = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          aria-label="Options"
-          className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg transition-colors shrink-0"
-        >
-          <MoreHorizontal size={18} />
-        </button>
+        {/* Three-Dot Menu Button & Dropdown */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            aria-label="Post options"
+            className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg transition-colors shrink-0 cursor-pointer"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.12 }}
+                className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-[#E2E8F0] py-1.5 z-40"
+              >
+                {/* 1. Repost (available to all users) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsRepostModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F3EEFF] hover:text-[#6D3DF5] transition-colors cursor-pointer text-left"
+                >
+                  <Repeat size={14} className="text-[#6D3DF5] shrink-0" />
+                  <span>Repost</span>
+                </button>
+
+                {/* 2. Edit post (only available to the original author) */}
+                {isAuthor && !isRepost && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      openEditModal();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F3EEFF] hover:text-[#6D3DF5] transition-colors cursor-pointer text-left"
+                  >
+                    <Edit3 size={14} className="text-[#64748B] shrink-0" />
+                    <span>Edit post</span>
+                  </button>
+                )}
+
+                {/* 3. Delete post (available to post author or reposter) */}
+                {isAuthor && (
+                  <>
+                    <div className="my-1 border-t border-[#F1F5F9]" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsDeleteModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-[#EF4444] hover:bg-[#FEF2F2] transition-colors cursor-pointer text-left"
+                    >
+                      <Trash2 size={14} className="text-[#EF4444] shrink-0" />
+                      <span>{isRepost ? "Delete repost" : "Delete post"}</span>
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* 2. Post Content */}
       <div className="mt-3.5 min-w-0">
-        {(post.tag || post.category) && (
+        {postData.category && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F3EEFF] text-[#6D3DF5] border border-[#E9E1FF] mb-2">
-            {post.tag || post.category}
+            {postData.category}
           </span>
         )}
 
-        {post.title && (
+        {postData.title && (
           <h3 className="font-bold text-base text-[#0F172A] mb-1.5 leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word]">
-            {post.title}
+            {postData.title}
           </h3>
         )}
 
@@ -591,9 +918,9 @@ export const PostCard = ({
         </div>
 
         {/* Tags */}
-        {Array.isArray(post.tags) && post.tags.length > 0 && (
+        {Array.isArray(postData.tags) && postData.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2">
-            {post.tags.map((tag, idx) => (
+            {postData.tags.map((tag, idx) => (
               <span
                 key={idx}
                 className="text-[11px] font-medium text-[#6D3DF5] bg-[#F3EEFF] px-2.5 py-0.5 rounded-md"
@@ -606,15 +933,15 @@ export const PostCard = ({
       </div>
 
       {/* Attachments - Aligned with content width, non-cropped contain for single notes/cheat sheet */}
-      {Array.isArray(post.attachments) && post.attachments.length > 0 && (
+      {Array.isArray(postData.attachments) && postData.attachments.length > 0 && (
         <div
           className={`mt-3.5 w-full rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] box-border ${
-            post.attachments.length === 1
+            postData.attachments.length === 1
               ? "grid grid-cols-1"
               : "grid grid-cols-1 sm:grid-cols-2 gap-2 p-1"
           }`}
         >
-          {post.attachments.map((att, i) => {
+          {postData.attachments.map((att, i) => {
             const url = typeof att === "string" ? att : att?.url;
             if (!url) return null;
             return (
@@ -626,9 +953,13 @@ export const PostCard = ({
               >
                 <img
                   src={url}
-                  alt={post.title ? `${post.title} attachment ${i + 1}` : `Post attachment ${i + 1}`}
+                  alt={
+                    postData.title
+                      ? `${postData.title} attachment ${i + 1}`
+                      : `Post attachment ${i + 1}`
+                  }
                   className={`w-full max-w-full ${
-                    post.attachments.length === 1
+                    postData.attachments.length === 1
                       ? "max-h-[520px] object-contain mx-auto"
                       : "max-h-72 object-cover"
                   } transition-transform duration-200 group-hover:scale-[1.01]`}
@@ -646,43 +977,57 @@ export const PostCard = ({
         </div>
       )}
 
-      {/* 3. Reaction Summary Bar (LinkedIn style breakdown) */}
-      {totalReactions > 0 && (
+      {/* 3. Reaction & Engagement Summary Bar */}
+      {(totalReactions > 0 || repostCount > 0) && (
         <div className="mt-3.5 flex items-center justify-between text-xs text-[#64748B] pt-2 border-t border-[#F8FAFC]">
-          <div className="flex items-center gap-1.5 group/reactsummary relative cursor-pointer">
-            <div className="flex items-center -space-x-1">
-              {topReactions.slice(0, 3).map((rType) => {
-                const rConf = REACTION_TYPES.find((r) => r.id === rType);
-                return (
-                  <span
-                    key={rType}
-                    className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-xs shadow-xs ring-1 ring-slate-200/80"
-                    title={`${rConf?.label || rType}: ${breakdownCounts[rType] || 0}`}
-                  >
-                    {rConf?.emoji || "🤘"}
-                  </span>
-                );
-              })}
-            </div>
-            <span className="font-semibold text-[#475569] hover:underline">
-              {totalReactions}
-            </span>
+          {/* Reaction icons breakdown */}
+          {totalReactions > 0 ? (
+            <div className="flex items-center gap-1.5 group/reactsummary relative cursor-pointer">
+              <div className="flex items-center -space-x-1">
+                {topReactions.slice(0, 3).map((rType) => {
+                  const rConf = REACTION_TYPES.find((r) => r.id === rType);
+                  return (
+                    <span
+                      key={rType}
+                      className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-xs shadow-xs ring-1 ring-slate-200/80"
+                      title={`${rConf?.label || rType}: ${breakdownCounts[rType] || 0}`}
+                    >
+                      {rConf?.emoji || "🤘"}
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="font-semibold text-[#475569] hover:underline">
+                {totalReactions}
+              </span>
 
-            {/* Tooltip breakdown */}
-            <div className="absolute bottom-full left-0 mb-1.5 hidden group-hover/reactsummary:flex items-center gap-2 bg-[#0F172A] text-white text-[11px] px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap z-20 pointer-events-none">
-              {topReactions.map((rType) => {
-                const rConf = REACTION_TYPES.find((r) => r.id === rType);
-                return (
-                  <span key={rType} className="flex items-center gap-1">
-                    <span>{rConf?.emoji}</span>
-                    <span>{breakdownCounts[rType]}</span>
-                  </span>
-                );
-              })}
+              {/* Tooltip breakdown */}
+              <div className="absolute bottom-full left-0 mb-1.5 hidden group-hover/reactsummary:flex items-center gap-2 bg-[#0F172A] text-white text-[11px] px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap z-20 pointer-events-none">
+                {topReactions.map((rType) => {
+                  const rConf = REACTION_TYPES.find((r) => r.id === rType);
+                  return (
+                    <span key={rType} className="flex items-center gap-1">
+                      <span>{rConf?.emoji}</span>
+                      <span>{breakdownCounts[rType]}</span>
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div />
+          )}
 
+          {/* Counts for comments and reposts */}
           <div className="flex items-center gap-3 text-xs text-[#64748B]">
+            {repostCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Repeat size={12} className="text-[#6D3DF5]" />
+                <span>
+                  {repostCount} {repostCount === 1 ? "repost" : "reposts"}
+                </span>
+              </span>
+            )}
             {commentCount > 0 && (
               <button
                 type="button"
@@ -696,7 +1041,7 @@ export const PostCard = ({
         </div>
       )}
 
-      {/* 4. Action Row (Reactions, Comments, Share, Bookmark) */}
+      {/* 4. Action Row (Reactions, Comments, Repost, Share, Bookmark) */}
       <div className="mt-2.5 pt-2 border-t border-[#F1F5F9] flex items-center justify-between text-xs text-[#64748B]">
         <div className="flex items-center gap-1 sm:gap-2">
           {/* Reaction Picker & Button Container */}
@@ -724,7 +1069,9 @@ export const PostCard = ({
                         type="button"
                         onClick={() => handleReactionSelect(reaction.id)}
                         className={`group/rbtn relative w-8 h-8 rounded-full flex items-center justify-center text-lg hover:scale-130 transition-transform duration-150 cursor-pointer ${
-                          isSelected ? "bg-slate-100 ring-2 ring-[#6D3DF5]/30" : "hover:bg-slate-50"
+                          isSelected
+                            ? "bg-slate-100 ring-2 ring-[#6D3DF5]/30"
+                            : "hover:bg-slate-50"
                         }`}
                         title={reaction.label}
                       >
@@ -777,7 +1124,7 @@ export const PostCard = ({
               <button
                 type="button"
                 onClick={() => setShowReactionPicker((prev) => !prev)}
-                className="sm:hidden p-1 text-[#94A3B8] hover:text-[#0F172A] rounded-md transition-colors"
+                className="sm:hidden p-1 text-[#94A3B8] hover:text-[#0F172A] rounded-md transition-colors cursor-pointer"
                 aria-label="Choose reaction"
               >
                 <ChevronDown size={12} />
@@ -797,6 +1144,19 @@ export const PostCard = ({
           >
             <MessageSquare size={15} />
             <span className="font-semibold">{commentCount}</span>
+          </button>
+
+          {/* Repost Quick Action */}
+          <button
+            type="button"
+            onClick={() => setIsRepostModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#6D3DF5] transition-colors cursor-pointer"
+            title="Repost this post"
+          >
+            <Repeat size={15} />
+            <span className="hidden sm:inline font-semibold">
+              {repostCount > 0 ? `${repostCount} Repost${repostCount > 1 ? "s" : ""}` : "Repost"}
+            </span>
           </button>
 
           {/* Share */}
@@ -838,7 +1198,10 @@ export const PostCard = ({
           >
             {/* Top-Level Comment Input */}
             {user ? (
-              <form onSubmit={handleCommentSubmit} className="flex gap-2.5 items-center min-w-0">
+              <form
+                onSubmit={handleCommentSubmit}
+                className="flex gap-2.5 items-center min-w-0"
+              >
                 <Avatar
                   name={user.name || "Me"}
                   src={user.ImageUrl || user.avatar}
@@ -870,7 +1233,10 @@ export const PostCard = ({
             ) : (
               <div className="text-center py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl">
                 <p className="text-xs text-[#64748B]">
-                  <a href="/login" className="text-[#6D3DF5] hover:text-[#5B2FD6] font-bold">
+                  <a
+                    href="/login"
+                    className="text-[#6D3DF5] hover:text-[#5B2FD6] font-bold"
+                  >
                     Login
                   </a>{" "}
                   to join the conversation
@@ -938,6 +1304,396 @@ export const PostCard = ({
                 className="max-w-full max-h-[82vh] object-contain rounded-xl"
               />
             </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E2E8F0] space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center shrink-0">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#0F172A]">
+                    {isRepost ? "Delete Repost?" : "Delete Post?"}
+                  </h3>
+                  <p className="text-xs text-[#64748B]">
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[#334155] leading-relaxed">
+                {isRepost
+                  ? "Are you sure you want to remove this repost from your community feed?"
+                  : "Are you sure you want to permanently delete this post and its comments from the VIBE community feed?"}
+              </p>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 bg-[#EF4444] hover:bg-[#DC2626] disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <span>Delete</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Post Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            onClick={() => !isSavingEdit && setIsEditModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-[#E2E8F0] space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center shrink-0">
+                    <Edit3 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-[#0F172A]">
+                      Edit Community Post
+                    </h3>
+                    <p className="text-xs text-[#64748B]">
+                      Update post content, category, and attachments
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] rounded-lg transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSave} className="space-y-3.5">
+                {/* Title */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                    Post Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Enter post title..."
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#0F172A] text-xs font-semibold"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#0F172A] text-xs font-medium cursor-pointer"
+                  >
+                    {POST_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Content */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                    Description / Content
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    placeholder="What would you like to share with the community?..."
+                    required
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#0F172A] text-xs leading-relaxed resize-none"
+                  />
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1">
+                    Tags (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    placeholder="e.g. react, mentorship, project"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#0F172A] text-xs"
+                  />
+                </div>
+
+                {/* Attachments Section */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0F172A] mb-1.5">
+                    Attachments
+                  </label>
+
+                  {/* Existing attachments list */}
+                  {editExistingAttachments.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-2.5">
+                      {editExistingAttachments.map((url, i) => (
+                        <div
+                          key={i}
+                          className="relative group rounded-lg overflow-hidden border border-[#E2E8F0] aspect-video bg-[#F8FAFC]"
+                        >
+                          <img
+                            src={url}
+                            alt={`Attachment ${i + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingAttachment(i)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 hover:bg-[#EF4444] text-white flex items-center justify-center transition-colors cursor-pointer"
+                            title="Remove attachment"
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* New files preview */}
+                  {editNewFiles.length > 0 && (
+                    <div className="space-y-1 mb-2.5">
+                      <p className="text-[11px] font-semibold text-[#6D3DF5]">
+                        New files to upload ({editNewFiles.length}):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {editNewFiles.map((f, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-1.5 bg-[#F3EEFF] text-[#6D3DF5] px-2.5 py-1 rounded-lg text-xs"
+                          >
+                            <span className="truncate max-w-[120px]">
+                              {f.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveNewFile(i)}
+                              className="text-[#6D3DF5] hover:text-[#EF4444]"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload new attachment */}
+                  <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-dashed border-[#6D3DF5]/60 hover:border-[#6D3DF5] bg-[#F8FAFC] hover:bg-[#F3EEFF]/40 text-[#6D3DF5] text-xs font-semibold cursor-pointer transition-colors">
+                    <ImageIcon size={14} />
+                    <span>Upload image...</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) {
+                          setEditNewFiles((prev) => [...prev, ...files]);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#F1F5F9]">
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-5 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isSavingEdit ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Repost Modal */}
+      <AnimatePresence>
+        {isRepostModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            onClick={() => !isReposting && setIsRepostModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-[#E2E8F0] space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#F3EEFF] text-[#6D3DF5] flex items-center justify-center shrink-0">
+                    <Repeat size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-[#0F172A]">
+                      Repost to Community
+                    </h3>
+                    <p className="text-xs text-[#64748B]">
+                      Share this post with your followers and feed
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRepostModalOpen(false)}
+                  className="p-1.5 text-[#94A3B8] hover:text-[#0F172A] rounded-lg transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleRepostSubmit} className="space-y-3.5">
+                {/* Optional comment on repost */}
+                <div>
+                  <textarea
+                    rows={2}
+                    value={repostCommentText}
+                    onChange={(e) => setRepostCommentText(e.target.value)}
+                    placeholder="Add your thoughts... (optional)"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#0F172A] text-xs resize-none"
+                  />
+                </div>
+
+                {/* Original Post Preview Box */}
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Avatar
+                      name={authorName}
+                      src={authorAvatar}
+                      className="w-6 h-6 rounded-full object-cover"
+                      initialsClassName="text-[9px] font-bold text-white"
+                    />
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-xs text-[#0F172A] truncate">
+                        {authorName}
+                      </span>
+                      <span className="text-[9px] font-semibold text-[#2563EB] bg-[#EFF6FF] px-1.5 py-0.2 rounded-full border border-[#DBEAFE] capitalize shrink-0">
+                        {authorRole}
+                      </span>
+                    </div>
+                  </div>
+
+                  {postData.title && (
+                    <p className="text-xs font-bold text-[#0F172A] line-clamp-1">
+                      {postData.title}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-[#64748B] line-clamp-2">
+                    {postData.content}
+                  </p>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    disabled={isReposting}
+                    onClick={() => setIsRepostModalOpen(false)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isReposting}
+                    className="px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isReposting ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Reposting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Repeat size={14} />
+                        <span>Repost Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

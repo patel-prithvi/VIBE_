@@ -79,6 +79,9 @@ const StudentDashboard = () => {
           commentCount: post.comments?.length || 0,
           comments: post.comments || [],
           shares: 4,
+          repostOf: post.repostOf || null,
+          repostComment: post.repostComment || "",
+          repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
         }));
         setPosts(mappedPosts);
       } else {
@@ -113,6 +116,9 @@ const StudentDashboard = () => {
             commentCount: post.comments?.length || 0,
             comments: post.comments || [],
             shares: 4,
+            repostOf: post.repostOf || null,
+            repostComment: post.repostComment || "",
+            repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
           }));
           setBookmarkedPosts(bmList);
           setBookmarkedIds(new Set(bmList.map((p) => p.id)));
@@ -134,6 +140,67 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchPostsAndBookmarks(false);
+
+    const handleDeleted = (e) => {
+      const { postId } = e.detail || {};
+      if (postId) {
+        setPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+        setBookmarkedPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+      }
+    };
+
+    const handleUpdated = (e) => {
+      const { post: updated } = e.detail || {};
+      if (updated) {
+        const uId = updated._id || updated.id;
+        setPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+        setBookmarkedPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+      }
+    };
+
+    const handleReposted = () => {
+      fetchPostsAndBookmarks(true);
+    };
+
+    window.addEventListener("vibe:post_deleted", handleDeleted);
+    window.addEventListener("vibe:post_updated", handleUpdated);
+    window.addEventListener("vibe:post_reposted", handleReposted);
+
+    return () => {
+      window.removeEventListener("vibe:post_deleted", handleDeleted);
+      window.removeEventListener("vibe:post_updated", handleUpdated);
+      window.removeEventListener("vibe:post_reposted", handleReposted);
+    };
   }, [fetchPostsAndBookmarks]);
 
   // Smart polling every 45s (visibility-aware, refetches on focus)
