@@ -363,7 +363,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="roboto-bold min-h-screen pt-24 pb-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFF] text-[#172554] relative overflow-hidden flex items-center">
+    <div className="roboto-bold min-h-screen pt-20 sm:pt-24 pb-16 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFF] text-[#172554] relative overflow-hidden flex items-center">
       {/* Soft Ambient Lavender Glows */}
       <div
         aria-hidden="true"
@@ -375,7 +375,7 @@ const Signup = () => {
       />
 
       <div className="max-w-7xl w-full mx-auto relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 lg:gap-10 xl:gap-14 items-start">
 
           {/* ======================================================== */}
           {/* LEFT SIDE: VIBE Brand & Role Context Panel               */}
@@ -387,7 +387,7 @@ const Signup = () => {
             className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left lg:sticky lg:top-28"
           >
             {/* Role Switcher / Back to Selection Bar */}
-            <div className="inline-flex flex-wrap items-center justify-center lg:justify-start gap-1.5 p-1.5 rounded-2xl bg-white border border-[#E2E8F0] shadow-2xs mb-6">
+            <div className="inline-flex flex-wrap items-center justify-center lg:justify-start gap-1.5 p-1.5 rounded-2xl bg-white border border-[#E2E8F0] shadow-2xs mb-3 sm:mb-6">
               {[
                 { id: 'student', label: 'Student', path: '/signup/student', icon: <GraduationCap size={14} /> },
                 { id: 'faculty', label: 'Faculty', path: '/signup/faculty', icon: <User size={14} /> },
@@ -419,11 +419,11 @@ const Signup = () => {
                 <LoopDoodle color="#EC4899" size={30} />
               </div>
 
-              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F3EEFF] text-[#6D3DF5] text-xs font-bold uppercase tracking-wider mb-3">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F3EEFF] text-[#6D3DF5] text-xs font-bold uppercase tracking-wider mb-0 sm:mb-3">
                 {roleContent.badge}
               </span>
 
-              <h2 className="text-3xl sm:text-4xl xl:text-[44px] font-black text-[#172554] leading-[1.15] tracking-tight">
+              <h2 className="hidden sm:block text-3xl sm:text-4xl xl:text-[44px] font-black text-[#172554] leading-[1.15] tracking-tight">
                 {roleContent.heroTitlePrefix}{' '}
                 <span className="relative inline-block text-[#6D3DF5] mt-0.5">
                   VIBE
@@ -434,7 +434,7 @@ const Signup = () => {
                 </span>
               </h2>
 
-              <p className="mt-5 text-sm sm:text-base text-[#64748B] leading-relaxed">
+              <p className="hidden sm:block mt-5 text-sm sm:text-base text-[#64748B] leading-relaxed">
                 {roleContent.heroDesc}
               </p>
             </div>

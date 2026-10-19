@@ -88,7 +88,7 @@ const Login = () => {
   };
 
   return (
-    <div className="roboto-bold min-h-screen bg-[#F8FAFF] text-[#172554] relative overflow-hidden pt-24 pb-16 lg:py-28 flex items-center">
+    <div className="roboto-bold min-h-0 lg:min-h-screen bg-[#F8FAFF] text-[#172554] relative overflow-hidden pt-[72px] md:pt-24 pb-7 sm:pb-8 lg:py-28 flex items-start lg:items-center">
       {/* Soft ambient background shapes */}
       <div
         aria-hidden="true"
@@ -100,7 +100,7 @@ const Login = () => {
       />
 
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 xl:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-[18px] sm:gap-8 lg:gap-10 xl:gap-16 items-center">
 
           {/* ======================================================== */}
           {/* LEFT SIDE: VIBE Community Hero Section                   */}
@@ -123,25 +123,25 @@ const Login = () => {
                 <LoopDoodle color="#EC4899" size={34} />
               </div>
 
-              <h2 className="text-4xl sm:text-5xl xl:text-[54px] font-black text-[#172554] leading-[1.12] tracking-tight">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl xl:text-[54px] font-black text-[#172554] leading-tight sm:leading-[1.12] tracking-tight">
                 Welcome back to{" "}
-                <span className="relative inline-block text-[#6D3DF5] mt-1">
+                <span className="relative inline-block text-[#6D3DF5] mt-0.5 sm:mt-1">
                   VIBE
                   <HandUnderline
                     color="#FBBF24"
-                    className="absolute -bottom-2.5 left-0 w-full"
+                    className="absolute -bottom-2 sm:-bottom-2.5 left-0 w-full"
                   />
                 </span>
               </h2>
 
-              <p className="mt-6 text-base sm:text-lg text-[#64748B] leading-relaxed font-normal max-w-lg mx-auto lg:mx-0">
+              <p className="mt-2.5 sm:mt-6 text-xs sm:text-base lg:text-lg text-[#64748B] leading-relaxed font-normal max-w-lg mx-auto lg:mx-0">
                 Log in to continue your journey — connect, learn, share, and grow
                 with an inspiring community of students and faculty.
               </p>
             </div>
 
             {/* Center Student Illustration + Floating Academic Badges */}
-            <div className="relative mt-10 sm:mt-12 w-full max-w-[520px] mx-auto lg:mx-0">
+            <div className="hidden lg:block relative mt-10 sm:mt-12 w-full max-w-[520px] mx-auto lg:mx-0">
               {/* Soft Organic Pastel Blobs Behind Student */}
               <div
                 aria-hidden="true"
@@ -281,7 +281,7 @@ const Login = () => {
             </div>
 
             {/* Bottom Tagline */}
-            <div className="mt-8 sm:mt-10 text-center w-full max-w-[520px] mx-auto lg:mx-0">
+            <div className="hidden lg:block mt-8 sm:mt-10 text-center w-full max-w-[520px] mx-auto lg:mx-0">
               <p className="text-xl sm:text-2xl font-extrabold text-[#172554] tracking-tight">
                 Ideas. People. Opportunities.
               </p>
@@ -298,7 +298,7 @@ const Login = () => {
           {/* ======================================================== */}
           {/* RIGHT SIDE: Existing Login Form (Preserved Structure)    */}
           {/* ======================================================== */}
-          <div className="lg:col-span-6 xl:col-span-5 relative">
+          <div className="lg:col-span-6 xl:col-span-5 relative w-full">
             {/* Decorative Corner Loop Doodle */}
             <div
               aria-hidden="true"
@@ -307,21 +307,21 @@ const Login = () => {
               <LoopDoodle color="#6D3DF5" size={38} />
             </div>
 
-            <div className="bg-white border border-[#E2E8F0] rounded-3xl p-7 sm:p-10 shadow-[0_8px_30px_rgba(23,37,84,0.04)] max-w-md w-full mx-auto relative z-10">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-10 shadow-[0_8px_30px_rgba(23,37,84,0.04)] max-w-md w-full mx-auto relative z-10">
 
-              <div className="mb-8">
+              <div className="mb-5 sm:mb-8">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-black text-[#172554] tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-black text-[#172554] tracking-tight">
                     Login to <span className="text-[#6D3DF5]">VIBE</span>
                   </h1>
-                  <SparkDoodle color="#FBBF24" size={26} className="-mt-3" />
+                  <SparkDoodle color="#FBBF24" size={24} className="-mt-2 sm:-mt-3" />
                 </div>
-                <p className="text-[#64748B] text-sm sm:text-base mt-1.5">
+                <p className="text-[#64748B] text-xs sm:text-base mt-1 sm:mt-1.5">
                   Secure access to your professional dashboard
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-7">
+              <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-7">
 
                 {/* Form Fields */}
                 <AnimatePresence mode="wait">
@@ -330,20 +330,20 @@ const Login = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="space-y-5"
+                    className="space-y-4 sm:space-y-5"
                   >
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-bold text-[#6D3DF5]">Welcome back</h3>
-                      <p className="text-sm text-[#64748B]">Log in with your registered email to access your dashboard.</p>
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="text-base sm:text-lg font-bold text-[#6D3DF5]">Welcome back</h3>
+                      <p className="text-xs sm:text-sm text-[#64748B]">Log in with your registered email to access your dashboard.</p>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3.5 sm:space-y-4">
                       <div className="relative group">
-                        <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-[#172554] mb-1.5 sm:mb-2 ml-1 group-focus-within:text-[#6D3DF5] transition-colors">
                           Email Address
                         </label>
                         <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-all" size={20} />
+                          <Mail className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-all" size={18} />
                           <input
                             type="email"
                             name="email"
@@ -351,27 +351,27 @@ const Login = () => {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-2xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
+                            className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-xl sm:rounded-2xl py-3 sm:py-3.5 pl-11 sm:pl-12 pr-4 text-sm sm:text-base text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
                             placeholder="e.g. name@college.edu"
                           />
                         </div>
                       </div>
 
                       <div className="relative group">
-                        <div className="flex justify-between items-center mb-2 ml-1">
+                        <div className="flex justify-between items-center mb-1.5 sm:mb-2 ml-1">
                           <label className="text-xs font-bold uppercase tracking-widest text-[#172554] group-focus-within:text-[#6D3DF5] transition-colors">
                             Password
                           </label>
                           <button
                             type="button"
                             onClick={() => setShowForgotModal(true)}
-                            className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2ED0] transition-colors"
+                            className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2ED0] transition-colors cursor-pointer"
                           >
                             Forgot?
                           </button>
                         </div>
                         <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-all" size={20} />
+                          <Lock className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 text-[#64748B] group-focus-within:text-[#6D3DF5] transition-all" size={18} />
                           <input
                             type="password"
                             name="password"
@@ -379,7 +379,7 @@ const Login = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-2xl py-3.5 pl-12 pr-4 text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
+                            className="w-full bg-[#F8FAFF] border border-[#E2E8F0] rounded-xl sm:rounded-2xl py-3 sm:py-3.5 pl-11 sm:pl-12 pr-4 text-sm sm:text-base text-[#172554] placeholder-[#94A3B8] focus:outline-none focus:bg-white focus:border-[#6D3DF5] focus:ring-4 focus:ring-[#6D3DF5]/10 transition-all font-medium"
                             placeholder="••••••••"
                           />
                         </div>
@@ -388,19 +388,19 @@ const Login = () => {
                   </motion.div>
                 </AnimatePresence>
 
-                <div className="pt-2">
+                <div className="pt-1 sm:pt-2">
                   <Button
                     type="submit"
                     fullWidth
                     size="lg"
-                    className="h-13 text-base !rounded-full !bg-[#6D3DF5] hover:!bg-[#5B2ED0] !shadow-md !shadow-[#6D3DF5]/20 focus:!ring-[#6D3DF5]"
+                    className="h-11 sm:h-12 lg:h-13 text-sm sm:text-base !rounded-full !bg-[#6D3DF5] hover:!bg-[#5B2ED0] !shadow-md !shadow-[#6D3DF5]/20 focus:!ring-[#6D3DF5]"
                   >
                     Sign In to Dashboard <ArrowRight className="ml-2" size={18} />
                   </Button>
                 </div>
 
-                <div className="text-center">
-                  <p className="text-[#64748B] text-sm">
+                <div className="text-center pt-1">
+                  <p className="text-[#64748B] text-xs sm:text-sm">
                     New to the platform?{' '}
                     <Link
                       to="/signup"
