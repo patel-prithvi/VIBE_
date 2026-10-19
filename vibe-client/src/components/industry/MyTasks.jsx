@@ -18,6 +18,7 @@ import {
   Laptop,
   FileText,
   ChevronRight,
+  ChevronLeft,
   Upload,
   BookOpen,
   AlertCircle,
@@ -52,6 +53,7 @@ export const MyTasks = ({
   const toast = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [createModalStep, setCreateModalStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [activeTask, setActiveTask] = useState(null); // For Applicant View
@@ -684,6 +686,7 @@ export const MyTasks = ({
 
   const handleEditClick = (task) => {
     setEditingId(task.id);
+    setCreateModalStep(1);
     const parsedDeadline = parseDateForInput(task.deadline);
     setFormData({
       title: task.title,
@@ -709,6 +712,7 @@ export const MyTasks = ({
 
   const handleCloseModal = () => {
     setShowCreateModal(false);
+    setCreateModalStep(1);
     setEditingId(null);
     setCustomDays("");
     setFormData({
@@ -818,96 +822,175 @@ export const MyTasks = ({
   // ----------------------------------------------------------------------------------
   // VIEW: Instruction Preview Modal (Student Perspective)
   // ----------------------------------------------------------------------------------
-  const InstructionModal = ({ task, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
-      <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden overscroll-contain">
-        {/* Modal Header - Fixed */}
-        <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
-          <div className="flex justify-between items-start mb-2">
-            <span className="flex items-center gap-2 text-xs font-bold text-[#6D3DF5] uppercase tracking-widest mb-2">
-              <BookOpen size={16} /> Task Instructions
-            </span>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-1">
-            {task.title}
-          </h2>
-          <p className="text-slate-500 font-medium">{task.company}</p>
-        </div>
+  const InstructionModal = ({ task, onClose }) => {
+    const [instructionStep, setInstructionStep] = useState(1);
 
-        {/* Modal Content - Scrollable */}
-        <div className="overflow-y-auto p-8 pt-6 space-y-8 overscroll-contain">
-          {/* Overview */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-slate-900">Overview</h3>
-            <p className="text-slate-600 leading-relaxed text-sm">
-              {task.instructions?.overview || "No overview provided."}
-            </p>
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
+        <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
+          {/* Modal Header */}
+          <div className="p-6 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
+            <div className="flex justify-between items-start mb-2">
+              <span className="flex items-center gap-2 text-xs font-bold text-[#6D3DF5] uppercase tracking-widest">
+                <BookOpen size={16} /> Task Instructions
+              </span>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1 truncate">
+              {task.title}
+            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-slate-500 font-medium text-sm">{task.company}</p>
+              {/* Step indicator */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setInstructionStep(1)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all ${
+                    instructionStep === 1
+                      ? "bg-[#6D3DF5] text-white shadow-xs"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
+                >
+                  1. Overview & Perks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInstructionStep(2)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all ${
+                    instructionStep === 2
+                      ? "bg-[#6D3DF5] text-white shadow-xs"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
+                >
+                  2. Steps to Complete
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Steps */}
-          <div className="bg-[#F3EEFF]/50 rounded-2xl p-6 border border-[#EDE9FE]/50">
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              Steps to Complete
-            </h3>
-            <div className="space-y-4">
-              {task.instructions?.steps.map((step, idx) => (
-                <div key={idx} className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white border border-[#E9E1FF] flex items-center justify-center text-[#6D3DF5] font-bold text-sm shadow-sm shrink-0">
-                    {idx + 1}
+          {/* Modal Content - Not Scrollable */}
+          <div className="p-6 space-y-4">
+            {instructionStep === 1 && (
+              <div className="space-y-4 animate-in fade-in duration-150">
+                {/* Overview */}
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-[#6D3DF5]">
+                    Overview
+                  </h3>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-600 leading-relaxed text-sm min-h-[80px]">
+                    {task.instructions?.overview || "No overview provided."}
                   </div>
-                  <p className="text-slate-700 text-sm pt-1.5">{step}</p>
                 </div>
-              ))}
-            </div>
+
+                {/* Perks & Benefits */}
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-[#6D3DF5]">
+                    Perks & Benefits
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(Array.isArray(task.perks) ? task.perks : (task.perks?.split(',') || [])).map((perk, idx) => (
+                      <div key={idx} className="flex items-center gap-2 px-3.5 py-1.5 bg-green-50 text-green-700 border border-green-100 rounded-xl text-xs font-bold">
+                        <Sparkles size={13} />
+                        {perk.trim()}
+                      </div>
+                    ))}
+                    {(!task.perks || (Array.isArray(task.perks) && task.perks.length === 0)) && (
+                      <p className="text-slate-500 text-xs italic">No perks specified.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {instructionStep === 2 && (
+              <div className="space-y-4 animate-in fade-in duration-150">
+                {/* Steps */}
+                <div className="bg-[#F3EEFF]/50 rounded-2xl p-4 border border-[#EDE9FE]/50">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2.5 flex items-center gap-2">
+                    Steps to Complete
+                  </h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {task.instructions?.steps && task.instructions.steps.length > 0 ? (
+                      task.instructions.steps.map((step, idx) => (
+                        <div key={idx} className="flex gap-3 items-start bg-white p-2.5 rounded-xl border border-[#EDE9FE]/70">
+                          <div className="w-6 h-6 rounded-full bg-[#EDE9FE] flex items-center justify-center text-[#6D3DF5] font-bold text-xs shrink-0 mt-0.5">
+                            {idx + 1}
+                          </div>
+                          <p className="text-slate-700 text-xs leading-relaxed pt-0.5">{step}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-slate-500 text-xs italic">No specific steps defined for this task.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Warning/Note */}
+                {task.instructions?.note && (
+                  <div className="bg-blue-50 rounded-xl p-3 flex gap-2.5 border border-blue-100 text-blue-900">
+                    <AlertCircle
+                      size={18}
+                      className="shrink-0 text-blue-600 mt-0.5"
+                    />
+                    <p className="text-xs font-medium leading-relaxed">
+                      {task.instructions.note}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Perks & Benefits */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-slate-900">Perks & Benefits</h3>
-            <div className="flex flex-wrap gap-2">
-              {(Array.isArray(task.perks) ? task.perks : (task.perks?.split(',') || [])).map((perk, idx) => (
-                <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-100 rounded-xl text-sm font-bold">
-                  <Sparkles size={14} />
-                  {perk.trim()}
-                </div>
-              ))}
-              {(!task.perks || (Array.isArray(task.perks) && task.perks.length === 0)) && (
-                <p className="text-slate-500 text-sm italic">No perks specified.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Warning/Note */}
-          {task.instructions?.note && (
-            <div className="bg-blue-50 rounded-xl p-4 flex gap-3 border border-blue-100 text-blue-900">
-              <AlertCircle
-                size={20}
-                className="shrink-0 text-blue-600 mt-0.5"
-              />
-              <p className="text-xs font-medium leading-relaxed">
-                {task.instructions.note}
-              </p>
-            </div>
-          )}
-
-          <div className="pt-4 flex justify-end">
-            <button
-              onClick={onClose}
-              className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20"
-            >
-              Got it, close
-            </button>
+          {/* Footer */}
+          <div className="p-4 px-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0 rounded-b-3xl">
+            {instructionStep === 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-white transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInstructionStep(2)}
+                  className="bg-[#6D3DF5] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#5B2FD6] transition-colors shadow-md shadow-[#6D3DF5]/20 flex items-center gap-1.5"
+                >
+                  <span>Next: Steps to Complete</span>
+                  <ChevronRight size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setInstructionStep(1)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 transition-all flex items-center gap-1.5"
+                >
+                  <ChevronLeft size={14} />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-colors shadow-md shadow-slate-900/20"
+                >
+                  Got it, close
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ----------------------------------------------------------------------------------
   // VIEW: Submission Details Modal
@@ -1236,6 +1319,7 @@ export const MyTasks = ({
         <button
           onClick={() => {
             setEditingId(null);
+            setCreateModalStep(1);
             setShowCreateModal(true);
           }}
           className="w-full md:w-auto bg-[#6D3DF5] hover:bg-[#6D3DF5] text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-[#6D3DF5]/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 border border-[#8B5CF6]/20"
@@ -1407,499 +1491,550 @@ export const MyTasks = ({
       {/* Create/Edit Task Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
-          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain">
-            <div className="sticky top-0 bg-white px-8 py-5 border-b border-[#EDE9FE] flex justify-between items-center z-10">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                {editingId ? (
-                  <Pencil className="text-[#6D3DF5]" />
-                ) : (
-                  <Plus className="text-[#6D3DF5]" />
-                )}
-                {editingId ? "Edit Task" : "Create New Task"}
-              </h2>
+          <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="bg-white px-8 py-4 border-b border-[#EDE9FE] flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  {editingId ? (
+                    <Pencil className="text-[#6D3DF5]" size={20} />
+                  ) : (
+                    <Plus className="text-[#6D3DF5]" size={20} />
+                  )}
+                  {editingId ? "Edit Task" : "Create New Task"}
+                </h2>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCreateModalStep(1)}
+                    className={`px-3 py-0.5 rounded-full text-xs font-bold transition-all ${
+                      createModalStep === 1
+                        ? "bg-[#6D3DF5] text-white shadow-xs"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }`}
+                  >
+                    1. Task Details
+                  </button>
+                  <ChevronRight size={14} className="text-slate-300" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!formData.title?.trim() || !formData.role?.trim() || !formData.deadline) {
+                        toast.error("Please fill in Title, Role, and Deadline first.");
+                        return;
+                      }
+                      setCreateModalStep(2);
+                    }}
+                    className={`px-3 py-0.5 rounded-full text-xs font-bold transition-all ${
+                      createModalStep === 2
+                        ? "bg-[#6D3DF5] text-white shadow-xs"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }`}
+                  >
+                    2. Instructions & Assets
+                  </button>
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={handleCloseModal}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              {/* Standard Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Task Title
-                  </label>
-                  <input
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
-                    placeholder="e.g. Backend API Development"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Role
-                  </label>
-                  <input
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
-                    placeholder="e.g. Backend Developer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Category
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none bg-white text-sm font-medium appearance-none"
-                    >
-                      <option>Development</option>
-                      <option>Design</option>
-                      <option>Marketing</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <ChevronRight className="rotate-90" size={16} />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-bold text-slate-800">
-                      Deadline / Open Upto
+            {/* Step 1: Basic Information */}
+            {createModalStep === 1 && (
+              <div className="p-8 space-y-4 animate-in fade-in duration-150">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">
+                      Task Title <span className="text-red-500">*</span>
                     </label>
-                    {formData.deadline && (
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
-                          getDaysFromToday(formData.deadline) < 0
-                            ? "bg-red-50 text-red-600 border border-red-200"
-                            : "bg-[#F3E8FF] text-[#6D3DF5] border border-[#DDD6FE]"
-                        }`}
-                      >
-                        <Clock size={12} />
-                        {getDeadlineBadge(formData.deadline)?.label}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="relative">
                     <input
-                      name="deadline"
-                      value={formData.deadline}
-                      onChange={(e) => {
-                        handleInputChange(e);
-                        const days = getDaysFromToday(e.target.value);
-                        setCustomDays(days !== null && days >= 0 ? String(days) : "");
-                      }}
-                      min={getTodayStr()}
-                      type="date"
-                      className={`w-full px-4 py-3 rounded-xl border outline-none text-sm font-medium transition-all ${
-                        formData.deadline && getDaysFromToday(formData.deadline) < 0
-                          ? "border-red-300 text-red-600 bg-red-50/50"
-                          : "border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] text-slate-700 bg-white"
-                      }`}
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      type="text"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
+                      placeholder="e.g. Backend API Development"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">
+                      Role <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      type="text"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none transition-all text-sm font-medium"
+                      placeholder="e.g. Backend Developer"
                     />
                   </div>
 
-                  {/* Open Upto Quick Selector */}
-                  <div className="mt-2.5 bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                        <Calendar size={12} className="text-[#6D3DF5]" />
-                        Open Task Upto
-                      </span>
-                      {formData.deadline && getDaysFromToday(formData.deadline) >= 0 && (
-                        <span className="text-[11px] text-slate-500 font-medium">
-                          Closes {formatDeadlineDate(formData.deadline)}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">
+                      Category
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none bg-white text-sm font-medium appearance-none"
+                      >
+                        <option>Development</option>
+                        <option>Design</option>
+                        <option>Marketing</option>
+                      </select>
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronRight className="rotate-90" size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Deadline <span className="text-red-500">*</span>
+                      </label>
+                      {formData.deadline && (
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            getDaysFromToday(formData.deadline) < 0
+                              ? "bg-red-50 text-red-600 border border-red-200"
+                              : "bg-[#F3E8FF] text-[#6D3DF5] border border-[#DDD6FE]"
+                          }`}
+                        >
+                          <Clock size={11} />
+                          {getDeadlineBadge(formData.deadline)?.label}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { label: "3 Days", days: 3 },
-                        { label: "1 Week", days: 7 },
-                        { label: "2 Weeks", days: 14 },
-                        { label: "1 Month", days: 30 },
-                      ].map((preset) => {
-                        const isSelected =
-                          getDaysFromToday(formData.deadline) === preset.days;
-                        return (
-                          <button
-                            key={preset.days}
-                            type="button"
-                            onClick={() => {
-                              setDeadlineDaysFromNow(preset.days);
-                              setCustomDays(String(preset.days));
-                            }}
-                            className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
-                              isSelected
-                                ? "bg-[#6D3DF5] text-white shadow-sm font-semibold"
-                                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
-                            }`}
-                          >
-                            {preset.label}
-                          </button>
-                        );
-                      })}
+                    <div className="relative">
+                      <input
+                        name="deadline"
+                        value={formData.deadline}
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          const days = getDaysFromToday(e.target.value);
+                          setCustomDays(days !== null && days >= 0 ? String(days) : "");
+                        }}
+                        min={getTodayStr()}
+                        type="date"
+                        className={`w-full px-3.5 py-2 rounded-xl border outline-none text-sm font-medium transition-all ${
+                          formData.deadline && getDaysFromToday(formData.deadline) < 0
+                            ? "border-red-300 text-red-600 bg-red-50/50"
+                            : "border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] text-slate-700 bg-white"
+                        }`}
+                      />
+                    </div>
 
-                      {/* Custom X Days input */}
-                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 focus-within:border-[#6D3DF5] focus-within:ring-1 focus-within:ring-[#6D3DF5]">
-                        <span className="text-xs text-slate-400 font-medium">Upto</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="365"
-                          placeholder="X"
-                          value={customDays}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCustomDays(val);
-                            if (val && !isNaN(val) && Number(val) >= 0) {
-                              setDeadlineDaysFromNow(Number(val));
-                            }
-                          }}
-                          className="w-8 text-xs font-semibold text-slate-800 bg-transparent outline-none text-center"
-                        />
-                        <span className="text-xs text-slate-500 font-medium">days</span>
+                    {/* Open Upto Quick Selector */}
+                    <div className="mt-1.5 bg-slate-50 border border-slate-200/80 rounded-xl p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                          <Calendar size={11} className="text-[#6D3DF5]" />
+                          Open Task Upto
+                        </span>
+                        {formData.deadline && getDaysFromToday(formData.deadline) >= 0 && (
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            Closes {formatDeadlineDate(formData.deadline)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1">
+                        {[
+                          { label: "3 Days", days: 3 },
+                          { label: "1 Week", days: 7 },
+                          { label: "2 Weeks", days: 14 },
+                          { label: "1 Month", days: 30 },
+                        ].map((preset) => {
+                          const isSelected =
+                            getDaysFromToday(formData.deadline) === preset.days;
+                          return (
+                            <button
+                              key={preset.days}
+                              type="button"
+                              onClick={() => {
+                                setDeadlineDaysFromNow(preset.days);
+                                setCustomDays(String(preset.days));
+                              }}
+                              className={`px-2 py-0.5 text-[11px] rounded-lg font-medium transition-all ${
+                                isSelected
+                                  ? "bg-[#6D3DF5] text-white shadow-xs font-semibold"
+                                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          );
+                        })}
+
+                        {/* Custom X Days input */}
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 focus-within:border-[#6D3DF5] focus-within:ring-1 focus-within:ring-[#6D3DF5]">
+                          <span className="text-[10px] text-slate-400 font-medium">Upto</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="365"
+                            placeholder="X"
+                            value={customDays}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomDays(val);
+                              if (val && !isNaN(val) && Number(val) >= 0) {
+                                setDeadlineDaysFromNow(Number(val));
+                              }
+                            }}
+                            className="w-7 text-[11px] font-semibold text-slate-800 bg-transparent outline-none text-center"
+                          />
+                          <span className="text-[10px] text-slate-500 font-medium">days</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {formData.deadline && getDaysFromToday(formData.deadline) < 0 && (
-                    <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
-                      <AlertCircle size={12} />
-                      Days before today are not allowed. Please choose today or a future date.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Payment Type
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="Paid"
-                        checked={formData.payment === "Paid"}
-                        onChange={(e) =>
-                          handleRadioChange("payment", e.target.value)
-                        }
-                        className="accent-[#6D3DF5] w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-slate-700">
-                        Paid
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="Unpaid"
-                        checked={formData.payment === "Unpaid"}
-                        onChange={(e) =>
-                          handleRadioChange("payment", e.target.value)
-                        }
-                        className="accent-[#6D3DF5] w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-slate-700">
-                        Unpaid
-                      </span>
-                    </label>
+                    {formData.deadline && getDaysFromToday(formData.deadline) < 0 && (
+                      <p className="mt-1 text-[11px] text-red-600 font-medium flex items-center gap-1">
+                        <AlertCircle size={11} />
+                        Past dates are not allowed.
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Location
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="type"
-                        value="Remote"
-                        checked={formData.type === "Remote"}
-                        onChange={(e) =>
-                          handleRadioChange("type", e.target.value)
-                        }
-                        className="accent-[#6D3DF5] w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-slate-700">
-                        Remote
-                      </span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="type"
-                        value="Onsite"
-                        checked={formData.type === "Onsite"}
-                        onChange={(e) =>
-                          handleRadioChange("type", e.target.value)
-                        }
-                        className="accent-[#6D3DF5] w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-slate-700">
-                        Onsite
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
 
-              {/* Skills & Perks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Required Skills
-                  </label>
-                  <input
-                    name="skills"
-                    value={formData.skills}
-                    onChange={handleInputChange}
-                    type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
-                    placeholder="e.g. React, Figma"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Perks
-                  </label>
-                  <input
-                    name="perks"
-                    value={formData.perks}
-                    onChange={handleInputChange}
-                    type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
-                    placeholder="e.g. Certificate, Stipend"
-                  />
-                </div>
-              </div>
-
-              {/* Detailed Instructions Section */}
-              <div className="border-t border-slate-100 pt-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <BookOpen size={18} className="text-[#6D3DF5]" />
-                  Task Instructions for Students
-                </h3>
-
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Overview / Problem Statement
+                    <label className="block text-xs font-bold text-slate-800 mb-1 uppercase tracking-wider">
+                      Payment Type
                     </label>
-                    <textarea
-                      name="overview"
-                      value={formData.overview}
+                    <div className="flex gap-4 pt-0.5">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="Paid"
+                          checked={formData.payment === "Paid"}
+                          onChange={(e) =>
+                            handleRadioChange("payment", e.target.value)
+                          }
+                          className="accent-[#6D3DF5] w-3.5 h-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-700">
+                          Paid
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="Unpaid"
+                          checked={formData.payment === "Unpaid"}
+                          onChange={(e) =>
+                            handleRadioChange("payment", e.target.value)
+                          }
+                          className="accent-[#6D3DF5] w-3.5 h-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-700">
+                          Unpaid
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1 uppercase tracking-wider">
+                      Location
+                    </label>
+                    <div className="flex gap-4 pt-0.5">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="type"
+                          value="Remote"
+                          checked={formData.type === "Remote"}
+                          onChange={(e) =>
+                            handleRadioChange("type", e.target.value)
+                          }
+                          className="accent-[#6D3DF5] w-3.5 h-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-700">
+                          Remote
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="type"
+                          value="Onsite"
+                          checked={formData.type === "Onsite"}
+                          onChange={(e) =>
+                            handleRadioChange("type", e.target.value)
+                          }
+                          className="accent-[#6D3DF5] w-3.5 h-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-700">
+                          Onsite
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skills & Perks */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1 uppercase tracking-wider">
+                      Required Skills
+                    </label>
+                    <input
+                      name="skills"
+                      value={formData.skills}
                       onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none resize-none text-sm font-medium"
-                      placeholder="Briefly describe the task..."
-                    ></textarea>
+                      type="text"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
+                      placeholder="e.g. React, Figma"
+                    />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-xs font-bold text-slate-800 mb-1 uppercase tracking-wider">
+                      Perks
+                    </label>
+                    <input
+                      name="perks"
+                      value={formData.perks}
+                      onChange={handleInputChange}
+                      type="text"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
+                      placeholder="e.g. Certificate, Stipend"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Instructions & Materials */}
+            {createModalStep === 2 && (
+              <div className="p-8 space-y-3.5 animate-in fade-in duration-150">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Overview / Problem Statement
+                  </label>
+                  <textarea
+                    name="overview"
+                    value={formData.overview}
+                    onChange={handleInputChange}
+                    rows={2}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none resize-none text-sm font-medium"
+                    placeholder="Briefly describe the task objective and student expectations..."
+                  ></textarea>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Steps to Complete
                     </label>
-                    <div className="space-y-2">
-                      {newSteps.map((step, index) => (
-                        <div key={index} className="flex gap-2">
-                          <div className="w-8 h-10 flex items-center justify-center bg-slate-100 rounded-lg text-slate-500 font-bold text-sm shrink-0">
-                            {index + 1}
+                    <button
+                      type="button"
+                      onClick={handleAddStep}
+                      className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] flex items-center gap-1"
+                    >
+                      <Plus size={13} /> Add Step
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                    {newSteps.map((step, index) => (
+                      <div key={index} className="flex gap-2">
+                        <div className="w-6 h-8 flex items-center justify-center bg-slate-100 rounded-lg text-slate-500 font-bold text-xs shrink-0">
+                          {index + 1}
+                        </div>
+                        <input
+                          type="text"
+                          value={step}
+                          onChange={(e) =>
+                            handleStepChange(index, e.target.value)
+                          }
+                          className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-xs"
+                          placeholder={`Step ${index + 1}`}
+                        />
+                        {newSteps.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStep(index)}
+                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Important Note (Optional)
+                  </label>
+                  <input
+                    name="note"
+                    value={formData.note}
+                    onChange={handleInputChange}
+                    type="text"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-xs font-medium"
+                    placeholder="e.g. Ensure you follow security best practices."
+                  />
+                </div>
+
+                {/* Task Materials & Assets Section */}
+                <div className="border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Paperclip size={14} className="text-[#6D3DF5]" />
+                      Materials & Assets
+                    </h3>
+                    <span className="text-[10px] text-slate-400">Optional</span>
+                  </div>
+
+                  {/* Drag and Drop / Click Upload Area */}
+                  <label className="block border-2 border-dashed border-[#DDD6FE] hover:border-[#6D3DF5] bg-[#FAF8FF] hover:bg-[#F5F1FF] rounded-xl p-2.5 text-center cursor-pointer transition-all group">
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleMaterialFilesAdd}
+                      className="hidden"
+                      accept="image/*,.pdf,.csv,.xlsx,.xls,.zip,.rar,.tar,.gz,.txt,.docx,.doc"
+                    />
+                    <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-700">
+                      <div className="w-5 h-5 rounded-md bg-white border border-[#EDE9FE] text-[#6D3DF5] flex items-center justify-center shrink-0">
+                        <Upload size={12} />
+                      </div>
+                      <span>Upload reference files or datasets</span>
+                      <span className="text-slate-400 font-normal text-[11px]">(ZIP, PDF, CSV, Images)</span>
+                    </div>
+                  </label>
+
+                  {/* Existing & New Materials badges/list */}
+                  {(existingMaterials.length > 0 || selectedMaterials.length > 0) && (
+                    <div className="mt-2 space-y-1 max-h-20 overflow-y-auto pr-1">
+                      {existingMaterials.map((mat, idx) => (
+                        <div
+                          key={`existing-${idx}`}
+                          className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-slate-500">{getFileIcon(mat.name || mat.format)}</span>
+                            <span className="font-semibold text-slate-800 truncate max-w-[220px]">
+                              {mat.name || "Task Document"}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {formatBytes(mat.size)}
+                            </span>
                           </div>
-                          <input
-                            type="text"
-                            value={step}
-                            onChange={(e) =>
-                              handleStepChange(index, e.target.value)
-                            }
-                            className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm"
-                            placeholder={`Step ${index + 1}`}
-                          />
-                          {newSteps.length > 1 && (
-                            <button
-                              onClick={() => handleRemoveStep(index)}
-                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingMaterial(idx)}
+                            className="p-1 text-slate-400 hover:text-red-500 rounded"
+                            title="Remove file"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      {selectedMaterials.map((file, idx) => (
+                        <div
+                          key={`new-${idx}`}
+                          className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-violet-50/70 border border-violet-100 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[#6D3DF5]">{getFileIcon(file.name)}</span>
+                            <span className="font-semibold text-slate-800 truncate max-w-[220px]">
+                              {file.name}
+                            </span>
+                            <span className="text-[10px] text-[#6D3DF5]">
+                              {formatBytes(file.size)}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveNewMaterial(idx)}
+                            className="p-1 text-slate-400 hover:text-red-500 rounded"
+                            title="Remove file"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={handleAddStep}
-                      className="mt-3 text-sm font-bold text-[#6D3DF5] hover:text-[#5B2FD6] flex items-center gap-1"
-                    >
-                      <Plus size={16} /> Add Step
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Important Note (Optional)
-                    </label>
-                    <input
-                      name="note"
-                      value={formData.note}
-                      onChange={handleInputChange}
-                      type="text"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
-                      placeholder="e.g. Ensure you follow security best practices."
-                    />
-                  </div>
-
-                  {/* Task Materials & Assets Section */}
-                  <div className="border-t border-slate-100 pt-6">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                          <Paperclip size={18} className="text-[#6D3DF5]" />
-                          Required Materials & Assets
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Upload required files (logos, CSV datasets, PDF briefs, templates, starter code).
-                          Accepted students can download these in a single <strong className="text-slate-700 font-semibold">.zip archive</strong>.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Drag and Drop / Click Upload Area */}
-                    <label className="mt-3 block border-2 border-dashed border-[#DDD6FE] hover:border-[#6D3DF5] bg-[#FAF8FF] hover:bg-[#F5F1FF] rounded-2xl p-5 text-center cursor-pointer transition-all group">
-                      <input
-                        type="file"
-                        multiple
-                        onChange={handleMaterialFilesAdd}
-                        className="hidden"
-                        accept="image/*,.pdf,.csv,.xlsx,.xls,.zip,.rar,.tar,.gz,.txt,.docx,.doc"
-                      />
-                      <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-[#EDE9FE] text-[#6D3DF5] flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
-                        <Upload size={18} />
-                      </div>
-                      <p className="text-sm font-bold text-slate-700">
-                        Click to browse or drop materials here
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Supported: PNG, JPG, SVG, CSV, PDF, ZIP, DOCX (Max 25MB each)
-                      </p>
-                    </label>
-
-                    {/* Existing Materials (when editing) */}
-                    {existingMaterials.length > 0 && (
-                      <div className="mt-4">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                          Existing Materials ({existingMaterials.length})
-                        </span>
-                        <div className="mt-2 space-y-2">
-                          {existingMaterials.map((mat, idx) => (
-                            <div
-                              key={`existing-${idx}`}
-                              className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                                  {getFileIcon(mat.name || mat.format)}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-slate-800 truncate">
-                                    {mat.name || "Task Document"}
-                                  </p>
-                                  <p className="text-[11px] text-slate-400">
-                                    {formatBytes(mat.size)} • {mat.format ? mat.format.toUpperCase() : "File"}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveExistingMaterial(idx)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Remove file"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Newly Selected Materials */}
-                    {selectedMaterials.length > 0 && (
-                      <div className="mt-4">
-                        <span className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider">
-                          Ready to Upload ({selectedMaterials.length})
-                        </span>
-                        <div className="mt-2 space-y-2">
-                          {selectedMaterials.map((file, idx) => (
-                            <div
-                              key={`new-${idx}`}
-                              className="flex items-center justify-between p-3 rounded-xl bg-violet-50/60 border border-violet-100"
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-8 h-8 rounded-lg bg-white border border-violet-200 flex items-center justify-center shrink-0">
-                                  {getFileIcon(file.name)}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-slate-800 truncate">
-                                    {file.name}
-                                  </p>
-                                  <p className="text-[11px] text-slate-400">
-                                    {formatBytes(file.size)} • {file.name.split(".").pop().toUpperCase()}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveNewMaterial(idx)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Remove file"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="sticky bottom-0 bg-slate-50 px-8 py-5 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
-              <button
-                onClick={handleCloseModal}
-                className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-white hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePublish}
-                className="px-6 py-2.5 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all text-sm flex items-center gap-2"
-              >
-                <Check size={16} />{" "}
-                {editingId ? "Save Changes" : "Publish Task"}
-              </button>
+            {/* Footer */}
+            <div className="bg-slate-50 px-8 py-3.5 border-t border-slate-100 flex justify-between items-center rounded-b-3xl shrink-0">
+              {createModalStep === 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 rounded-xl font-bold text-slate-500 hover:bg-white hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!formData.title?.trim() || !formData.role?.trim() || !formData.deadline) {
+                        toast.error("Please fill in Title, Role, and Deadline.");
+                        return;
+                      }
+                      const todayStr = getTodayStr();
+                      if (formData.deadline < todayStr) {
+                        toast.error("Deadline cannot be in the past. Please select today or a future date.");
+                        return;
+                      }
+                      setCreateModalStep(2);
+                    }}
+                    className="px-5 py-2 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-md shadow-[#6D3DF5]/20 transition-all text-xs flex items-center gap-1.5"
+                  >
+                    <span>Next: Instructions & Assets</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setCreateModalStep(1)}
+                    className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-white hover:text-slate-800 border border-slate-200 transition-all text-xs flex items-center gap-1.5"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Back</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="px-3.5 py-2 rounded-xl font-bold text-slate-500 hover:bg-white hover:text-slate-700 border border-transparent hover:border-slate-200 transition-all text-xs"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      className="px-5 py-2 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-md shadow-[#6D3DF5]/20 transition-all text-xs flex items-center gap-1.5"
+                    >
+                      <Check size={14} />
+                      <span>{editingId ? "Save Changes" : "Publish Task"}</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
