@@ -39,6 +39,7 @@ const App = () => {
     location.pathname.startsWith('/dashboard') ||
     location.pathname.startsWith('/profile') ||
     location.pathname.startsWith('/task');
+  const isLoginPage = location.pathname === '/login';
 
   useEffect(() => {
     // Register service worker for PWA functionality
@@ -52,7 +53,7 @@ const App = () => {
         <PWAStatus />
         {/* Only show Navbar and Footer on non-dashboard routes */}
         {!isDashboardRoute && <Navbar />}
-        <main className={isDashboardRoute ? '' : 'flex-grow'}>
+        <main className={isDashboardRoute ? '' : isLoginPage ? 'flex-grow-0 lg:flex-grow' : 'flex-grow'}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
