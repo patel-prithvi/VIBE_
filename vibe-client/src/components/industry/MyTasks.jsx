@@ -4,6 +4,7 @@ import {
   Plus,
   Search,
   Calendar,
+  Clock,
   Users,
   X,
   MapPin,
@@ -92,6 +93,7 @@ export const MyTasks = ({
   // Materials & Assets uploaded by industry
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [existingMaterials, setExistingMaterials] = useState([]);
+  const [customDays, setCustomDays] = useState("");
 
   const formatBytes = (bytes, decimals = 1) => {
     if (!bytes || bytes === 0) return "0 B";
@@ -173,13 +175,135 @@ export const MyTasks = ({
     }
   };
 
-  // Helper to parse "30 Aug 2025" to "2025-08-30" for input type date
+  // Get today's local date as "YYYY-MM-DD"
+  const getTodayStr = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Helper to parse dates to "YYYY-MM-DD" for input type date
   const parseDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split("T")[0];
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
     }
     return "";
+  };
+
+  // Compute days from today for a given date string
+  const getDaysFromToday = (dateStr) => {
+    if (!dateStr) return null;
+    let target;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      target = new Date(y, m - 1, d);
+    } else {
+      target = new Date(dateStr);
+    }
+    if (isNaN(target.getTime())) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+
+    const diffMs = target.getTime() - today.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  // Set deadline date relative to today (+X days)
+  const setDeadlineDaysFromNow = (days) => {
+    const num = parseInt(days, 10);
+    if (isNaN(num) || num < 0) return;
+    const target = new Date();
+    target.setHours(0, 0, 0, 0);
+    target.setDate(target.getDate() + num);
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, "0");
+    const dd = String(target.getDate()).padStart(2, "0");
+    const newDeadline = `${yyyy}-${mm}-${dd}`;
+    setFormData((prev) => ({ ...prev, deadline: newDeadline }));
+  };
+
+  // Format date nicely (e.g. "Mon, 26 Oct 2026")
+  const formatDeadlineDate = (dateStr) => {
+    if (!dateStr) return "";
+    let date;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      date = new Date(y, m - 1, d);
+    } else {
+      date = new Date(dateStr);
+    }
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // Badge label and subtitle for "Open Upto" feature
+  const getDeadlineBadge = (deadlineStr) => {
+    if (!deadlineStr) return null;
+    const days = getDaysFromToday(deadlineStr);
+    if (days === null) return null;
+
+    if (days < 0) {
+      return {
+        label: `Past Date (${Math.abs(days)}d ago)`,
+        sub: "Invalid: Date is in the past",
+        isPast: true,
+      };
+    }
+    if (days === 0) {
+      return {
+        label: "Open Today",
+        sub: "Closes tonight (11:59 PM)",
+        isPast: false,
+      };
+    }
+    if (days === 1) {
+      return {
+        label: "Open Upto 1 Day",
+        sub: "Closes tomorrow",
+        isPast: false,
+      };
+    }
+    if (days === 7) {
+      return {
+        label: "Open Upto 1 Week",
+        sub: "7 days duration",
+        isPast: false,
+      };
+    }
+    if (days === 14) {
+      return {
+        label: "Open Upto 2 Weeks",
+        sub: "14 days duration",
+        isPast: false,
+      };
+    }
+    if (days === 30) {
+      return {
+        label: "Open Upto 1 Month",
+        sub: "30 days duration",
+        isPast: false,
+      };
+    }
+    return {
+      label: `Open Upto ${days} Days`,
+      sub: `${days} days duration`,
+      isPast: false,
+    };
   };
 
   const normalizeStatus = (s) => {
@@ -560,11 +684,12 @@ export const MyTasks = ({
 
   const handleEditClick = (task) => {
     setEditingId(task.id);
+    const parsedDeadline = parseDateForInput(task.deadline);
     setFormData({
       title: task.title,
       role: task.role,
       category: task.category,
-      deadline: parseDateForInput(task.deadline),
+      deadline: parsedDeadline,
       payment: task.payment,
       type: task.type,
       skills: Array.isArray(task.skills) ? task.skills.join(", ") : task.skills,
@@ -572,6 +697,8 @@ export const MyTasks = ({
       overview: task.instructions.overview,
       note: task.instructions.note || "",
     });
+    const days = getDaysFromToday(parsedDeadline);
+    setCustomDays(days !== null && days >= 0 ? String(days) : "");
     setNewSteps(
       task.instructions.steps.length > 0 ? task.instructions.steps : [""],
     );
@@ -583,6 +710,7 @@ export const MyTasks = ({
   const handleCloseModal = () => {
     setShowCreateModal(false);
     setEditingId(null);
+    setCustomDays("");
     setFormData({
       title: "",
       role: "",
@@ -606,6 +734,12 @@ export const MyTasks = ({
       return;
     }
 
+    const todayStr = getTodayStr();
+    if (formData.deadline < todayStr) {
+      toast.error("Deadline cannot be in the past. Please select today or a future date.");
+      return;
+    }
+
     const taskData = {
       id: editingId || Date.now().toString(),
       title: formData.title,
@@ -620,11 +754,21 @@ export const MyTasks = ({
         .map((s) => s.trim())
         .filter((s) => s),
       perks: formData.perks,
-      deadline: new Date(formData.deadline).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
+      deadline: (() => {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(formData.deadline)) {
+          const [y, m, d] = formData.deadline.split("-").map(Number);
+          return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        }
+        return new Date(formData.deadline).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      })(),
       status: "Active",
       applicantsCount: editingId
         ? tasks.find((t) => t.id === editingId)?.applicantsCount || 0
@@ -1283,7 +1427,7 @@ export const MyTasks = ({
 
             <div className="p-8 space-y-6">
               {/* Standard Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 mb-2">
                     Task Title
@@ -1331,17 +1475,116 @@ export const MyTasks = ({
                     </div>
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-bold text-slate-800 mb-2">
-                    Deadline
-                  </label>
-                  <input
-                    name="deadline"
-                    value={formData.deadline}
-                    onChange={handleInputChange}
-                    type="date"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium text-slate-600"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-slate-800">
+                      Deadline / Open Upto
+                    </label>
+                    {formData.deadline && (
+                      <span
+                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                          getDaysFromToday(formData.deadline) < 0
+                            ? "bg-red-50 text-red-600 border border-red-200"
+                            : "bg-[#F3E8FF] text-[#6D3DF5] border border-[#DDD6FE]"
+                        }`}
+                      >
+                        <Clock size={12} />
+                        {getDeadlineBadge(formData.deadline)?.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      name="deadline"
+                      value={formData.deadline}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        const days = getDaysFromToday(e.target.value);
+                        setCustomDays(days !== null && days >= 0 ? String(days) : "");
+                      }}
+                      min={getTodayStr()}
+                      type="date"
+                      className={`w-full px-4 py-3 rounded-xl border outline-none text-sm font-medium transition-all ${
+                        formData.deadline && getDaysFromToday(formData.deadline) < 0
+                          ? "border-red-300 text-red-600 bg-red-50/50"
+                          : "border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] text-slate-700 bg-white"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Open Upto Quick Selector */}
+                  <div className="mt-2.5 bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <Calendar size={12} className="text-[#6D3DF5]" />
+                        Open Task Upto
+                      </span>
+                      {formData.deadline && getDaysFromToday(formData.deadline) >= 0 && (
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          Closes {formatDeadlineDate(formData.deadline)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { label: "3 Days", days: 3 },
+                        { label: "1 Week", days: 7 },
+                        { label: "2 Weeks", days: 14 },
+                        { label: "1 Month", days: 30 },
+                      ].map((preset) => {
+                        const isSelected =
+                          getDaysFromToday(formData.deadline) === preset.days;
+                        return (
+                          <button
+                            key={preset.days}
+                            type="button"
+                            onClick={() => {
+                              setDeadlineDaysFromNow(preset.days);
+                              setCustomDays(String(preset.days));
+                            }}
+                            className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
+                              isSelected
+                                ? "bg-[#6D3DF5] text-white shadow-sm font-semibold"
+                                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom X Days input */}
+                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 focus-within:border-[#6D3DF5] focus-within:ring-1 focus-within:ring-[#6D3DF5]">
+                        <span className="text-xs text-slate-400 font-medium">Upto</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          placeholder="X"
+                          value={customDays}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCustomDays(val);
+                            if (val && !isNaN(val) && Number(val) >= 0) {
+                              setDeadlineDaysFromNow(Number(val));
+                            }
+                          }}
+                          className="w-8 text-xs font-semibold text-slate-800 bg-transparent outline-none text-center"
+                        />
+                        <span className="text-xs text-slate-500 font-medium">days</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.deadline && getDaysFromToday(formData.deadline) < 0 && (
+                    <p className="mt-1.5 text-xs text-red-600 font-medium flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      Days before today are not allowed. Please choose today or a future date.
+                    </p>
+                  )}
                 </div>
               </div>
 
