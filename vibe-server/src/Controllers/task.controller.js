@@ -237,7 +237,26 @@ const getTaskById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid Task ID");
   }
 
-  const task = await TaskMania.findById(id).populate("submissions");
+  const task = await TaskMania.findById(id)
+    .populate({
+      path: "submissions",
+      populate: {
+        path: "createdBy",
+        select: "-password -mobileNo -createdAt -updatedAt -otp",
+        populate: {
+          path: "Profile",
+          model: "Profile"
+        }
+      },
+    })
+    .populate({
+      path: "createdBy",
+      select: "-password -mobileNo -createdAt -updatedAt -otp",
+      populate: {
+        path: "Profile",
+        model: "Profile"
+      }
+    });
 
   if (!task) {
     throw new ApiError(404, "Task not found");
@@ -264,11 +283,54 @@ const getMyTasks = asyncHandler(async (req, res) => {
     .populate({
       path: "createdBy",
       select: "-password -mobileNo -createdAt -updatedAt -otp",
-    })
+      populate: {
+        path: "Profile",
+        model: "Profile"
+      }
+    });
 
   return res
     .status(200)
     .json(new ApiResponse(200, tasks, "Fetched your created tasks"));
+});
+
+// Get tasks created by a specific company/user or current user
+const getTasksByCompany = asyncHandler(async (req, res) => {
+  const companyId = req.params.userId || req.user._id;
+  const isOwner = req.user._id.toString() === companyId.toString();
+
+  const query = { createdBy: companyId };
+  if (!isOwner && req.user?.accountType === "student" && !req.user?.isAdmin) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 2);
+    cutoffDate.setHours(0, 0, 0, 0);
+    query.lastDateToSubmit = { $gte: cutoffDate };
+  }
+
+  const tasks = await TaskMania.find(query)
+    .populate({
+      path: "submissions",
+      populate: {
+        path: "createdBy",
+        select: "-password -mobileNo -createdAt -updatedAt -otp",
+        populate: {
+          path: "Profile",
+          model: "Profile"
+        }
+      },
+    })
+    .populate({
+      path: "createdBy",
+      select: "-password -mobileNo -createdAt -updatedAt -otp",
+      populate: {
+        path: "Profile",
+        model: "Profile"
+      }
+    });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, tasks || [], "Fetched company tasks"));
 });
 
 // Update a Task Mania Challenge
@@ -330,6 +392,7 @@ export {
   getAllTasks,
   getTaskById,
   getMyTasks,
+  getTasksByCompany,
   updateTask,
   deleteTask,
 };

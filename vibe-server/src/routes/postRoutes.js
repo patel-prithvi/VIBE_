@@ -33,6 +33,7 @@ router.get("/", getAllPosts);
 //router.get("/:id" ,getPostById);
 router.delete("/:id", verifyJWT, deletePost);
 router.get("/mypost", verifyJWT, getPostByUserId);
+router.get("/user/:userId", verifyJWT, getPostByUserId);
 
 // bookmarks
 router.post("/bookmark", verifyJWT, toggleBookmark);

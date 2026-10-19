@@ -315,11 +315,82 @@ export const updateVibe = asyncHandler(async (req, res) => {
 });
 
 //get posts by user Id
-export const getPostByUserId = asyncHandler(async (req,res)=>{
-  const id = req.user.id;
-  const posts = await Post.find({ author: id, type: "Post" })
-    .populate("author", "-password")
-    .sort({ createdAt: -1 });
+export const getPostByUserId = asyncHandler(async (req, res) => {
+  const targetId = req.params.userId || req.user?._id || req.user?.id;
+  if (!mongoose.Types.ObjectId.isValid(targetId)) {
+    throw new ApiError(400, "Invalid user ID");
+  }
+
+  const posts = await Post.aggregate([
+    { $match: { author: new mongoose.Types.ObjectId(targetId), type: "Post" } },
+    {
+      $lookup: {
+        from: "posts",
+        localField: "_id",
+        foreignField: "parent",
+        as: "comments",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "author",
+        foreignField: "_id",
+        as: "author",
+      },
+    },
+    { $unwind: "$author" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "comments.author",
+        foreignField: "_id",
+        as: "commentAuthors",
+      },
+    },
+    {
+      $addFields: {
+        comments: {
+          $map: {
+            input: "$comments",
+            as: "comment",
+            in: {
+              _id: "$$comment._id",
+              content: "$$comment.content",
+              createdAt: "$$comment.createdAt",
+              parentComment: "$$comment.parentComment",
+              author: {
+                $arrayElemAt: [
+                  {
+                    $filter: {
+                      input: "$commentAuthors",
+                      as: "ca",
+                      cond: { $eq: ["$$ca._id", "$$comment.author"] },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+    {
+      $project: {
+        "author.password": 0,
+        "author.refreshToken": 0,
+        "author.otp": 0,
+        "comments.author.password": 0,
+        "comments.author.refreshToken": 0,
+        "comments.author.otp": 0,
+        commentAuthors: 0,
+      },
+    },
+  ]);
 
   res
     .status(200)

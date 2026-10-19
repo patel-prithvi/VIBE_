@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
@@ -25,8 +26,10 @@ import {
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import api from "../../services/api";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(initialTab); // "explore" or "requests"
   const [mentors, setMentors] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -50,6 +53,8 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
   const [connecting, setConnecting] = useState(false);
   const [connectSuccess, setConnectSuccess] = useState(false);
   const [connectError, setConnectError] = useState("");
+
+  useScrollLock(Boolean((isConnectModalOpen && selectedMentor) || selectedRequest));
 
   const fetchData = async () => {
     try {
@@ -398,7 +403,7 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredMentors.map((mentor) => {
                 const status = getMentorStatus(mentor._id);
                 const expertise = getExpertiseList(mentor);
@@ -416,16 +421,19 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
                   >
                     <div>
                       {/* Top Mentor Profile Row */}
-                      <div className="flex items-start gap-3.5">
+                      <div
+                        onClick={() => navigate(`/profile/${mentor._id}`)}
+                        className="flex items-start gap-3.5 cursor-pointer group/mentor"
+                      >
                         <Avatar
                           name={mentor.name}
                           src={mentor.ImageUrl || mentor.avatar}
-                          className="w-12 h-12 rounded-full object-cover ring-2 ring-[#F1F5F9] flex-shrink-0"
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-[#F1F5F9] group-hover/mentor:ring-[#6D3DF5]/30 transition-all flex-shrink-0"
                           initialsClassName="text-sm font-bold text-white"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-sm text-[#0F172A] truncate">
+                            <h3 className="font-bold text-sm text-[#0F172A] truncate group-hover/mentor:text-[#6D3DF5] transition-colors">
                               {mentor.name}
                             </h3>
                             <span className="px-2 py-0.5 rounded-full bg-[#F3EEFF] text-[#6D3DF5] text-[10px] font-bold uppercase tracking-wider">
@@ -614,7 +622,13 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
                 >
                   {/* Card Header */}
                   <div className="p-4 sm:p-5 border-b border-[#F1F5F9] flex justify-between items-start gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      onClick={() => {
+                        const fid = request.faculty?.id || request.faculty?._id;
+                        if (fid) navigate(`/profile/${fid}`);
+                      }}
+                      className="flex items-center gap-3 min-w-0 cursor-pointer group/faculty"
+                    >
                       <Avatar
                         name={request.faculty.name}
                         src={request.faculty.avatar}
@@ -707,8 +721,8 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
       {/* CONNECT WITH MENTOR MODAL                                            */}
       {/* ==================================================================== */}
       {isConnectModalOpen && selectedMentor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl max-w-md w-full p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150 touch-none">
+          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl max-w-md w-full p-6 relative overscroll-contain">
             <button
               onClick={() => setIsConnectModalOpen(false)}
               className="absolute top-4 right-4 text-[#94A3B8] hover:text-[#0F172A] p-1.5 rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
@@ -803,12 +817,14 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
       {/* ==================================================================== */}
       <AnimatePresence>
         {selectedRequest && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs touch-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden overscroll-contain"
             >
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
@@ -827,7 +843,7 @@ export const MyMentorRequestsView = ({ onBackToFeed, initialTab = "explore" }) =
                 </button>
               </div>
 
-              <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto overscroll-contain">
                 {/* Faculty Info */}
                 <div className="flex gap-3.5 items-center p-3.5 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
                   <Avatar

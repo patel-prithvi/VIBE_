@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -32,6 +33,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../Toast";
 import Avatar from "../shared/Avatar";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export const MyTasks = ({
   tasks,
@@ -41,6 +43,7 @@ export const MyTasks = ({
   onUpdateApplicantStatus,
   user,
 }) => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -50,6 +53,15 @@ export const MyTasks = ({
   const [previewInstructions, setPreviewInstructions] = useState(null); // For Instruction Modal
   const [selectedApplicant, setSelectedApplicant] = useState(null); // For Submission Details Modal
   const [showApplicantsDrawer, setShowApplicantsDrawer] = useState(false); // Main Applicants Drawer
+
+  useScrollLock(
+    Boolean(
+      showCreateModal ||
+      previewInstructions ||
+      (showApplicantsDrawer && activeTask) ||
+      selectedApplicant
+    )
+  );
   const [interviewFormFor, setInterviewFormFor] = useState(null); // Applicant ID for inline interview form
   const [interviewData, setInterviewData] = useState({
     date: "",
@@ -185,8 +197,8 @@ export const MyTasks = ({
     };
 
     return (
-      <div className="fixed inset-0 z-50 flex items-stretch bg-slate-900/40 backdrop-blur-sm">
-        <div className="ml-auto h-full w-full max-w-5xl bg-white rounded-l-3xl shadow-2xl border-l border-[#EDE9FE] flex flex-col">
+      <div className="fixed inset-0 z-50 flex items-stretch bg-slate-900/40 backdrop-blur-sm touch-none">
+        <div role="dialog" aria-modal="true" className="ml-auto h-full w-full max-w-5xl bg-white rounded-l-3xl shadow-2xl border-l border-[#EDE9FE] flex flex-col overscroll-contain">
           <div className="p-6 border-b border-[#EDE9FE] flex items-start justify-between">
             <div>
               <span className="inline-block px-3 py-1 bg-[#EDE9FE] text-[#5B2FD6] rounded-full text-xs font-bold uppercase tracking-wider mb-2">
@@ -208,7 +220,7 @@ export const MyTasks = ({
             </button>
           </div>
 
-          <div className="p-6 overflow-auto">
+          <div className="p-6 overflow-auto overscroll-contain">
             <div className="w-full overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
               <table className="min-w-full bg-white">
                 <thead>
@@ -226,15 +238,25 @@ export const MyTasks = ({
                     return (
                       <tr key={a.id} className="border-t border-slate-100 align-top">
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
+                          <div
+                            onClick={() => {
+                              const sid = a.studentId || a.userId || a.createdBy;
+                              if (sid) navigate(`/profile/${sid}`);
+                            }}
+                            className={`flex items-center gap-3 ${
+                              a.studentId || a.userId || a.createdBy
+                                ? "cursor-pointer group/app"
+                                : ""
+                            }`}
+                          >
                             <Avatar
                               name={a.name}
                               src={a.avatar}
-                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F3EEFF]"
+                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F3EEFF] group-hover/app:ring-[#6D3DF5]/30 transition-all"
                               initialsClassName="text-xs font-bold text-white"
                             />
                             <div>
-                              <div className="text-sm font-bold text-slate-900">
+                              <div className="text-sm font-bold text-slate-900 group-hover/app:text-[#6D3DF5] transition-colors">
                                 {a.name}
                               </div>
                               <div className="text-xs text-slate-500 font-medium">
@@ -596,8 +618,8 @@ export const MyTasks = ({
   // VIEW: Instruction Preview Modal (Student Perspective)
   // ----------------------------------------------------------------------------------
   const InstructionModal = ({ task, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden overscroll-contain">
         {/* Modal Header - Fixed */}
         <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
           <div className="flex justify-between items-start mb-2">
@@ -618,7 +640,7 @@ export const MyTasks = ({
         </div>
 
         {/* Modal Content - Scrollable */}
-        <div className="overflow-y-auto p-8 pt-6 space-y-8">
+        <div className="overflow-y-auto p-8 pt-6 space-y-8 overscroll-contain">
           {/* Overview */}
           <div className="space-y-3">
             <h3 className="text-lg font-bold text-slate-900">Overview</h3>
@@ -690,8 +712,8 @@ export const MyTasks = ({
   // VIEW: Submission Details Modal
   // ----------------------------------------------------------------------------------
   const SubmissionModal = ({ applicant, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden overscroll-contain">
         {/* Header */}
         <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
           <div className="flex justify-between items-start mb-2">
@@ -729,7 +751,7 @@ export const MyTasks = ({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto p-8 pt-6 space-y-6">
+        <div className="overflow-y-auto p-8 pt-6 space-y-6 overscroll-contain">
           {/* Key Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -1183,8 +1205,8 @@ export const MyTasks = ({
 
       {/* Create/Edit Task Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
+          <div role="dialog" aria-modal="true" className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200 overscroll-contain">
             <div className="sticky top-0 bg-white px-8 py-5 border-b border-[#EDE9FE] flex justify-between items-center z-10">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 {editingId ? (

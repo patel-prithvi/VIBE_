@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -20,8 +21,10 @@ import {
 import api from '../../services/api';
 import { useToast } from '../Toast';
 import Avatar from '../shared/Avatar';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export const MentorRequestsView = ({ onBackToFeed }) => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -30,6 +33,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acceptingRequestId, setAcceptingRequestId] = useState(null);
+  useScrollLock(Boolean(selectedRequest || acceptingRequestId));
   const [meetLink, setMeetLink] = useState("");
   const [resources, setResources] = useState([{ label: "", url: "" }]);
 
@@ -46,6 +50,8 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
         const mappedRequests = response.data.data.map(req => ({
           id: req._id,
           student: {
+            id: req.student?._id || req.student?.id,
+            _id: req.student?._id || req.student?.id,
             name: req.student?.name || "Student",
             email: req.student?.email || "",
             avatar: req.student?.ImageUrl || req.student?.avatar || req.student?.Profile?.ImageUrl || "",
@@ -246,15 +252,21 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
             >
               {/* Card Header */}
               <div className="p-5 border-b border-[#E1E8F2] flex justify-between items-start">
-                <div className="flex gap-4 items-center">
+                <div
+                  onClick={() => {
+                    const sid = request.student.id || request.student._id;
+                    if (sid) navigate(`/profile/${sid}`);
+                  }}
+                  className="flex gap-4 items-center cursor-pointer group/student"
+                >
                   <Avatar
                     name={request.student.name}
                     src={request.student.avatar}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-[#E2E8F0] flex-shrink-0"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-[#E2E8F0] group-hover/student:ring-[#6D3DF5]/30 transition-all flex-shrink-0"
                     initialsClassName="text-sm font-bold text-white"
                   />
                   <div>
-                    <h3 className="font-bold text-[#172554]">{request.student.name}</h3>
+                    <h3 className="font-bold text-[#172554] group-hover/student:text-[#6D3DF5] transition-colors">{request.student.name}</h3>
                     <p className="text-xs text-[#64748B] flex items-center gap-1">
                       <Clock size={12} /> {request.requestDate}
                     </p>
@@ -342,13 +354,15 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedRequest(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm touch-none"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden overscroll-contain"
             >
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#F3EEFF]/60">
                 <h2 className="text-xl font-bold text-gray-900">Request Details</h2>
@@ -360,7 +374,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                 </button>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto overscroll-contain">
                 {/* Student Info */}
                 <div className="flex gap-4 items-center p-4 bg-gray-50 rounded-2xl">
                   <Avatar
@@ -488,20 +502,22 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setAcceptingRequestId(null)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm touch-none"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden overscroll-contain"
             >
               <div className="p-6 border-b border-gray-100 bg-[#F2ECFF]">
                 <h2 className="text-xl font-bold text-gray-900">Accept Request</h2>
                 <p className="text-sm text-[#64748B] mt-1">Provide meeting links and resources for the student.</p>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto overscroll-contain">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Meeting Link (Google Meet, Zoom, etc.) <span className="text-red-500">*</span>

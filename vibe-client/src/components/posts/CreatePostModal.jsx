@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Image as ImageIcon, Send, ChevronDown, Loader2 } from "lucide-react";
 import api from "../../services/api";
 import { useToast } from "../Toast";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
+  useScrollLock(isOpen);
   const toast = useToast();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -107,7 +109,7 @@ export const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
               </div>
 
               {/* Form Body - Scrollable */}
-              <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              <div className="flex-1 p-6 space-y-4 overflow-y-auto overscroll-contain">
                 {/* Title */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#334155] uppercase tracking-wider">

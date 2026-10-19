@@ -559,6 +559,12 @@ body {
 /* ==========================================================================
    8. Modals, Dialogs, & Overlay Surfaces
    ========================================================================== */
+html.vibe-scroll-locked,
+body.vibe-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 .vibe-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -566,6 +572,8 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 60;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .vibe-modal-container {
@@ -577,6 +585,7 @@ body {
   padding: 1rem;
   z-index: 70;
   pointer-events: none;
+  overscroll-behavior: contain;
 }
 
 .vibe-modal-dialog {
@@ -587,6 +596,14 @@ body {
   pointer-events: auto;
   overflow: hidden;
   max-height: 90vh;
+  overscroll-behavior: contain;
+}
+
+[role="dialog"],
+[role="alertdialog"],
+.vibe-overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================================================

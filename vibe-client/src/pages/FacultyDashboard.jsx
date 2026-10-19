@@ -5,6 +5,7 @@ import { FacultyCenterFeed } from "../components/faculty/FacultyCenterFeed";
 import { FacultyRightPanel } from "../components/faculty/FacultyRightPanel";
 import { FacultyBookmarksView } from "../components/faculty/FacultyBookmarksView";
 import { ProfileView } from "../components/faculty/ProfileView";
+import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
@@ -329,10 +330,11 @@ const FacultyDashboard = () => {
               {activeView === "mentorship" || activeView === "requests" ? (
                 <MentorRequestsView onBackToFeed={() => handleSectionChange("home")} />
               ) : activeView === "profile" ? (
-                <ProfileView
+                <UnifiedProfileView
                   user={user}
+                  currentUser={user}
                   onProfileUpdate={setUser}
-                  onBackToFeed={() => handleSectionChange("home")}
+                  onBack={() => handleSectionChange("home")}
                 />
               ) : activeView === "bookmarks" ? (
                 <FacultyBookmarksView

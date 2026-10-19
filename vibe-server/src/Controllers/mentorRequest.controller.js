@@ -65,14 +65,21 @@ const createMentorRequest = asyncHandler(async (req, res) => {
 
 // Get all requests for a specific faculty member
 const getFacultyRequests = asyncHandler(async (req, res) => {
-  const facultyId = req.user._id;
+  const targetFacultyId = req.params.facultyId || req.user._id;
+  const isOwner = req.user._id.toString() === targetFacultyId.toString();
 
-  const role = String(req.user.accountType || "").trim().toLowerCase();
-  if (role !== "faculty") {
-    throw new ApiError(403, `Only faculty members can view these requests (your accountType is '${req.user.accountType}')`);
+  const query = { faculty: targetFacultyId };
+  if (!isOwner) {
+    // When viewing faculty publicly, only show accepted mentorships
+    query.status = "accepted";
+  } else {
+    const role = String(req.user.accountType || "").trim().toLowerCase();
+    if (role !== "faculty") {
+      throw new ApiError(403, `Only faculty members can view these requests (your accountType is '${req.user.accountType}')`);
+    }
   }
 
-  const requests = await MentorRequest.find({ faculty: facultyId })
+  const requests = await MentorRequest.find(query)
     .populate({
       path: "student",
       select: "name email Profile",
@@ -80,12 +87,20 @@ const getFacultyRequests = asyncHandler(async (req, res) => {
         path: "Profile",
       },
     })
-    .populate("task", "title companyName category lastDateToSubmit roleOffered")
+    .populate({
+      path: "task",
+      select: "title companyName category lastDateToSubmit roleOffered createdBy",
+      populate: {
+        path: "createdBy",
+        select: "name Profile",
+        populate: { path: "Profile", select: "avatar" },
+      },
+    })
     .sort({ createdAt: -1 });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, requests, "Fetched all mentor requests"));
+    .json(new ApiResponse(200, requests || [], "Fetched all mentor requests"));
 });
 
 // Get all requests for a specific student

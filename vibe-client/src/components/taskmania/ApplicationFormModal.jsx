@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Loader2, Github, AlertTriangle, Youtube, HardDrive, Link as LinkIcon, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../Toast';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 export const ApplicationFormModal = ({
   isOpen,
@@ -9,6 +10,7 @@ export const ApplicationFormModal = ({
   task,
   onSubmit
 }) => {
+  useScrollLock(Boolean(isOpen && task));
   const toast = useToast();
   const [formData, setFormData] = useState({
     projectTitle: '',
@@ -144,14 +146,16 @@ export const ApplicationFormModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm touch-none"
         />
         
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+          className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden overscroll-contain"
         >
           {isSuccess ? (
              <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px]">
@@ -197,7 +201,7 @@ export const ApplicationFormModal = ({
               </div>
 
               {/* Form Content - Scrollable */}
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar overscroll-contain">
                 <form id="application-form" onSubmit={handleSubmit} className="space-y-6">
                   {/* Basic Info */}
                   <div className="space-y-4">

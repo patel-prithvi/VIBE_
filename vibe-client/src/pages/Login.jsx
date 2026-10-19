@@ -30,8 +30,8 @@ import {
   StarDoodle,
 } from '../components/public/Doodles';
 import { auth } from '../utils/auth';
-import api from '../services/api';
 import { useToast } from '../components/Toast';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const Login = () => {
   
   // Forgot Password States
   const [showForgotModal, setShowForgotModal] = useState(false);
+  useScrollLock(showForgotModal);
   const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
@@ -419,12 +420,14 @@ const Login = () => {
       {/* Forgot Password Modal */}
       <AnimatePresence>
         {showForgotModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#172554]/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#172554]/40 backdrop-blur-sm touch-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              role="dialog"
+              aria-modal="true"
+              className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden overscroll-contain"
             >
               <div className="p-5 border-b border-[#E2E8F0] flex justify-between items-center bg-[#F8FAFF]">
                 <div className="flex items-center gap-2">
@@ -451,7 +454,7 @@ const Login = () => {
                 </button>
               </div>
               
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 overscroll-contain">
                 {/* Step 1: Email Address */}
                 {forgotStep === 1 && (
                   <div className="space-y-4">

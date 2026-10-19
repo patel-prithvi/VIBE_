@@ -17,6 +17,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import StudentDashboard from './pages/StudentDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import IndustryDashboard from './pages/IndustryDashboard';
+import PublicProfilePage from './pages/PublicProfilePage';
+import TaskDetailsPage from './pages/TaskDetailsPage';
 import { useEffect } from 'react';
 import { registerServiceWorker } from './utils/pwa';
 
@@ -32,8 +34,11 @@ const ScrollToTop = () => {
 const App = () => {
   const location = useLocation();
 
-  // Check if current route is a dashboard route
-  const isDashboardRoute = location.pathname.startsWith('/dashboard');
+  // Check if current route is a dashboard, profile, or task route
+  const isDashboardRoute =
+    location.pathname.startsWith('/dashboard') ||
+    location.pathname.startsWith('/profile') ||
+    location.pathname.startsWith('/task');
 
   useEffect(() => {
     // Register service worker for PWA functionality
@@ -81,6 +86,34 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['industry']}>
                   <IndustryDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Public Profile Route for Authorized Users */}
+            <Route
+              path="/profile/:userId"
+              element={
+                <ProtectedRoute>
+                  <PublicProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Task Details Routes */}
+            <Route
+              path="/tasks/:taskId"
+              element={
+                <ProtectedRoute>
+                  <TaskDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/task/:taskId"
+              element={
+                <ProtectedRoute>
+                  <TaskDetailsPage />
                 </ProtectedRoute>
               }
             />
