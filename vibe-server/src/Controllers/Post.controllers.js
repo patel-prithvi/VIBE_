@@ -105,7 +105,23 @@ export const createComment = asyncHandler(async (req, res) => {
       message: `${req.user?.name || "Someone"} commented: "${String(content || "").slice(0, 120)}"`,
       link: "",
       meta: { postId: parentPost._id, commentId: newComment._id },
-    });
+    }).catch(() => {});
+  }
+
+  // If this is a reply to another comment, also notify parent comment author
+  if (parentComment) {
+    const parentCommentDoc = await Post.findById(parentComment);
+    if (parentCommentDoc?.author && String(parentCommentDoc.author) !== String(author)) {
+      await notify({
+        recipient: parentCommentDoc.author,
+        sender: author,
+        type: "comment",
+        title: "New reply to your comment",
+        message: `${req.user?.name || "Someone"} replied: "${String(content || "").slice(0, 120)}"`,
+        link: "",
+        meta: { postId: parentPost._id, commentId: newComment._id, parentCommentId: parentComment },
+      }).catch(() => {});
+    }
   }
 
   res
@@ -285,33 +301,102 @@ export const updatePost = asyncHandler(async (req, res) => {
 
 
 export const updateVibe = asyncHandler(async (req, res) => {
-  const { postId} = req.body;
+  const { postId, reaction = "vibe" } = req.body;
   const userId = req.user._id.toString();
 
   const post = await Post.findById(postId);
   if (!post) throw new ApiError(404, "Post not found");
 
-  let flag = false;
-  if (post.vibes.has(userId)) {
-    flag = true;
-    post.vibes.delete(userId);
+  if (!post.vibes) {
+    post.vibes = new Map();
+  }
+
+  const validReactions = ["vibe", "celebrate", "support", "love", "insightful", "funny"];
+  const selectedReaction = validReactions.includes(reaction) ? reaction : "vibe";
+
+  let removed = false;
+  const existingReaction = post.vibes.get(userId);
+
+  if (existingReaction !== undefined) {
+    // If the existing reaction matches selected, toggle it off
+    const isSame =
+      existingReaction === selectedReaction ||
+      (existingReaction === true && selectedReaction === "vibe");
+
+    if (isSame) {
+      post.vibes.delete(userId);
+      removed = true;
+    } else {
+      post.vibes.set(userId, selectedReaction);
+      removed = false;
+    }
   } else {
-    post.vibes.set(userId, true);
+    post.vibes.set(userId, selectedReaction);
+    removed = false;
   }
 
   await post.save();
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { post,
-          remove: flag
-         },
-        "+ vibe ",
-      )
-    );
+  // If reaction added (not removed) and not author's own post, send notification
+  if (!removed && post.author && String(post.author) !== String(userId)) {
+    const reactionEmojis = {
+      vibe: "🤘",
+      celebrate: "🎉",
+      support: "🤝",
+      love: "❤️",
+      insightful: "💡",
+      funny: "😂",
+    };
+    const emoji = reactionEmojis[selectedReaction] || "🤘";
+    try {
+      await notify({
+        recipient: post.author,
+        sender: req.user._id,
+        type: "reaction",
+        title: "New reaction on your post",
+        message: `${req.user?.name || "Someone"} reacted ${emoji} to your post`,
+        link: "",
+        meta: { postId: post._id, reaction: selectedReaction },
+      });
+    } catch (e) {
+      // ignore notification errors
+    }
+  }
+
+  // Calculate breakdown
+  const breakdown = {
+    vibe: 0,
+    celebrate: 0,
+    support: 0,
+    love: 0,
+    insightful: 0,
+    funny: 0,
+  };
+  for (const [, r] of post.vibes.entries()) {
+    const rType = r === true ? "vibe" : r;
+    if (breakdown[rType] !== undefined) {
+      breakdown[rType]++;
+    } else {
+      breakdown.vibe++;
+    }
+  }
+
+  const vibesObj = Object.fromEntries(post.vibes);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        post,
+        vibes: vibesObj,
+        vibeCount: post.vibes.size,
+        userReaction: removed ? null : selectedReaction,
+        breakdown,
+        remove: removed,
+      },
+      removed ? "Reaction removed" : "Reaction updated"
+    )
+  );
 });
 
 //get posts by user Id
@@ -359,6 +444,7 @@ export const getPostByUserId = asyncHandler(async (req, res) => {
               content: "$$comment.content",
               createdAt: "$$comment.createdAt",
               parentComment: "$$comment.parentComment",
+              vibes: "$$comment.vibes",
               author: {
                 $arrayElemAt: [
                   {
@@ -431,20 +517,98 @@ export const toggleBookmark = asyncHandler(async (req, res) => {
 export const getBookmarkedPosts = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const user = await User.findById(userId).populate({
-    path: "bookmarks",
-    populate: {
-      path: "author",
-      select: "name ImageUrl accountType Profile",
-      populate: {
-        path: "Profile",
-      },
-    },
-  });
-
+  const user = await User.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
-  const bookmarkedPosts = (user.bookmarks || []).filter(Boolean);
+  const bookmarkIds = (user.bookmarks || [])
+    .filter(Boolean)
+    .map((id) => (id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(id)));
+
+  if (bookmarkIds.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "Fetched bookmarked posts successfully"));
+  }
+
+  const bookmarkedPosts = await Post.aggregate([
+    { $match: { _id: { $in: bookmarkIds }, type: "Post" } },
+    {
+      $lookup: {
+        from: "posts",
+        localField: "_id",
+        foreignField: "parent",
+        as: "comments",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "author",
+        foreignField: "_id",
+        as: "author",
+      },
+    },
+    { $unwind: "$author" },
+    {
+      $lookup: {
+        from: "profiles",
+        localField: "author.Profile",
+        foreignField: "_id",
+        as: "authorProfile",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "comments.author",
+        foreignField: "_id",
+        as: "commentAuthors",
+      },
+    },
+    {
+      $addFields: {
+        "author.Profile": { $arrayElemAt: ["$authorProfile", 0] },
+        comments: {
+          $map: {
+            input: "$comments",
+            as: "comment",
+            in: {
+              _id: "$$comment._id",
+              content: "$$comment.content",
+              createdAt: "$$comment.createdAt",
+              parentComment: "$$comment.parentComment",
+              vibes: "$$comment.vibes",
+              author: {
+                $arrayElemAt: [
+                  {
+                    $filter: {
+                      input: "$commentAuthors",
+                      as: "ca",
+                      cond: { $eq: ["$$ca._id", "$$comment.author"] },
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        "author.password": 0,
+        "author.refreshToken": 0,
+        "author.otp": 0,
+        "comments.author.password": 0,
+        "comments.author.refreshToken": 0,
+        "comments.author.otp": 0,
+        authorProfile: 0,
+        commentAuthors: 0,
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
 
   res
     .status(200)
