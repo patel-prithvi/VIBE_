@@ -48,7 +48,7 @@ const PostSchema = new mongoose.Schema(
 
     vibes: {
       type: Map,
-      of: Boolean,
+      of: mongoose.Schema.Types.Mixed,
       default: {},
     },
 
