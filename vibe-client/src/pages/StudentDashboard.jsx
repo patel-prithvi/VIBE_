@@ -5,6 +5,7 @@ import { StudentLeftSidebar } from "../components/student/StudentLeftSidebar";
 import { StudentCenterFeed } from "../components/student/StudentCenterFeed";
 import { StudentRightPanel } from "../components/student/StudentRightPanel";
 import { ProfileView } from "../components/student/ProfileView";
+import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { VirtualCVView } from "../components/student/VirtualCVView";
 import { TaskManiaView } from "../components/taskmania/TaskManiaView";
@@ -198,10 +199,11 @@ const StudentDashboard = () => {
         );
       case "profile":
         return (
-          <ProfileView
+          <UnifiedProfileView
             user={user}
+            currentUser={user}
             onProfileUpdate={setUser}
-            onBackToFeed={() => handleSectionChange("home")}
+            onBack={() => handleSectionChange("home")}
           />
         );
       case "virtual-cv":

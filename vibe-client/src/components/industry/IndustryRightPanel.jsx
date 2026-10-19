@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Sparkles,
@@ -16,6 +17,7 @@ export const IndustryRightPanel = ({
   onNavigate,
   onPostTask,
 }) => {
+  const navigate = useNavigate();
   const [actionLoadingId, setActionLoadingId] = React.useState(null);
 
   // Show only applicants still awaiting review
@@ -62,15 +64,21 @@ export const IndustryRightPanel = ({
             <div key={applicant.id} className="py-3.5 first:pt-3 last:pb-1 space-y-2.5 min-w-0">
               {/* Applicant Header */}
               <div className="flex items-start justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div
+                  onClick={() => {
+                    const sid = applicant.studentId || applicant.userId || applicant.id;
+                    if (sid) navigate(`/profile/${sid}`);
+                  }}
+                  className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group/applicant"
+                >
                   <Avatar
                     name={applicant.name}
                     src={applicant.avatar}
-                    className="w-9 h-9 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F1F5F9]"
+                    className="w-9 h-9 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F1F5F9] group-hover/applicant:ring-[#6D3DF5]/30 transition-all"
                     initialsClassName="text-xs font-bold text-[#172554]"
                   />
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-tight truncate">
+                    <h4 className="text-xs font-bold text-[#0F172A] leading-tight truncate group-hover/applicant:text-[#6D3DF5] transition-colors">
                       {applicant.name}
                     </h4>
                     <p className="text-[11px] text-[#64748B] truncate">

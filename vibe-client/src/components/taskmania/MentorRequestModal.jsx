@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Search, Check, Send, AlertCircle } from "lucide-react";
 import api from "../../services/api";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export const MentorRequestModal = ({ isOpen, onClose, task }) => {
+  useScrollLock(isOpen);
   const [mentors, setMentors] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMentor, setSelectedMentor] = useState(null);
@@ -93,7 +95,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[2px]"
+          className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[2px] touch-none"
         />
 
         {/* Modal Content */}
@@ -122,7 +124,7 @@ export const MentorRequestModal = ({ isOpen, onClose, task }) => {
             </button>
           </div>
 
-          <div className="p-6 max-h-[70vh] overflow-y-auto">
+          <div className="p-6 max-h-[70vh] overflow-y-auto overscroll-contain">
             {success ? (
               <div className="py-8 text-center">
                 <motion.div

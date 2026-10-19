@@ -245,13 +245,14 @@ export const getSubmissionById = asyncHandler(async (req, res) => {
 });
 
 export const getMySubmissions = asyncHandler(async (req, res) => {
-  const submissions = await TaskSubmission.find({ createdBy: req.user.id })
+  const targetUserId = req.params.userId || req.user.id || req.user._id;
+  const submissions = await TaskSubmission.find({ createdBy: targetUserId })
     .populate({
       path: "taskId",
-      select: "title companyName roleOffered lastDateToSubmit createdBy",
-      populate: { path: "createdBy", select: "name Profile", populate: { path: "Profile", select: "InstituteName" } },
+      select: "title companyName roleOffered lastDateToSubmit createdBy packageRange location description",
+      populate: { path: "createdBy", select: "name Profile", populate: { path: "Profile", select: "InstituteName avatar" } },
     });
-  res.status(200).json(new ApiResponse(200, submissions, "My submissions fetched successfully"));
+  res.status(200).json(new ApiResponse(200, submissions || [], "Submissions fetched successfully"));
 });
 
 export const applyForTask = asyncHandler(async (req, res) => {

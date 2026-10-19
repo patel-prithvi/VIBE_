@@ -12,6 +12,7 @@ import {
   PlusCircle,
   ChevronRight,
 } from "lucide-react";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 export const MobileBottomNav = ({
   role = "student",
@@ -21,6 +22,7 @@ export const MobileBottomNav = ({
   onOpenCreatePost,
 }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  useScrollLock(isMoreOpen);
 
   // Active view helper matching dashboard logic
   const isHomeActive =
@@ -247,12 +249,12 @@ export const MobileBottomNav = ({
           {/* Backdrop */}
           <div
             onClick={() => setIsMoreOpen(false)}
-            className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-[#0F172A]/40 backdrop-blur-xs transition-opacity touch-none"
             aria-hidden="true"
           />
 
           {/* Drawer Sheet */}
-          <div className="relative bg-white rounded-t-3xl border-t border-[#E2E8F0] shadow-2xl p-5 z-10 pb-[max(2rem,env(safe-area-inset-bottom,16px))] space-y-4 animate-in slide-in-from-bottom duration-200">
+          <div role="dialog" aria-modal="true" className="relative bg-white rounded-t-3xl border-t border-[#E2E8F0] shadow-2xl p-5 z-10 pb-[max(2rem,env(safe-area-inset-bottom,16px))] space-y-4 animate-in slide-in-from-bottom duration-200 overscroll-contain">
             {/* Grab Handle */}
             <div className="w-12 h-1.5 bg-[#E2E8F0] rounded-full mx-auto" />
 

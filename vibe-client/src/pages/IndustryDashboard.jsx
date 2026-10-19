@@ -7,6 +7,7 @@ import { Overview } from '../components/industry/Overview';
 import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
 import { Profile } from '../components/industry/Profile';
+import { UnifiedProfileView } from '../components/profile/UnifiedProfileView';
 import { MobileBottomNav } from '../components/shared/MobileBottomNav';
 import { auth } from '../utils/auth';
 import api from '../services/api';
@@ -85,6 +86,7 @@ const IndustryDashboard = () => {
                   (sub.email ? sub.email.split("@")[0] : "Unknown Student");
                 return {
                   id: sub._id,
+                  studentId: studentUser._id || studentUser.id || (typeof sub.createdBy === "string" ? sub.createdBy : null),
                   name: studentName,
                   avatar: studentUser.ImageUrl || studentUser.avatar || studentUser.Profile?.ImageUrl || "",
                   college: typeof studentUser.Profile?.InstituteName === "string" && studentUser.Profile.InstituteName.trim()
@@ -300,7 +302,14 @@ const IndustryDashboard = () => {
           />
         );
       case 'profile':
-        return <Profile user={user} tasks={tasks} applicants={applicants} onProfileUpdate={setUser} />;
+        return (
+          <UnifiedProfileView
+            user={user}
+            currentUser={user}
+            onProfileUpdate={setUser}
+            onBack={() => handleSectionChange('overview')}
+          />
+        );
       default:
         return (
           <Overview

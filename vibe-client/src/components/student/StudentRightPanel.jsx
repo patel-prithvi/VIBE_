@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Sparkles,
@@ -19,6 +20,7 @@ const statusStyles = {
 };
 
 export const StudentRightPanel = ({ onNavigate, onOpenCreatePost }) => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
@@ -75,7 +77,13 @@ export const StudentRightPanel = ({ onNavigate, onOpenCreatePost }) => {
               const style = statusStyles[status] || statusStyles.pending;
               return (
                 <div key={req._id} className="py-3.5 first:pt-3 last:pb-1 space-y-2 min-w-0">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    onClick={() => {
+                      const fid = req.faculty?._id || req.faculty?.id;
+                      if (fid) navigate(`/profile/${fid}`);
+                    }}
+                    className="flex items-center gap-2.5 min-w-0 cursor-pointer group/mentor"
+                  >
                     <Avatar
                       name={facultyName}
                       src={req.faculty?.ImageUrl}

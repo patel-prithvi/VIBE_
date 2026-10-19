@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertCircle, Info, X, LogOut } from "lucide-react";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 const ToastContext = createContext(null);
 
@@ -36,6 +37,7 @@ const typeStyles = {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
+  useScrollLock(Boolean(confirmState));
   const timers = useRef({});
 
   const dismiss = useCallback((id) => {
@@ -105,7 +107,7 @@ export const ToastProvider = ({ children }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => resolveConfirm(false)}
-              className="absolute inset-0 bg-[#0F172A]/45 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-[#0F172A]/45 backdrop-blur-[2px] touch-none"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.94, y: 12 }}
@@ -114,7 +116,7 @@ export const ToastProvider = ({ children }) => {
               transition={{ duration: 0.22, ease: "easeOut" }}
               role="alertdialog"
               aria-modal="true"
-              className="relative w-full max-w-sm bg-white rounded-3xl border border-[#E2E8F0] shadow-[0_24px_64px_rgba(15,23,42,0.22)] p-6 text-center"
+              className="relative w-full max-w-sm bg-white rounded-3xl border border-[#E2E8F0] shadow-[0_24px_64px_rgba(15,23,42,0.22)] p-6 text-center overscroll-contain"
             >
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 ${

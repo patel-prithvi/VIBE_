@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { auth } from '../../utils/auth';
 import Avatar from '../shared/Avatar';
+import { useScrollLock } from '../../hooks/useScrollLock';
 
 const menuItems = [
   { id: 'posts', label: 'Community Posts', icon: MessageSquare },
@@ -23,6 +24,7 @@ const menuItems = [
 export const Sidebar = ({ user, activeView, onNavigate }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useScrollLock(mobileMenuOpen);
 
   const handleLogout = () => {
     auth.logout();
@@ -86,10 +88,12 @@ export const Sidebar = ({ user, activeView, onNavigate }) => {
           <>
             <div
               onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              className="lg:hidden fixed inset-0 bg-black/50 z-40 touch-none"
             />
             <div
-              className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl p-6 shadow-2xl overscroll-contain"
             >
               {/* User Profile Section */}
               <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">

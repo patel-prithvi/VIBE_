@@ -487,7 +487,7 @@ const Home = () => {
               }}
               className="absolute -top-3 -right-6 hidden sm:inline-block pointer-events-none text-[#FBBF24]"
             >
-              <Sparkles size={22} className="fill-[#FBBF24]/30 text-[#F59E0B]" />
+              {/* <Sparkles size={22} className="fill-[#FBBF24]/30 text-[#F59E0B]" /> */}
             </motion.span>
           </span>
         </motion.h1>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MessageSquare,
   Share2,
@@ -19,6 +20,7 @@ export const StudentPostCard = ({
   isBookmarked = false,
   onToggleBookmark,
 }) => {
+  const navigate = useNavigate();
   const user = currentUser || auth.getCurrentUser();
   const userId = user?._id?.toString() || user?.id?.toString();
 
@@ -128,16 +130,23 @@ export const StudentPostCard = ({
     <div className="vibe-card p-4 sm:p-5 transition-shadow hover:shadow-sm w-full overflow-hidden">
       {/* 1. Header */}
       <div className="flex items-start justify-between gap-3 min-w-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            const authorId = post.author?._id || post.author?.id || post.authorId || (typeof post.author === "string" ? post.author : null);
+            if (authorId) navigate(`/profile/${authorId}`);
+          }}
+          className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group/author"
+        >
           <Avatar
             name={authorName}
             src={authorAvatar}
-            className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F1F5F9]"
+            className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F1F5F9] group-hover/author:ring-[#6D3DF5]/30 transition-all"
             initialsClassName="text-xs font-bold text-white"
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-sm text-[#0F172A] leading-tight truncate">
+              <span className="font-bold text-sm text-[#0F172A] leading-tight truncate group-hover/author:text-[#6D3DF5] transition-colors">
                 {authorName}
               </span>
               <span

@@ -419,17 +419,31 @@ const loginUser = asyncHandler(async (req, res) => {
 
 //Get User by ID
 const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const isOwner = req.user?._id?.toString() === req.params.id.toString();
+
+  let selectFields = "-password -refreshToken -otp -currentToken";
+  if (!isOwner) {
+    selectFields += " -mobileNo";
+  }
+
+  const user = await User.findById(req.params.id)
+    .select(selectFields)
+    .populate("Profile");
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  res.status(200).json(new ApiResponse(201, user, "User got found"));
+  res.status(200).json(new ApiResponse(200, user, "User found"));
 });
 
 //Update User
 const updateUser = asyncHandler(async (req, res) => {
+  // Enforce ownership: users can only update their own profile
+  if (req.user._id.toString() !== req.params.id.toString()) {
+    throw new ApiError(403, "You can only update your own profile");
+  }
+
   const { 
     name, 
     mobileNo, 
@@ -454,7 +468,8 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 
   // Update User fields
-  if (name) user.name = name;
+  const finalName = name || req.body.companyName;
+  if (finalName) user.name = finalName;
   if (mobileNo) user.mobileNo = mobileNo;
   if (dob) user.dob = dob;
   
@@ -463,14 +478,14 @@ const updateUser = asyncHandler(async (req, res) => {
   // Update Profile fields if user has a profile
   if (user.Profile) {
     const profileUpdate = {};
-    if (institutionName) profileUpdate.InstituteName = institutionName;
+    if (institutionName || req.body.companyName) profileUpdate.InstituteName = institutionName || req.body.companyName;
     if (degree) profileUpdate.degree = degree;
     if (branch) profileUpdate.branch = branch;
     if (currentYear) profileUpdate.yearOfStudy = currentYear;
-    if (position) profileUpdate.position = position;
+    if (position || req.body.tagline) profileUpdate.position = position || req.body.tagline;
     if (experience) profileUpdate.YearOfExperience = experience;
     if (expertise) profileUpdate.ExpertiseDomains = expertise;
-    if (industryType) profileUpdate.IndustryType = industryType;
+    if (industryType || req.body.about) profileUpdate.IndustryType = industryType || req.body.about;
     if (location) profileUpdate.location = location;
     if (internshipType) profileUpdate.internshipType = internshipType;
     if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
@@ -484,7 +499,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
   res
     .status(200)
-    .json(new ApiResponse(201, updatedUser, "User Updated SuccessFully"));
+    .json(new ApiResponse(200, updatedUser, "User Updated Successfully"));
 });
 
 const logoutUser = asyncHandler(async (req, res) => {

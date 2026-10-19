@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Briefcase } from 'lucide-react';
 import { TaskCard } from './TaskCard';
-import { InstructionModal } from './InstructionModal';
 import { ApplicationFormModal } from './ApplicationFormModal';
 import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
@@ -11,11 +10,16 @@ import { useToast } from '../Toast';
 export const TaskManiaView = () => {
   const toast = useToast();
   const [tasks, setTasks] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedMode, setSelectedMode] = useState('All');
+  const [searchQuery, setSearchQuery] = useState(
+    () => sessionStorage.getItem('vibe_taskmania_search') || ''
+  );
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => sessionStorage.getItem('vibe_taskmania_category') || 'All'
+  );
+  const [selectedMode, setSelectedMode] = useState(
+    () => sessionStorage.getItem('vibe_taskmania_mode') || 'All'
+  );
   const [selectedTask, setSelectedTask] = useState(null);
-  const [isInstructionOpen, setIsInstructionOpen] = useState(false);
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isMentorRequestOpen, setIsMentorRequestOpen] = useState(false);
   const [submittedTasks, setSubmittedTasks] = useState([]);
@@ -43,6 +47,8 @@ export const TaskManiaView = () => {
             company: (task.companyName && task.companyName.trim())
               ? task.companyName.trim()
               : (task.createdBy?.name || 'Unknown Company'),
+            companyId: task.createdBy?._id || task.createdBy,
+            createdBy: task.createdBy,
             role: task.roleOffered,
             category: 'Development',
             mode: task.location || 'Remote',
@@ -90,11 +96,6 @@ export const TaskManiaView = () => {
     
     return matchesSearch && matchesCategory && matchesMode;
   });
-
-  const handleOpenInstructions = (task) => {
-    setSelectedTask(task);
-    setIsInstructionOpen(true);
-  };
 
   const handleOpenApply = (task) => {
     setSelectedTask(task);
@@ -176,7 +177,10 @@ export const TaskManiaView = () => {
               type="text"
               placeholder="Search tasks, companies, or technologies..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                sessionStorage.setItem('vibe_taskmania_search', e.target.value);
+              }}
               className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
             />
           </div>
@@ -186,7 +190,10 @@ export const TaskManiaView = () => {
             <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={16} />
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                sessionStorage.setItem('vibe_taskmania_category', e.target.value);
+              }}
               className="pl-10 pr-8 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[180px]"
             >
               {categories.map(cat => (
@@ -199,7 +206,10 @@ export const TaskManiaView = () => {
           <div className="relative">
             <select
               value={selectedMode}
-              onChange={(e) => setSelectedMode(e.target.value)}
+              onChange={(e) => {
+                setSelectedMode(e.target.value);
+                sessionStorage.setItem('vibe_taskmania_mode', e.target.value);
+              }}
               className="px-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[140px]"
             >
               {modes.map(mode => (
@@ -224,7 +234,6 @@ export const TaskManiaView = () => {
                 task={task}
                 isSubmitted={submittedTasks.includes(task.id)}
                 mentorRequest={mentorRequests.find(req => String(req.task?._id || req.task) === task.id)}
-                onOpenInstructions={handleOpenInstructions}
                 onOpenApply={handleOpenApply}
                 onOpenMentorRequest={handleOpenMentorRequest}
               />
@@ -241,12 +250,6 @@ export const TaskManiaView = () => {
       )}
 
       {/* Modals */}
-      <InstructionModal
-        isOpen={isInstructionOpen}
-        onClose={() => setIsInstructionOpen(false)}
-        task={selectedTask}
-      />
-
       <ApplicationFormModal
         isOpen={isApplicationOpen}
         onClose={() => setIsApplicationOpen(false)}
