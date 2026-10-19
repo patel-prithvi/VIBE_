@@ -48,8 +48,8 @@ const taskSubmissionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["applied", "shortlisted", "interview_scheduled", "submitted", "reviewed", "hired", "rejected"],
-      default: "applied",
+      enum: ["applied", "accepted", "shortlisted", "interview_scheduled", "submitted", "reviewed", "hired", "rejected"],
+      default: "accepted",
     },
     score: {
       type: Number,

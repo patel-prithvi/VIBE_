@@ -29,6 +29,10 @@ import {
   Layers,
   GraduationCap,
   RotateCcw,
+  Image,
+  FileSpreadsheet,
+  FileArchive,
+  Paperclip,
 } from "lucide-react";
 import { useToast } from "../Toast";
 import Avatar from "../shared/Avatar";
@@ -72,6 +76,53 @@ export const MyTasks = ({
     overview: "",
     note: "",
   });
+
+  // Materials & Assets uploaded by industry
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [existingMaterials, setExistingMaterials] = useState([]);
+
+  const formatBytes = (bytes, decimals = 1) => {
+    if (!bytes || bytes === 0) return "0 B";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+  };
+
+  const getFileIcon = (nameOrFormat) => {
+    const ext = (nameOrFormat || "").toLowerCase().split(".").pop();
+    if (["png", "jpg", "jpeg", "svg", "webp", "gif"].includes(ext)) {
+      return <Image size={18} className="text-violet-600" />;
+    }
+    if (["csv", "xlsx", "xls"].includes(ext)) {
+      return <FileSpreadsheet size={18} className="text-emerald-600" />;
+    }
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
+      return <FileArchive size={18} className="text-amber-600" />;
+    }
+    if (["pdf"].includes(ext)) {
+      return <FileText size={18} className="text-rose-600" />;
+    }
+    return <File size={18} className="text-blue-600" />;
+  };
+
+  const handleMaterialFilesAdd = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedMaterials((prev) => [...prev, ...files]);
+    }
+    // reset input so re-selecting same file works
+    e.target.value = "";
+  };
+
+  const handleRemoveNewMaterial = (index) => {
+    setSelectedMaterials((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingMaterial = (index) => {
+    setExistingMaterials((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleAddStep = () => {
     setNewSteps([...newSteps, ""]);
@@ -502,6 +553,8 @@ export const MyTasks = ({
     setNewSteps(
       task.instructions.steps.length > 0 ? task.instructions.steps : [""],
     );
+    setExistingMaterials(task.materials || []);
+    setSelectedMaterials([]);
     setShowCreateModal(true);
   };
 
@@ -521,6 +574,8 @@ export const MyTasks = ({
       note: "",
     });
     setNewSteps([""]);
+    setSelectedMaterials([]);
+    setExistingMaterials([]);
   };
 
   const handlePublish = () => {
@@ -561,6 +616,8 @@ export const MyTasks = ({
         steps: newSteps.filter((s) => s.trim() !== ""),
         note: formData.note,
       },
+      materialsFiles: selectedMaterials,
+      existingMaterials: existingMaterials,
     };
 
     if (editingId) {
@@ -1445,6 +1502,120 @@ export const MyTasks = ({
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#E9E1FF] outline-none text-sm font-medium"
                       placeholder="e.g. Ensure you follow security best practices."
                     />
+                  </div>
+
+                  {/* Task Materials & Assets Section */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <Paperclip size={18} className="text-[#6D3DF5]" />
+                          Required Materials & Assets
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Upload required files (logos, CSV datasets, PDF briefs, templates, starter code).
+                          Accepted students can download these in a single <strong className="text-slate-700 font-semibold">.zip archive</strong>.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Drag and Drop / Click Upload Area */}
+                    <label className="mt-3 block border-2 border-dashed border-[#DDD6FE] hover:border-[#6D3DF5] bg-[#FAF8FF] hover:bg-[#F5F1FF] rounded-2xl p-5 text-center cursor-pointer transition-all group">
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleMaterialFilesAdd}
+                        className="hidden"
+                        accept="image/*,.pdf,.csv,.xlsx,.xls,.zip,.rar,.tar,.gz,.txt,.docx,.doc"
+                      />
+                      <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-[#EDE9FE] text-[#6D3DF5] flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform">
+                        <Upload size={18} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">
+                        Click to browse or drop materials here
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Supported: PNG, JPG, SVG, CSV, PDF, ZIP, DOCX (Max 25MB each)
+                      </p>
+                    </label>
+
+                    {/* Existing Materials (when editing) */}
+                    {existingMaterials.length > 0 && (
+                      <div className="mt-4">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Existing Materials ({existingMaterials.length})
+                        </span>
+                        <div className="mt-2 space-y-2">
+                          {existingMaterials.map((mat, idx) => (
+                            <div
+                              key={`existing-${idx}`}
+                              className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                                  {getFileIcon(mat.name || mat.format)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                    {mat.name || "Task Document"}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    {formatBytes(mat.size)} • {mat.format ? mat.format.toUpperCase() : "File"}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExistingMaterial(idx)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Remove file"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Newly Selected Materials */}
+                    {selectedMaterials.length > 0 && (
+                      <div className="mt-4">
+                        <span className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider">
+                          Ready to Upload ({selectedMaterials.length})
+                        </span>
+                        <div className="mt-2 space-y-2">
+                          {selectedMaterials.map((file, idx) => (
+                            <div
+                              key={`new-${idx}`}
+                              className="flex items-center justify-between p-3 rounded-xl bg-violet-50/60 border border-violet-100"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-white border border-violet-200 flex items-center justify-center shrink-0">
+                                  {getFileIcon(file.name)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                    {file.name}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    {formatBytes(file.size)} • {file.name.split(".").pop().toUpperCase()}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveNewMaterial(idx)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Remove file"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

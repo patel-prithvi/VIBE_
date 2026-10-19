@@ -7,7 +7,8 @@ export const ApplicationFormModal = ({
   isOpen,
   onClose,
   task,
-  onSubmit
+  onSubmit,
+  existingData,
 }) => {
   const toast = useToast();
   const [formData, setFormData] = useState({
@@ -27,20 +28,20 @@ export const ApplicationFormModal = ({
   // Reset form when modal opens/closes or task changes
   useEffect(() => {
     if (isOpen) {
-      setFormData({ 
-        projectTitle: '', 
-        description: '', 
-        githubUrl: '',
-        videoUrl: '',
-        googleDriveUrl: '',
-        additionalLinks: []
+      setFormData({
+        projectTitle: existingData?.projectTitle || '',
+        description: existingData?.message || '',
+        githubUrl: existingData?.repoUrl || '',
+        videoUrl: existingData?.videoUrl || '',
+        googleDriveUrl: existingData?.driveUrl || '',
+        additionalLinks: Array.isArray(existingData?.additionalLinks) ? existingData.additionalLinks : []
       });
       setNewLink('');
       setErrors({});
       setIsSubmitting(false);
       setIsSuccess(false);
     }
-  }, [isOpen, task]);
+  }, [isOpen, task, existingData]);
 
   const validateUrl = (url) => {
     try {

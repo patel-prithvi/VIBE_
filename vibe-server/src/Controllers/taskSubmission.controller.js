@@ -62,10 +62,25 @@ export const createSubmission = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Task not found");
   }
 
-  const submission = new TaskSubmission({...req.body, createdBy: req.user.id});
-  await submission.save();
-  task.submissions.push(submission._id);
-  await task.save();
+  let submission = await TaskSubmission.findOne({ taskId, createdBy: req.user.id });
+  if (submission) {
+    Object.assign(submission, req.body, {
+      status: "submitted",
+    });
+    await submission.save();
+  } else {
+    submission = new TaskSubmission({
+      ...req.body,
+      createdBy: req.user.id,
+      status: "submitted",
+    });
+    await submission.save();
+  }
+
+  if (!task.submissions.includes(submission._id)) {
+    task.submissions.push(submission._id);
+    await task.save();
+  }
 
 
   const user = await User.findById(task.createdBy);
@@ -259,14 +274,27 @@ export const applyForTask = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(taskId)) {
     throw new ApiError(400, "Invalid task ID");
   }
+
+  const task = await TaskMania.findById(taskId);
+  if (!task) {
+    throw new ApiError(404, "Task not found");
+  }
+
   const existing = await TaskSubmission.findOne({ taskId, createdBy: req.user.id });
   if (existing) {
-    return res.status(200).json(new ApiResponse(200, existing, "Already applied"));
+    return res.status(200).json(new ApiResponse(200, existing, "Task already accepted"));
   }
+
   const sub = await TaskSubmission.create({
     taskId,
     createdBy: req.user.id,
-    status: "applied",
+    status: "accepted",
   });
-  res.status(201).json(new ApiResponse(201, sub, "Application created"));
+
+  if (!task.submissions.includes(sub._id)) {
+    task.submissions.push(sub._id);
+    await task.save();
+  }
+
+  res.status(201).json(new ApiResponse(201, sub, "Task accepted successfully"));
 });

@@ -82,8 +82,19 @@ export const TaskCard = ({
         </h3>
 
         {/* Company Name */}
-        <div className="flex items-center gap-2 mb-5 mt-3">
-          <div className="p-1.5 bg-[#EDE9FE] text-[#6D3DF5] rounded-lg">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            const companyId = task.companyId || task.createdBy?._id || task.createdBy;
+            if (companyId) navigate(`/profile/${companyId}?view=company`);
+          }}
+          className={`flex items-center gap-2 mb-5 mt-3 ${
+            task.companyId || task.createdBy
+              ? "cursor-pointer group/company"
+              : ""
+          }`}
+        >
+          <div className="p-1.5 bg-[#EDE9FE] text-[#6D3DF5] rounded-lg group-hover/company:bg-[#6D3DF5] group-hover/company:text-white transition-colors">
             <Building2 size={14} />
           </div>
           <span className="text-sm font-bold text-gray-700 tracking-tight">
