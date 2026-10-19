@@ -195,7 +195,7 @@ export const TaskManiaView = () => {
             <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Active Tasks</p>
           </div>
           <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
-            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{submittedTasks.length}</p>
+            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{userSubmissions.length}</p>
             <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Applied</p>
           </div>
           <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
