@@ -61,6 +61,7 @@ const IndustryDashboard = () => {
               steps: task.instructions || [],
               note: task.additionalDocumentsURL || ""
             },
+            materials: task.materials || [],
             // Keep original for updates
             _id: task._id
           }));
@@ -192,6 +193,7 @@ const IndustryDashboard = () => {
             steps: task.instructions || [],
             note: task.additionalDocumentsURL || ""
           },
+          materials: task.materials || [],
           _id: task._id
         }));
         setTasks(fetchedTasks);
@@ -203,54 +205,74 @@ const IndustryDashboard = () => {
 
   const handleAddTask = async (newTask) => {
     try {
-      const payload = {
-        title: newTask.title,
-        description: newTask.instructions.overview,
-        instructions: newTask.instructions.steps,
-        roleOffered: newTask.role,
-        packageRange: newTask.payment, 
-        companyName: newTask.company || user?.Profile?.InstituteName || user.name,
-        skillsRequired: newTask.skills,
-        lastDateToSubmit: newTask.deadline,
-        additionalDocumentsURL: newTask.instructions.note, 
-        projectSubmissionFormatURL: "",
-        perks: newTask.perks || "",
-        location: newTask.location || "Remote"
-      };
+      const formData = new FormData();
+      formData.append("title", newTask.title || "");
+      formData.append("description", newTask.instructions?.overview || "");
+      formData.append("instructions", JSON.stringify(newTask.instructions?.steps || []));
+      formData.append("roleOffered", newTask.role || "");
+      formData.append("packageRange", newTask.payment || "Paid");
+      formData.append(
+        "companyName",
+        newTask.company || user?.Profile?.InstituteName || user?.name || "Industry Partner"
+      );
+      formData.append("skillsRequired", JSON.stringify(newTask.skills || []));
+      formData.append("lastDateToSubmit", newTask.deadline || "");
+      formData.append("additionalDocumentsURL", newTask.instructions?.note || "");
+      formData.append("projectSubmissionFormatURL", "");
+      formData.append("perks", newTask.perks || "");
+      formData.append("location", newTask.location || "Remote");
 
-      const response = await api.post('/tasks', payload);
+      if (Array.isArray(newTask.materialsFiles) && newTask.materialsFiles.length > 0) {
+        newTask.materialsFiles.forEach((file) => {
+          formData.append("materials", file);
+        });
+      }
+
+      const response = await api.post('/tasks', formData);
       if (response.data && response.data.data) {
         await fetchAndMapTasks();
-        toast.success("Task created successfully!");
+        toast.success("Task created successfully with materials!");
       }
     } catch (error) {
       console.error("Error creating task:", error);
-      toast.error("Failed to create task");
+      toast.error(error.response?.data?.message || "Failed to create task");
     }
   };
 
   const handleUpdateTask = async (updatedTask) => {
     try {
-      const payload = {
-        title: updatedTask.title,
-        description: updatedTask.instructions.overview,
-        instructions: updatedTask.instructions.steps,
-        roleOffered: updatedTask.role,
-        packageRange: updatedTask.payment,
-        companyName: updatedTask.company || user?.Profile?.InstituteName || user.name,
-        skillsRequired: updatedTask.skills,
-        lastDateToSubmit: updatedTask.deadline,
-        additionalDocumentsURL: updatedTask.instructions.note,
-        perks: updatedTask.perks || "",
-        location: updatedTask.location || "Remote"
-      };
+      const formData = new FormData();
+      formData.append("title", updatedTask.title || "");
+      formData.append("description", updatedTask.instructions?.overview || "");
+      formData.append("instructions", JSON.stringify(updatedTask.instructions?.steps || []));
+      formData.append("roleOffered", updatedTask.role || "");
+      formData.append("packageRange", updatedTask.payment || "Paid");
+      formData.append(
+        "companyName",
+        updatedTask.company || user?.Profile?.InstituteName || user?.name || "Industry Partner"
+      );
+      formData.append("skillsRequired", JSON.stringify(updatedTask.skills || []));
+      formData.append("lastDateToSubmit", updatedTask.deadline || "");
+      formData.append("additionalDocumentsURL", updatedTask.instructions?.note || "");
+      formData.append("perks", updatedTask.perks || "");
+      formData.append("location", updatedTask.location || "Remote");
 
-      await api.put(`/tasks/${updatedTask.id}`, payload);
+      if (updatedTask.existingMaterials !== undefined) {
+        formData.append("existingMaterials", JSON.stringify(updatedTask.existingMaterials));
+      }
+
+      if (Array.isArray(updatedTask.materialsFiles) && updatedTask.materialsFiles.length > 0) {
+        updatedTask.materialsFiles.forEach((file) => {
+          formData.append("materials", file);
+        });
+      }
+
+      await api.put(`/tasks/${updatedTask.id}`, formData);
       await fetchAndMapTasks();
       toast.success("Task updated successfully!");
     } catch (error) {
        console.error("Error updating task:", error);
-       toast.error("Failed to update task");
+       toast.error(error.response?.data?.message || "Failed to update task");
     }
   };
 

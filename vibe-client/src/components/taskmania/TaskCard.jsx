@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -23,18 +22,11 @@ export const TaskCard = ({
   task,
   isSubmitted,
   mentorRequest,
+  onOpenInstructions,
   onOpenApply,
   onOpenMentorRequest,
 }) => {
-  const navigate = useNavigate();
   const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
-  const taskId = task.id || task._id;
-
-  const handleCardClick = () => {
-    if (taskId) {
-      navigate(`/tasks/${taskId}`);
-    }
-  };
 
   return (
     <motion.div
@@ -42,18 +34,7 @@ export const TaskCard = ({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
-      role={taskId ? "button" : undefined}
-      tabIndex={taskId ? 0 : undefined}
-      onClick={handleCardClick}
-      onKeyDown={(e) => {
-        if (taskId && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          handleCardClick();
-        }
-      }}
-      className={`bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:border-[#6D3DF5] hover:shadow-md transition-all relative overflow-hidden group flex flex-col h-full ${
-        taskId ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#6D3DF5]/30" : ""
-      }`}
+      className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-shadow relative overflow-hidden group flex flex-col h-full"
     >
       {/* Decorative Gradient Blob */}
       <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#F3EEFF] rounded-full blur-3xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0" />
@@ -105,7 +86,7 @@ export const TaskCard = ({
           onClick={(e) => {
             e.stopPropagation();
             const companyId = task.companyId || task.createdBy?._id || task.createdBy;
-            if (companyId) navigate(`/profile/${companyId}`);
+            if (companyId) navigate(`/profile/${companyId}?view=company`);
           }}
           className={`flex items-center gap-2 mb-5 mt-3 ${
             task.companyId || task.createdBy
@@ -116,7 +97,7 @@ export const TaskCard = ({
           <div className="p-1.5 bg-[#EDE9FE] text-[#6D3DF5] rounded-lg group-hover/company:bg-[#6D3DF5] group-hover/company:text-white transition-colors">
             <Building2 size={14} />
           </div>
-          <span className="text-sm font-bold text-gray-700 tracking-tight group-hover/company:text-[#6D3DF5] transition-colors">
+          <span className="text-sm font-bold text-gray-700 tracking-tight">
             {task.company}
           </span>
         </div>
@@ -181,7 +162,6 @@ export const TaskCard = ({
                     href={mentorRequest.meetLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
                     className="flex items-center justify-between p-2.5 bg-white border border-green-100 rounded-xl hover:bg-green-50 transition-all group/link shadow-sm"
                   >
                     <div className="flex items-center gap-2">
@@ -204,7 +184,6 @@ export const TaskCard = ({
                           href={res.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
                           className="flex items-center justify-between p-2.5 bg-white border border-gray-100 rounded-xl hover:border-green-200 hover:bg-green-50/30 transition-all group/res"
                         >
                           <div className="flex items-center gap-2">
@@ -243,25 +222,19 @@ export const TaskCard = ({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCardClick();
-            }}
-            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer"
+            onClick={() => onOpenInstructions(task)}
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
           >
             <FileText
               size={16}
               className="group-hover/btn:scale-110 transition-transform"
             />
-            View Details
+            Instructions
           </button>
 
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenMentorRequest(task);
-            }}
-            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer"
+            onClick={() => onOpenMentorRequest(task)}
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
           >
             <UserPlus
               size={16}
@@ -275,7 +248,6 @@ export const TaskCard = ({
           {isSubmitted ? (
             <button
               disabled
-              onClick={(e) => e.stopPropagation()}
               className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
             >
               <Lock size={16} /> Applied
@@ -283,18 +255,16 @@ export const TaskCard = ({
           ) : isClosed ? (
             <button
               disabled
-              onClick={(e) => e.stopPropagation()}
               className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
             >
               <Lock size={16} /> Closed
             </button>
           ) : (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={() => {
                 if (!isClosed) onOpenApply(task);
               }}
-              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2"
             >
               Apply Now <ChevronRight size={16} />
             </button>

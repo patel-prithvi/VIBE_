@@ -40,6 +40,7 @@ export const UnifiedProfileView = ({
   currentUser: propCurrentUser,
   onProfileUpdate,
   onBack,
+  roleOverride,
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -55,11 +56,11 @@ export const UnifiedProfileView = ({
       String(targetUserId) === String(currentUserId)
   );
 
-  // Normalize role
-  const rawRole = (user?.accountType || user?.role || "").trim().toLowerCase();
-  const isStudent = rawRole === "student";
-  const isFaculty = rawRole === "faculty";
-  const isIndustry = rawRole === "industry" || rawRole === "industry expert";
+  // Normalize role (prioritize roleOverride e.g. "industry" or "company" when viewing company profile)
+  const rawRole = (roleOverride || user?.accountType || user?.role || "").trim().toLowerCase();
+  const isIndustry = rawRole === "industry" || rawRole === "industry expert" || rawRole === "company";
+  const isFaculty = !isIndustry && rawRole === "faculty";
+  const isStudent = !isIndustry && !isFaculty;
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState("details");
@@ -1293,7 +1294,7 @@ export const UnifiedProfileView = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (companyId) {
-                              navigate(`/profile/${companyId}`);
+                              navigate(`/profile/${companyId}?view=company`);
                             }
                           }}
                           className={`inline-flex items-center gap-2 text-xs text-[#64748B] ${
@@ -1431,7 +1432,7 @@ export const UnifiedProfileView = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (companyId) {
-                              navigate(`/profile/${companyId}`);
+                              navigate(`/profile/${companyId}?view=company`);
                             }
                           }}
                           className={`inline-flex items-center gap-1.5 text-xs text-[#64748B] ${
@@ -1648,7 +1649,7 @@ export const UnifiedProfileView = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (companyId) {
-                              navigate(`/profile/${companyId}`);
+                              navigate(`/profile/${companyId}?view=company`);
                             }
                           }}
                           className={`inline-flex items-center gap-2 text-xs text-[#64748B] mt-2.5 ${

@@ -20,6 +20,12 @@ import {
   Share2,
   Check,
   Award,
+  Download,
+  Paperclip,
+  FileSpreadsheet,
+  FileArchive,
+  Image,
+  ShieldCheck,
 } from "lucide-react";
 import Avatar from "../components/shared/Avatar";
 import { auth } from "../utils/auth";
@@ -40,10 +46,13 @@ export const TaskDetailsPage = () => {
   const [error, setError] = useState("");
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState(null);
+  const [existingSubmission, setExistingSubmission] = useState(null);
+  const [acceptingTask, setAcceptingTask] = useState(false);
   const [mentorRequest, setMentorRequest] = useState(null);
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isMentorRequestOpen, setIsMentorRequestOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const rawRole = (currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
   const isStudent = rawRole === "student";
@@ -81,6 +90,8 @@ export const TaskDetailsPage = () => {
               ? raw.perks
               : [],
             instructions: Array.isArray(raw.instructions) ? raw.instructions : [],
+            materials: Array.isArray(raw.materials) ? raw.materials : [],
+            isMaterialsUnlocked: Boolean(raw.isMaterialsUnlocked),
           };
           setTask(mapped);
         } else {
@@ -119,6 +130,7 @@ export const TaskDetailsPage = () => {
             if (foundSub) {
               setHasApplied(true);
               setApplicationStatus(foundSub.status || "applied");
+              setExistingSubmission(foundSub);
             }
           }
 
@@ -159,6 +171,27 @@ export const TaskDetailsPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleAcceptTask = async () => {
+    if (!taskId) return;
+    try {
+      setAcceptingTask(true);
+      const res = await api.post(`/submissions/apply/${taskId}`);
+      const subData = res.data?.data;
+      setHasApplied(true);
+      setApplicationStatus(subData?.status || "accepted");
+      setExistingSubmission(subData);
+      setTask((prev) => (prev ? { ...prev, isMaterialsUnlocked: true } : prev));
+      toast.success("Task accepted! Materials have been unlocked.");
+    } catch (err) {
+      console.error("Error accepting task:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to accept task. Please try again."
+      );
+    } finally {
+      setAcceptingTask(false);
+    }
+  };
+
   const handleSubmitApplication = async (tId, formData) => {
     try {
       const payload = {
@@ -173,10 +206,12 @@ export const TaskDetailsPage = () => {
         message: formData.description || "",
       };
 
-      await api.post("/submissions/submit", payload);
+      const res = await api.post("/submissions/submit", payload);
+      const subData = res.data?.data;
       setHasApplied(true);
-      setApplicationStatus("applied");
-      toast.success("Application submitted successfully!");
+      setApplicationStatus("submitted");
+      setExistingSubmission(subData || payload);
+      toast.success("Solution submitted successfully!");
       setIsApplicationOpen(false);
     } catch (error) {
       console.error("Error submitting application:", error);
@@ -189,6 +224,83 @@ export const TaskDetailsPage = () => {
     task &&
     currentUser &&
     String(task.createdBy?._id || task.createdBy) === String(currentUser._id || currentUser.id);
+
+  const hasAcceptedTask = Boolean(
+    hasApplied && applicationStatus && applicationStatus !== "rejected"
+  );
+  const canDownloadMaterials = Boolean(
+    isTaskCreator ||
+    hasAcceptedTask ||
+    task?.isMaterialsUnlocked ||
+    currentUser?.isAdmin ||
+    currentUser?.accountType === "admin"
+  );
+  const isSolutionSubmitted = Boolean(
+    existingSubmission?.repoUrl ||
+    existingSubmission?.videoUrl ||
+    existingSubmission?.driveUrl ||
+    existingSubmission?.projectTitle ||
+    ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(
+      String(applicationStatus || "").toLowerCase()
+    )
+  );
+
+  const formatBytes = (bytes, decimals = 1) => {
+    if (!bytes || bytes === 0) return "0 B";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+  };
+
+  const getFileIcon = (nameOrFormat) => {
+    const ext = (nameOrFormat || "").toLowerCase().split(".").pop();
+    if (["png", "jpg", "jpeg", "svg", "webp", "gif"].includes(ext)) {
+      return <Image size={18} className="text-violet-600" />;
+    }
+    if (["csv", "xlsx", "xls"].includes(ext)) {
+      return <FileSpreadsheet size={18} className="text-emerald-600" />;
+    }
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
+      return <FileArchive size={18} className="text-amber-600" />;
+    }
+    if (["pdf"].includes(ext)) {
+      return <FileText size={18} className="text-rose-600" />;
+    }
+    return <FileText size={18} className="text-blue-600" />;
+  };
+
+  const handleDownloadMaterialsZip = async () => {
+    if (!task?.id && !task?._id) return;
+    const tId = task.id || task._id;
+    setDownloadingZip(true);
+    try {
+      const response = await api.get(`/tasks/${tId}/download-materials`, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      const sanitizedTitle = (task.title || "task").replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.setAttribute("download", `${sanitizedTitle}_materials.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success("Materials ZIP downloaded successfully!");
+    } catch (err) {
+      console.error("Failed to download task materials zip:", err);
+      toast.error(
+        err.response?.data?.message || "Failed to download materials archive. Please try again."
+      );
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
 
   const companyId = task?.createdBy?._id || task?.createdBy;
   const companyUser = task?.createdBy && typeof task.createdBy === "object" ? task.createdBy : null;
@@ -302,7 +414,7 @@ export const TaskDetailsPage = () => {
                 <div className="flex flex-wrap items-center gap-4 pt-2 pb-6 border-b border-[#F1F5F9]">
                   <div
                     onClick={() => {
-                      if (companyId) navigate(`/profile/${companyId}`);
+                      if (companyId) navigate(`/profile/${companyId}?view=company`);
                     }}
                     className={`flex items-center gap-2.5 group cursor-pointer`}
                     title={companyId ? `View ${companyName}'s profile` : undefined}
@@ -477,6 +589,160 @@ export const TaskDetailsPage = () => {
                   </div>
                 </div>
               )}
+
+              {/* Required Task Materials & Assets Card */}
+              {task.materials && task.materials.length > 0 && (
+                <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E1E8F2] shadow-xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                          canDownloadMaterials
+                            ? "bg-[#F3EEFF] text-[#6D3DF5]"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {canDownloadMaterials ? <Paperclip size={20} /> : <Lock size={20} />}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base text-[#0F172A] flex items-center gap-2">
+                          <span>Required Task Materials</span>
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-[#EDE9FE] text-[#6D3DF5]">
+                            {task.materials.length} {task.materials.length === 1 ? "file" : "files"}
+                          </span>
+                        </h3>
+                        <p className="text-xs text-[#64748B]">
+                          {canDownloadMaterials
+                            ? "Download all required materials (logos, CSV datasets, PDF briefs) in a single ZIP."
+                            : "Proprietary task assets are protected and unlock automatically once you are accepted."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canDownloadMaterials ? (
+                      <button
+                        onClick={handleDownloadMaterialsZip}
+                        disabled={downloadingZip}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold shadow-md shadow-[#6D3DF5]/20 hover:shadow-lg transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed shrink-0"
+                      >
+                        {downloadingZip ? (
+                          <>
+                            <Loader2 size={15} className="animate-spin" />
+                            <span>Creating ZIP...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download size={15} />
+                            <span>Download All (.zip)</span>
+                          </>
+                        )}
+                      </button>
+                    ) : isStudent && !isClosed ? (
+                      <button
+                        onClick={handleAcceptTask}
+                        disabled={acceptingTask}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold shadow-md shadow-[#6D3DF5]/20 hover:shadow-lg transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                      >
+                        {acceptingTask ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Accepting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={14} />
+                            <span>Accept Task to Unlock</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold shrink-0">
+                        <Lock size={12} className="text-amber-600" />
+                        <span>Locked Until Accepted</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* List of Material Items */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {task.materials.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                          canDownloadMaterials
+                            ? "bg-[#F8FAFC] border-slate-200/80 hover:border-[#6D3DF5]/40 hover:bg-[#FAF8FF]"
+                            : "bg-slate-50/70 border-slate-200/50 opacity-80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-center shrink-0">
+                            {getFileIcon(file.name || file.format)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate" title={file.name}>
+                              {file.name || "Task Attachment"}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {file.size ? formatBytes(file.size) : "Attached asset"} • {file.format ? file.format.toUpperCase() : "FILE"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {canDownloadMaterials && file.url ? (
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg text-slate-400 hover:text-[#6D3DF5] hover:bg-white transition-colors"
+                            title="Open / Download individual file"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        ) : (
+                          <Lock size={14} className="text-slate-400 mr-1.5" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {!canDownloadMaterials && (
+                    <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-600">
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck size={16} className="text-[#6D3DF5] shrink-0" />
+                        <span>
+                          Accept this challenge to unlock and download all required task materials (logos, CSV datasets, PDF briefs) in a bundled ZIP.
+                        </span>
+                      </div>
+                      {isStudent && !isClosed && (
+                        <button
+                          onClick={handleAcceptTask}
+                          disabled={acceptingTask}
+                          className="px-4 py-1.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white font-bold text-xs transition-colors cursor-pointer shrink-0"
+                        >
+                          {acceptingTask ? "Accepting..." : "Accept Now"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {canDownloadMaterials && (
+                    <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between gap-2 text-xs text-emerald-800 font-medium">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        <span>Task accepted! All task materials are unlocked and ready to download.</span>
+                      </div>
+                      <button
+                        onClick={handleDownloadMaterialsZip}
+                        disabled={downloadingZip}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                      >
+                        <Download size={13} />
+                        <span>Download ZIP</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right Column: Actions & Company Summary */}
@@ -488,32 +754,94 @@ export const TaskDetailsPage = () => {
                 {/* Student specific action buttons */}
                 {isStudent && (
                   <div className="space-y-3">
-                    {hasApplied ? (
-                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-2">
-                          <CheckCircle2 size={18} />
+                    {!hasAcceptedTask ? (
+                      isClosed ? (
+                        <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-center">
+                          <Lock size={18} className="text-slate-500 mx-auto mb-1.5" />
+                          <p className="text-xs font-bold text-slate-700">Submissions Closed</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">The deadline has passed.</p>
                         </div>
-                        <p className="text-xs font-bold text-emerald-800">
-                          Application Submitted
-                        </p>
-                        <p className="text-[11px] text-emerald-600 mt-0.5 capitalize">
-                          Status: {applicationStatus ? applicationStatus.replace("_", " ") : "Under Review"}
-                        </p>
-                      </div>
-                    ) : isClosed ? (
-                      <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-center">
-                        <Lock size={18} className="text-slate-500 mx-auto mb-1.5" />
-                        <p className="text-xs font-bold text-slate-700">Submissions Closed</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">The deadline has passed.</p>
-                      </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <button
+                            onClick={handleAcceptTask}
+                            disabled={acceptingTask}
+                            className="w-full py-3.5 px-4 rounded-2xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white font-bold text-xs shadow-md shadow-[#6D3DF5]/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                          >
+                            {acceptingTask ? (
+                              <>
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Accepting Task...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={16} />
+                                <span>Accept Task & Unlock Materials</span>
+                              </>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-[#64748B] text-center">
+                            Accept to access datasets, starter code, and submit your final solution.
+                          </p>
+                        </div>
+                      )
                     ) : (
-                      <button
-                        onClick={() => setIsApplicationOpen(true)}
-                        className="w-full py-3 px-4 rounded-2xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span>Apply For Task</span>
-                        <ChevronRight size={15} />
-                      </button>
+                      <div className="space-y-3">
+                        {isSolutionSubmitted ? (
+                          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-2">
+                              <CheckCircle2 size={18} />
+                            </div>
+                            <p className="text-xs font-bold text-emerald-800">
+                              Solution Submitted
+                            </p>
+                            <p className="text-[11px] text-emerald-600 mt-0.5 capitalize">
+                              Status: {applicationStatus ? applicationStatus.replace("_", " ") : "Under Review"}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-2xl bg-[#F4F0FF] border border-[#DDD6FE] text-center">
+                            <div className="w-8 h-8 rounded-full bg-[#EDE9FE] text-[#6D3DF5] flex items-center justify-center mx-auto mb-2">
+                              <CheckCircle2 size={18} />
+                            </div>
+                            <p className="text-xs font-bold text-[#5B2FD6]">
+                              Task Accepted & In Progress
+                            </p>
+                            <p className="text-[11px] text-[#64748B] mt-0.5">
+                              Download the materials, build your solution, and submit your project when ready.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Direct Download button if materials exist */}
+                        {task.materials && task.materials.length > 0 && (
+                          <button
+                            onClick={handleDownloadMaterialsZip}
+                            disabled={downloadingZip}
+                            className="w-full py-2.5 px-3 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                          >
+                            {downloadingZip ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Download size={14} />
+                            )}
+                            <span>Download Materials (.zip)</span>
+                          </button>
+                        )}
+
+                        {/* Submit / Update Solution Button */}
+                        <button
+                          onClick={() => setIsApplicationOpen(true)}
+                          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            isSolutionSubmitted
+                              ? "bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0]"
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          }`}
+                        >
+                          <FileText size={14} className={isSolutionSubmitted ? "text-[#6D3DF5]" : "text-white"} />
+                          <span>{isSolutionSubmitted ? "Update Submitted Solution" : "Submit Solution / Project"}</span>
+                        </button>
+                      </div>
                     )}
 
                     {/* Mentorship Request Button for Students */}
@@ -559,15 +887,33 @@ export const TaskDetailsPage = () => {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] block">
                     Posted By
                   </span>
-                  <div className="flex items-center gap-3">
+                  <div
+                    onClick={() => {
+                      if (companyId) navigate(`/profile/${companyId}?view=company`);
+                    }}
+                    className={`flex items-center gap-3 p-2 rounded-2xl -mx-2 hover:bg-[#F8FAFC] transition-colors ${
+                      companyId ? "cursor-pointer group" : ""
+                    }`}
+                    title={companyId ? `View ${companyName}'s company profile` : undefined}
+                  >
                     <Avatar
                       name={companyName}
                       src={companyAvatar}
-                      className="w-12 h-12 rounded-2xl object-cover ring-2 ring-[#F1F5F9] shrink-0"
+                      className="w-12 h-12 rounded-2xl object-cover ring-2 ring-[#F1F5F9] group-hover:ring-[#6D3DF5] transition-all shrink-0"
                       initialsClassName="text-sm font-bold text-white"
                     />
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-sm text-[#0F172A] truncate">{companyName}</h4>
+                      <div className="flex items-center gap-1">
+                        <h4 className="font-bold text-sm text-[#0F172A] group-hover:text-[#6D3DF5] transition-colors truncate">
+                          {companyName}
+                        </h4>
+                        {companyId && (
+                          <ChevronRight
+                            size={14}
+                            className="text-[#94A3B8] group-hover:text-[#6D3DF5] group-hover:translate-x-0.5 transition-all"
+                          />
+                        )}
+                      </div>
                       <p className="text-xs text-[#64748B] truncate">
                         {companyUser?.Profile?.position || "Verified Company"}
                       </p>
@@ -576,7 +922,7 @@ export const TaskDetailsPage = () => {
 
                   {companyId && (
                     <button
-                      onClick={() => navigate(`/profile/${companyId}`)}
+                      onClick={() => navigate(`/profile/${companyId}?view=company`)}
                       className="w-full py-2 px-3 rounded-xl bg-[#F8FAFC] hover:bg-[#F2ECFF] text-xs font-bold text-[#6D3DF5] border border-[#E2E8F0] transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
                     >
                       <Building2 size={13} />
@@ -597,6 +943,7 @@ export const TaskDetailsPage = () => {
           onClose={() => setIsApplicationOpen(false)}
           task={task}
           onSubmit={handleSubmitApplication}
+          existingData={existingSubmission}
         />
       )}
 

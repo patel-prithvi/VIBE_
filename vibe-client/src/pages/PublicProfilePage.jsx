@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, AlertCircle, Home } from "lucide-react";
 import { auth } from "../utils/auth";
 import api from "../services/api";
@@ -8,8 +8,13 @@ import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 
 export const PublicProfilePage = () => {
   const { userId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const currentUser = auth.getCurrentUser();
+
+  const forcedView = searchParams.get("view") || searchParams.get("role");
+  const roleOverride =
+    forcedView === "company" || forcedView === "industry" ? "industry" : null;
 
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,6 +120,7 @@ export const PublicProfilePage = () => {
             currentUser={currentUser}
             onProfileUpdate={setProfileUser}
             onBack={() => navigate(-1)}
+            roleOverride={roleOverride}
           />
         )}
       </main>
