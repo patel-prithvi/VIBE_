@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -26,7 +27,9 @@ export const TaskCard = ({
   onOpenApply,
   onOpenMentorRequest,
 }) => {
+  const navigate = useNavigate();
   const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
+  const taskId = task.id || task._id;
 
   return (
     <motion.div
@@ -77,7 +80,12 @@ export const TaskCard = ({
           </div>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-[#6D3DF5] transition-colors line-clamp-2">
+        <h3
+          onClick={() => {
+            if (taskId) navigate(`/tasks/${taskId}`);
+          }}
+          className="text-xl font-bold text-gray-900 mb-1 group-hover:text-[#6D3DF5] transition-colors line-clamp-2 cursor-pointer"
+        >
           {task.title}
         </h3>
 
@@ -222,8 +230,15 @@ export const TaskCard = ({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button
-            onClick={() => onOpenInstructions(task)}
-            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof onOpenInstructions === "function") {
+                onOpenInstructions(task);
+              } else if (taskId) {
+                navigate(`/tasks/${taskId}`);
+              }
+            }}
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer"
           >
             <FileText
               size={16}
@@ -233,8 +248,13 @@ export const TaskCard = ({
           </button>
 
           <button
-            onClick={() => onOpenMentorRequest(task)}
-            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof onOpenMentorRequest === "function") {
+                onOpenMentorRequest(task);
+              }
+            }}
+            className="px-3 py-2.5 text-sm font-medium text-[#6D3DF5] border border-[#E9E1FF] rounded-xl transition-all flex items-center justify-center gap-2 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer"
           >
             <UserPlus
               size={16}
@@ -248,6 +268,7 @@ export const TaskCard = ({
           {isSubmitted ? (
             <button
               disabled
+              onClick={(e) => e.stopPropagation()}
               className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
             >
               <Lock size={16} /> Applied
@@ -255,16 +276,20 @@ export const TaskCard = ({
           ) : isClosed ? (
             <button
               disabled
+              onClick={(e) => e.stopPropagation()}
               className="px-3 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 border border-gray-200"
             >
               <Lock size={16} /> Closed
             </button>
           ) : (
             <button
-              onClick={() => {
-                if (!isClosed) onOpenApply(task);
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isClosed && typeof onOpenApply === "function") {
+                  onOpenApply(task);
+                }
               }}
-              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2"
+              className="px-3 py-2.5 text-sm font-medium text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               Apply Now <ChevronRight size={16} />
             </button>

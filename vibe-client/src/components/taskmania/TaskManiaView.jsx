@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Filter, Briefcase } from 'lucide-react';
 import { TaskCard } from './TaskCard';
+import { InstructionModal } from './InstructionModal';
 import { ApplicationFormModal } from './ApplicationFormModal';
 import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
 import { useToast } from '../Toast';
 
 export const TaskManiaView = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [tasks, setTasks] = useState([]);
+  const [selectedTaskForInstructions, setSelectedTaskForInstructions] = useState(null);
   const [searchQuery, setSearchQuery] = useState(
     () => sessionStorage.getItem('vibe_taskmania_search') || ''
   );
@@ -96,6 +100,10 @@ export const TaskManiaView = () => {
     
     return matchesSearch && matchesCategory && matchesMode;
   });
+
+  const handleOpenInstructions = (task) => {
+    setSelectedTaskForInstructions(task);
+  };
 
   const handleOpenApply = (task) => {
     setSelectedTask(task);
@@ -234,6 +242,7 @@ export const TaskManiaView = () => {
                 task={task}
                 isSubmitted={submittedTasks.includes(task.id)}
                 mentorRequest={mentorRequests.find(req => String(req.task?._id || req.task) === task.id)}
+                onOpenInstructions={handleOpenInstructions}
                 onOpenApply={handleOpenApply}
                 onOpenMentorRequest={handleOpenMentorRequest}
               />
@@ -250,6 +259,20 @@ export const TaskManiaView = () => {
       )}
 
       {/* Modals */}
+      <InstructionModal
+        isOpen={Boolean(selectedTaskForInstructions)}
+        onClose={() => setSelectedTaskForInstructions(null)}
+        task={selectedTaskForInstructions}
+        onViewDetails={(task) => {
+          setSelectedTaskForInstructions(null);
+          navigate(`/tasks/${task.id || task._id}`);
+        }}
+        onOpenApply={(task) => {
+          setSelectedTaskForInstructions(null);
+          handleOpenApply(task);
+        }}
+      />
+
       <ApplicationFormModal
         isOpen={isApplicationOpen}
         onClose={() => setIsApplicationOpen(false)}
