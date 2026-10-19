@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Filter, Briefcase } from 'lucide-react';
@@ -8,6 +8,7 @@ import { ApplicationFormModal } from './ApplicationFormModal';
 import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
 import { useToast } from '../Toast';
+import { useSmartPolling } from '../../hooks/useSmartPolling';
 
 export const TaskManiaView = () => {
   const navigate = useNavigate();
@@ -34,59 +35,73 @@ export const TaskManiaView = () => {
   const categories = ['All', 'Development', 'Design', 'AI/ML', 'Web Development', 'Healthcare'];
   const modes = ['All', 'Remote', 'Onsite', 'Hybrid'];
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
+  const fetchTasks = useCallback(async (isBackground = false) => {
+    try {
+      if (!isBackground) {
         setLoading(true);
-        const [tasksRes, subsRes, mentorRequestsRes] = await Promise.all([
-          api.get('/tasks'),
-          api.get('/submissions/me'),
-          api.get('/mentor-requests/my-requests')
-        ]);
+      }
+      const [tasksRes, subsRes, mentorRequestsRes] = await Promise.all([
+        api.get('/tasks'),
+        api.get('/submissions/me'),
+        api.get('/mentor-requests/my-requests')
+      ]);
 
-        if (tasksRes.data && tasksRes.data.data) {
-          const mappedTasks = tasksRes.data.data.map(task => ({
-            id: task._id,
-            title: task.title,
-            // Use real companyName from DB; fall back to creator name if empty
-            company: (task.companyName && task.companyName.trim())
-              ? task.companyName.trim()
-              : (task.createdBy?.name || 'Unknown Company'),
-            companyId: task.createdBy?._id || task.createdBy,
-            createdBy: task.createdBy,
-            role: task.roleOffered,
-            category: 'Development',
-            mode: task.location || 'Remote',
-            paid: task.packageRange !== 'Unpaid',
-            deadline: new Date(task.lastDateToSubmit).toLocaleDateString(),
-            deadlineTs: new Date(task.lastDateToSubmit).getTime(),
-            tags: task.skillsRequired || [],
-            // Use real perks from DB (stored as comma-separated string)
-            perks: (task.perks && task.perks.trim())
-              ? task.perks.split(',').map(p => p.trim()).filter(Boolean)
-              : [],
-            description: task.description,
-            instructions: task.instructions || []
-          }));
-          setTasks(mappedTasks);
-        }
+      if (tasksRes.data && tasksRes.data.data) {
+        const mappedTasks = tasksRes.data.data.map(task => ({
+          id: task._id,
+          title: task.title,
+          // Use real companyName from DB; fall back to creator name if empty
+          company: (task.companyName && task.companyName.trim())
+            ? task.companyName.trim()
+            : (task.createdBy?.name || 'Unknown Company'),
+          companyId: task.createdBy?._id || task.createdBy,
+          createdBy: task.createdBy,
+          role: task.roleOffered,
+          category: 'Development',
+          mode: task.location || 'Remote',
+          paid: task.packageRange !== 'Unpaid',
+          deadline: new Date(task.lastDateToSubmit).toLocaleDateString(),
+          deadlineTs: new Date(task.lastDateToSubmit).getTime(),
+          tags: task.skillsRequired || [],
+          // Use real perks from DB (stored as comma-separated string)
+          perks: (task.perks && task.perks.trim())
+            ? task.perks.split(',').map(p => p.trim()).filter(Boolean)
+            : [],
+          description: task.description,
+          instructions: task.instructions || []
+        }));
+        setTasks(mappedTasks);
+      }
 
-        if (subsRes.data && Array.isArray(subsRes.data.data)) {
-          setUserSubmissions(subsRes.data.data);
-        }
+      if (subsRes.data && Array.isArray(subsRes.data.data)) {
+        setUserSubmissions(subsRes.data.data);
+      }
 
-        if (mentorRequestsRes.data && Array.isArray(mentorRequestsRes.data.data)) {
-          setMentorRequests(mentorRequestsRes.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-      } finally {
+      if (mentorRequestsRes.data && Array.isArray(mentorRequestsRes.data.data)) {
+        setMentorRequests(mentorRequestsRes.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    } finally {
+      if (!isBackground) {
         setLoading(false);
       }
-    };
-
-    fetchTasks();
+    }
   }, []);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchTasks(false);
+  }, [fetchTasks]);
+
+  // Smart polling every 30s (visibility-aware, refetches on focus)
+  useSmartPolling(() => fetchTasks(true), {
+    intervalMs: 30000,
+    enabled: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    pauseWhenHidden: true,
+  });
 
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
