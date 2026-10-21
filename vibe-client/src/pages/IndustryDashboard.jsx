@@ -9,6 +9,8 @@ import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
 import { Profile } from '../components/industry/Profile';
 import { UnifiedProfileView } from '../components/profile/UnifiedProfileView';
+import { SettingsView } from '../components/settings/SettingsView';
+import { StudentBookmarksView } from '../components/student/StudentBookmarksView';
 import { MobileBottomNav } from '../components/shared/MobileBottomNav';
 import { auth } from '../utils/auth';
 import api from '../services/api';
@@ -39,6 +41,75 @@ const IndustryDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [applicants, setApplicants] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      setLoadingBookmarks(true);
+      const bmRes = await api.get("/posts/bookmarks").catch(() => ({ data: { data: [] } }));
+
+      if (bmRes.data && bmRes.data.data) {
+        const bmList = bmRes.data.data.map((post) => ({
+          id: post._id,
+          _id: post._id,
+          author: {
+            name: post.author?.name || "Unknown",
+            role: post.author?.accountType || "Industry",
+            accountType: post.author?.accountType || "Industry",
+            avatar: post.author?.ImageUrl || `https://picsum.photos/seed/${post.author?._id || "default"}/200`,
+            verified: true,
+            details: "Industry Partner",
+          },
+          time: new Date(post.createdAt).toLocaleDateString(),
+          createdAt: post.createdAt,
+          title: post.title,
+          content: post.content,
+          attachments: post.attachments || [],
+          vibes: post.vibes || {},
+          vibeCount: post.vibes ? Object.keys(post.vibes).length : 0,
+          commentCount: post.comments?.length || 0,
+          comments: post.comments || [],
+          shares: 0,
+          repostOf: post.repostOf || null,
+          repostComment: post.repostComment || "",
+          repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
+        }));
+        setBookmarkedPosts(bmList);
+        setBookmarkedIds(new Set(bmList.map((p) => String(p.id))));
+      }
+
+
+    } catch (err) {
+      console.error("Error fetching bookmarks in IndustryDashboard:", err);
+    } finally {
+      setLoadingBookmarks(false);
+    }
+  }, []);
+
+  const handleToggleBookmark = async (postId) => {
+    try {
+      const pId = String(postId);
+      const isCurrentlyBookmarked = bookmarkedIds.has(pId);
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.delete(pId);
+        else next.add(pId);
+        return next;
+      });
+
+      if (isCurrentlyBookmarked) {
+        setBookmarkedPosts((prev) => prev.filter((p) => String(p.id || p._id) !== pId));
+      }
+
+      await api.post("/posts/bookmark", { postId: pId });
+      toast.success(isCurrentlyBookmarked ? "Bookmark removed" : "Post bookmarked");
+    } catch (err) {
+      console.error("Error toggling post bookmark:", err);
+      toast.error("Failed to update bookmark");
+    }
+  };
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -144,7 +215,8 @@ const IndustryDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchBookmarks();
+  }, [fetchData, fetchBookmarks]);
 
   // Smart polling every 30s (visibility-aware, refetches on focus)
   useSmartPolling(fetchData, {
@@ -355,6 +427,26 @@ const IndustryDashboard = () => {
             currentUser={user}
             onProfileUpdate={setUser}
             onBack={() => handleSectionChange('overview')}
+            onNavigateToSettings={() => handleSectionChange('settings')}
+          />
+        );
+      case 'settings':
+        return (
+          <SettingsView
+            user={user}
+            onProfileUpdate={setUser}
+            onBack={() => handleSectionChange('overview')}
+          />
+        );
+      case 'bookmarks':
+        return (
+          <StudentBookmarksView
+            user={user}
+            bookmarkedPosts={bookmarkedPosts}
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={handleToggleBookmark}
+            onBackToFeed={() => handleSectionChange('community')}
+            loadingPosts={loadingBookmarks}
           />
         );
       default:
@@ -369,7 +461,7 @@ const IndustryDashboard = () => {
   };
 
   // Wide views (tasks, profile) get a 2-column layout; home views get the 3-column faculty shell
-  const isWideView = activeTab === 'tasks' || activeTab === 'profile';
+  const isWideView = activeTab === 'tasks' || activeTab === 'profile' || activeTab === 'bookmarks' || activeTab === 'settings';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">

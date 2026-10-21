@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Settings,
   Home,
   Users,
   FileText,
@@ -37,12 +38,13 @@ export const MobileBottomNav = ({
   const isCommunityActive = activeView === "community";
   const isBookmarksActive = activeView === "bookmarks";
   const isProfileActive = activeView === "profile";
+  const isSettingsActive = activeView === "settings";
 
   // Check if active view is one of the secondary items inside "More"
   const isMoreActive =
     role === "student"
-      ? isBookmarksActive || isProfileActive
-      : false;
+      ? isBookmarksActive || isProfileActive || isSettingsActive
+      : isSettingsActive;
 
   const handleTabClick = (viewId) => {
     setIsMoreOpen(false);
@@ -389,6 +391,23 @@ export const MobileBottomNav = ({
                   <ChevronRight size={16} className="text-[#94A3B8]" />
                 </button>
               )}
+
+              {/* Settings Navigation Item (Mobile) */}
+              <button
+                type="button"
+                onClick={() => handleTabClick("settings")}
+                className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-all ${
+                  isSettingsActive
+                    ? "bg-[#F3EEFF] text-[#6D3DF5] font-bold"
+                    : "text-[#1E293B] hover:bg-[#F8FAFC]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Settings size={18} className={isSettingsActive ? "text-[#6D3DF5]" : "text-[#64748B]"} />
+                  <span>Settings</span>
+                </div>
+                <ChevronRight size={16} className="text-[#94A3B8]" />
+              </button>
 
               {/* Logout Button */}
               <div className="pt-2 mt-2 border-t border-[#F1F5F9]">

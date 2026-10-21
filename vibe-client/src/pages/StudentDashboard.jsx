@@ -10,6 +10,7 @@ import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { VirtualCVView } from "../components/student/VirtualCVView";
 import { TaskManiaView } from "../components/taskmania/TaskManiaView";
+import { SettingsView } from "../components/settings/SettingsView";
 import { MyMentorRequestsView } from "../components/student/MyMentorRequestsView";
 import { StudentBookmarksView } from "../components/student/StudentBookmarksView";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
@@ -44,6 +45,36 @@ const StudentDashboard = () => {
   const [posts, setPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const [bookmarkedTasks, setBookmarkedTasks] = useState([]);
+  const [bookmarkedTaskIds, setBookmarkedTaskIds] = useState(new Set());
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  
+  const mapTaskManiaTask = (task) => ({
+    id: task._id || task.id,
+    _id: task._id || task.id,
+    title: task.title,
+    company: (task.companyName && task.companyName.trim())
+      ? task.companyName.trim()
+      : (task.createdBy?.name || "Unknown Company"),
+    companyId: task.createdBy?._id || task.createdBy,
+    createdBy: task.createdBy,
+    role: task.roleOffered,
+    category: task.category || "Development",
+    mode: task.location || "Remote",
+    paid: task.packageRange !== "Unpaid",
+    deadline: new Date(task.lastDateToSubmit).toLocaleDateString(),
+    deadlineTs: new Date(task.lastDateToSubmit).getTime(),
+    tags: task.skillsRequired || [],
+    perks: (task.perks && typeof task.perks === "string" && task.perks.trim())
+      ? task.perks.split(",").map((p) => p.trim()).filter(Boolean)
+      : Array.isArray(task.perks)
+      ? task.perks
+      : [],
+    description: task.description,
+    instructions: task.instructions || [],
+    submissions: task.submissions || [],
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState("");
@@ -94,6 +125,9 @@ const StudentDashboard = () => {
           commentCount: post.comments?.length || 0,
           comments: post.comments || [],
           shares: 4,
+          repostOf: post.repostOf || null,
+          repostComment: post.repostComment || "",
+          repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
         }));
         setPosts(mappedPosts);
       } else {
@@ -128,9 +162,24 @@ const StudentDashboard = () => {
             commentCount: post.comments?.length || 0,
             comments: post.comments || [],
             shares: 4,
+            repostOf: post.repostOf || null,
+            repostComment: post.repostComment || "",
+            repostCount: post.repostCount || (Array.isArray(post.reposts) ? post.reposts.length : 0),
           }));
           setBookmarkedPosts(bmList);
           setBookmarkedIds(new Set(bmList.map((p) => p.id)));
+        }
+
+        // Fetch task bookmarks
+        try {
+          const taskBmRes = await api.get("/tasks/bookmarks");
+          if (taskBmRes.data && Array.isArray(taskBmRes.data.data)) {
+            const mappedTasks = taskBmRes.data.data.map(mapTaskManiaTask);
+            setBookmarkedTasks(mappedTasks);
+            setBookmarkedTaskIds(new Set(mappedTasks.map((t) => String(t.id || t._id))));
+          }
+        } catch (tErr) {
+          console.warn("Could not fetch task bookmarks:", tErr);
         }
       } catch (bmErr) {
         console.warn("Could not fetch student bookmarks:", bmErr);
@@ -149,6 +198,67 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchPostsAndBookmarks(false);
+
+    const handleDeleted = (e) => {
+      const { postId } = e.detail || {};
+      if (postId) {
+        setPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+        setBookmarkedPosts((prev) => prev.filter((p) => (p.id || p._id) !== postId));
+      }
+    };
+
+    const handleUpdated = (e) => {
+      const { post: updated } = e.detail || {};
+      if (updated) {
+        const uId = updated._id || updated.id;
+        setPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+        setBookmarkedPosts((prev) =>
+          prev.map((p) =>
+            (p.id || p._id) === uId
+              ? {
+                  ...p,
+                  title: updated.title,
+                  content: updated.content,
+                  category: updated.category,
+                  tags: Array.isArray(updated.tags) ? updated.tags : p.tags,
+                  attachments: Array.isArray(updated.attachments)
+                    ? updated.attachments
+                    : p.attachments,
+                }
+              : p
+          )
+        );
+      }
+    };
+
+    const handleReposted = () => {
+      fetchPostsAndBookmarks(true);
+    };
+
+    window.addEventListener("vibe:post_deleted", handleDeleted);
+    window.addEventListener("vibe:post_updated", handleUpdated);
+    window.addEventListener("vibe:post_reposted", handleReposted);
+
+    return () => {
+      window.removeEventListener("vibe:post_deleted", handleDeleted);
+      window.removeEventListener("vibe:post_updated", handleUpdated);
+      window.removeEventListener("vibe:post_reposted", handleReposted);
+    };
   }, [fetchPostsAndBookmarks]);
 
   // Smart polling every 45s (visibility-aware, refetches on focus)
@@ -188,6 +298,40 @@ const StudentDashboard = () => {
     }
   };
 
+  
+  const handleToggleTaskBookmark = async (taskId, fullTask = null) => {
+    try {
+      const tId = String(taskId);
+      const isCurrentlyBookmarked = bookmarkedTaskIds.has(tId);
+
+      setBookmarkedTaskIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.delete(tId);
+        else next.add(tId);
+        return next;
+      });
+
+      if (isCurrentlyBookmarked) {
+        setBookmarkedTasks((prev) => prev.filter((t) => String(t.id || t._id) !== tId));
+      } else if (fullTask) {
+        setBookmarkedTasks((prev) => [mapTaskManiaTask(fullTask), ...prev]);
+      }
+
+      await api.post("/tasks/bookmark", { taskId: tId });
+      toast.success(isCurrentlyBookmarked ? "Task removed from bookmarks" : "Task bookmarked successfully");
+
+      const refetchRes = await api.get("/tasks/bookmarks");
+      if (refetchRes.data?.data && Array.isArray(refetchRes.data.data)) {
+        const mapped = refetchRes.data.data.map(mapTaskManiaTask);
+        setBookmarkedTasks(mapped);
+        setBookmarkedTaskIds(new Set(mapped.map((t) => String(t.id || t._id))));
+      }
+    } catch (err) {
+      console.error("Error toggling task bookmark:", err);
+      toast.error("Failed to update task bookmark");
+    }
+  };
+
   const handleToggleBookmark = async (postId) => {
     try {
       const isCurrentlyBookmarked = bookmarkedIds.has(postId);
@@ -219,7 +363,12 @@ const StudentDashboard = () => {
   const renderContent = () => {
     switch (activeView) {
       case "taskmania":
-        return <TaskManiaView />;
+        return (
+          <TaskManiaView
+            bookmarkedTaskIds={bookmarkedTaskIds}
+            onToggleTaskBookmark={handleToggleTaskBookmark}
+          />
+        );
       case "mentorship":
       case "requests":
         return (
@@ -233,6 +382,15 @@ const StudentDashboard = () => {
           <UnifiedProfileView
             user={user}
             currentUser={user}
+            onProfileUpdate={setUser}
+            onBack={() => handleSectionChange("home")}
+            onNavigateToSettings={() => handleSectionChange("settings")}
+          />
+        );
+      case "settings":
+        return (
+          <SettingsView
+            user={user}
             onProfileUpdate={setUser}
             onBack={() => handleSectionChange("home")}
           />
@@ -252,7 +410,13 @@ const StudentDashboard = () => {
             bookmarkedPosts={bookmarkedPosts}
             bookmarkedIds={bookmarkedIds}
             onToggleBookmark={handleToggleBookmark}
+            bookmarkedTasks={bookmarkedTasks}
+            bookmarkedTaskIds={bookmarkedTaskIds}
+            onToggleTaskBookmark={handleToggleTaskBookmark}
             onBackToFeed={() => handleSectionChange("home")}
+            onNavigateToTaskMania={() => handleSectionChange("taskmania")}
+            loadingPosts={loadingPosts}
+            loadingTasks={loadingTasks}
           />
         );
       case "posts":

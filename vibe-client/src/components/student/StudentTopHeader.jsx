@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, ChevronDown, LogOut, User, Menu } from "lucide-react";
+import { MessageSquare, ChevronDown, LogOut, User, Menu, Bookmark, Settings } from "lucide-react";
 import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
 import { NotificationBell } from "../shared/NotificationBell";
@@ -71,7 +71,7 @@ export const StudentTopHeader = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2.5 pl-1.5 pr-2 py-1 hover:bg-[#F8FAFC] rounded-xl transition-all"
+              className="flex items-center gap-2.5 pl-1.5 pr-2 py-1 hover:bg-[#F8FAFC] rounded-xl transition-all cursor-pointer"
             >
               <div className="relative flex-shrink-0">
                 <Avatar
@@ -94,27 +94,51 @@ export const StudentTopHeader = ({
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-[#E2E8F0] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 mt-2 w-52 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-[#E2E8F0] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-3.5 py-2 border-b border-[#F1F5F9]">
                   <p className="text-xs font-bold text-[#0F172A] truncate">{displayName}</p>
                   <p className="text-[11px] text-[#64748B] truncate">{user?.email || "student@vibe.dev"}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
                     if (onNavigate) onNavigate("profile");
                   }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#334155] hover:bg-[#F8FAFC] hover:text-[#6D3DF5] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#334155] hover:bg-[#F8FAFC] hover:text-[#6D3DF5] transition-colors text-left cursor-pointer"
                 >
                   <User size={15} />
                   My Profile
                 </button>
                 <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    if (onNavigate) onNavigate("bookmarks");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#334155] hover:bg-[#F8FAFC] hover:text-[#6D3DF5] transition-colors text-left cursor-pointer"
+                >
+                  <Bookmark size={15} />
+                  My Bookmarks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    if (onNavigate) onNavigate("settings");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#334155] hover:bg-[#F8FAFC] hover:text-[#6D3DF5] transition-colors text-left cursor-pointer"
+                >
+                  <Settings size={15} />
+                  Settings
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
                     if (onLogout) onLogout();
                   }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#EF4444] hover:bg-[#FEF2F2] transition-colors text-left border-t border-[#F1F5F9]"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#EF4444] hover:bg-[#FEF2F2] transition-colors text-left border-t border-[#F1F5F9] cursor-pointer"
                 >
                   <LogOut size={15} />
                   Logout

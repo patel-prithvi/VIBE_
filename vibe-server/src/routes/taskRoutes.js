@@ -8,6 +8,8 @@ import {
   updateTask,
   deleteTask,
   downloadTaskMaterialsZip,
+  toggleTaskBookmark,
+  getBookmarkedTasks,
 // sendSampleTask,
 } from "../Controllers/task.controller.js";
 
@@ -26,6 +28,10 @@ router.post("/", verifyJWT, upload.array("materials", 10), createTask);
 router.get("/:id/download-materials", verifyJWT, downloadTaskMaterialsZip);
 
 // keep :id routes at the bottom
+// Task bookmarks (placed before /:id)
+router.post("/bookmark", verifyJWT, toggleTaskBookmark);
+router.get("/bookmarks", verifyJWT, getBookmarkedTasks);
+
 router.get("/:id", verifyJWT, getTaskById);
 router.put("/:id", verifyJWT, upload.array("materials", 10), updateTask);
 router.delete("/:id", verifyJWT, deleteTask);
