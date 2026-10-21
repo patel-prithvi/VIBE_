@@ -13,14 +13,32 @@ import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
 import { auth } from "../utils/auth";
 import api from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../components/Toast";
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const queryView = searchParams.get("view") || searchParams.get("tab");
+
   // Default view is "home" which represents the 3-column feed dashboard
-  const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_faculty_tab") || "home");
+  const [activeView, setActiveView] = useState(() => {
+    if (queryView && ["home", "mentorship", "requests", "profile", "bookmarks"].includes(queryView)) {
+      return queryView === "requests" ? "mentorship" : queryView;
+    }
+    return localStorage.getItem("vibe_faculty_tab") || "home";
+  });
+
+  useEffect(() => {
+    if (queryView) {
+      if (queryView === "requests" || queryView === "mentorship") {
+        setActiveView("mentorship");
+      } else if (["home", "profile", "bookmarks"].includes(queryView)) {
+        setActiveView(queryView);
+      }
+    }
+  }, [queryView]);
   const [activeFeedTab, setActiveFeedTab] = useState("for-you");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(

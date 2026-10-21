@@ -11,6 +11,8 @@ import {
   Briefcase,
   PartyPopper,
   Info,
+  Repeat2,
+  Heart,
 } from "lucide-react";
 import { useNotifications } from "../../hooks/useNotifications";
 
@@ -21,6 +23,8 @@ const TYPE_ICON = {
   submission_received: FileText,
   submission_reviewed: Star,
   comment: MessageSquare,
+  repost: Repeat2,
+  reaction: Heart,
   hired: PartyPopper,
   task_posted: Briefcase,
   system: Info,
