@@ -77,7 +77,19 @@ export const PublicProfilePage = () => {
       <FacultyTopHeader
         user={currentUser}
         onLogout={handleLogout}
-        onNavigate={() => navigate(getDashboardHome())}
+        onNavigate={(dest) => {
+          const role = (currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
+          if (dest === "bookmarks") {
+            if (role === "faculty") localStorage.setItem("vibe_faculty_tab", "bookmarks");
+            else if (role === "industry" || role === "industry expert") localStorage.setItem("vibe_industry_tab", "bookmarks");
+            else localStorage.setItem("vibe_student_tab", "bookmarks");
+          } else if (dest === "profile") {
+            if (role === "faculty") localStorage.setItem("vibe_faculty_tab", "profile");
+            else if (role === "industry" || role === "industry expert") localStorage.setItem("vibe_industry_tab", "profile");
+            else localStorage.setItem("vibe_student_tab", "profile");
+          }
+          navigate(getDashboardHome());
+        }}
         onSearch={() => {}}
         isSidebarCollapsed={true}
         onToggleSidebar={() => {}}

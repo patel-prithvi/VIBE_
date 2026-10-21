@@ -655,21 +655,47 @@ export const getPostByUserId = asyncHandler(async (req, res) => {
 
 // Toggle bookmark for a post
 export const toggleBookmark = asyncHandler(async (req, res) => {
-  const { postId } = req.body;
+  const { postId, taskId, itemType } = req.body;
   const userId = req.user._id;
 
   const user = await User.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
+  if (itemType === "task" || (taskId && !postId)) {
+    const role = String(req.user?.accountType || req.user?.role || "").trim().toLowerCase();
+    if (role !== "student") {
+      throw new ApiError(403, "Access denied. Only students are authorized to bookmark tasks.");
+    }
+    const targetTaskId = taskId || postId;
+    if (!user.taskBookmarks) {
+      user.taskBookmarks = [];
+    }
+    const isBookmarked = user.taskBookmarks.some((b) => b && b.toString() === String(targetTaskId));
+    let bookmarked = false;
+
+    if (isBookmarked) {
+      user.taskBookmarks = user.taskBookmarks.filter((b) => b && b.toString() !== String(targetTaskId));
+      bookmarked = false;
+    } else {
+      user.taskBookmarks.push(targetTaskId);
+      bookmarked = true;
+    }
+
+    await user.save();
+    return res
+      .status(200)
+      .json(new ApiResponse(200, { bookmarked, taskBookmarks: user.taskBookmarks }, bookmarked ? "Task bookmarked" : "Task bookmark removed"));
+  }
+
   if (!user.bookmarks) {
     user.bookmarks = [];
   }
 
-  const isBookmarked = user.bookmarks.some((b) => b.toString() === postId);
+  const isBookmarked = user.bookmarks.some((b) => b && b.toString() === String(postId));
   let bookmarked = false;
 
   if (isBookmarked) {
-    user.bookmarks = user.bookmarks.filter((b) => b.toString() !== postId);
+    user.bookmarks = user.bookmarks.filter((b) => b && b.toString() !== String(postId));
     bookmarked = false;
   } else {
     user.bookmarks.push(postId);

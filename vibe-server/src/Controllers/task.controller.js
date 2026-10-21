@@ -466,7 +466,7 @@ const updateTask = asyncHandler(async (req, res) => {
   updateData.materials = currentMaterials;
 
   const updatedTask = await TaskMania.findByIdAndUpdate(id, updateData, {
-    new: true,
+    returnDocument: "after",
     runValidators: true,
     omitUndefined: true,
   });
@@ -585,6 +585,94 @@ const downloadTaskMaterialsZip = asyncHandler(async (req, res) => {
   await archive.finalize();
 });
 
+
+// Toggle bookmark for a task
+const toggleTaskBookmark = asyncHandler(async (req, res) => {
+  const role = String(req.user?.accountType || req.user?.role || "").trim().toLowerCase();
+  if (role !== "student") {
+    throw new ApiError(403, "Access denied. Only students are authorized to bookmark tasks.");
+  }
+
+  const { taskId } = req.body;
+  const userId = req.user._id;
+
+  if (!taskId) {
+    throw new ApiError(400, "Task ID is required");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (!user.taskBookmarks) {
+    user.taskBookmarks = [];
+  }
+
+  const isBookmarked = user.taskBookmarks.some((b) => b && b.toString() === String(taskId));
+  let bookmarked = false;
+
+  if (isBookmarked) {
+    user.taskBookmarks = user.taskBookmarks.filter((b) => b && b.toString() !== String(taskId));
+    bookmarked = false;
+  } else {
+    const task = await TaskMania.findById(taskId);
+    if (!task) throw new ApiError(404, "Task not found");
+
+    user.taskBookmarks.push(taskId);
+    bookmarked = true;
+  }
+
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { bookmarked, taskBookmarks: user.taskBookmarks },
+      bookmarked ? "Task bookmarked" : "Task bookmark removed"
+    )
+  );
+});
+
+// Get all bookmarked tasks for current user
+const getBookmarkedTasks = asyncHandler(async (req, res) => {
+  const role = String(req.user?.accountType || req.user?.role || "").trim().toLowerCase();
+  if (role !== "student") {
+    throw new ApiError(403, "Access denied. Only students can view bookmarked tasks.");
+  }
+
+  const userId = req.user._id;
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  const taskBookmarkIds = (user.taskBookmarks || [])
+    .filter(Boolean)
+    .map((id) => (id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(id)));
+
+  if (taskBookmarkIds.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, [], "Fetched bookmarked tasks successfully"));
+  }
+
+  const bookmarkedTasks = await TaskMania.find({ _id: { $in: taskBookmarkIds } })
+    .populate({
+      path: "submissions",
+      populate: {
+        path: "createdBy",
+        select: "-password -mobileNo -createdAt -updatedAt -otp",
+      },
+    })
+    .populate({
+      path: "createdBy",
+      select: "-password -mobileNo -createdAt -updatedAt -otp",
+    })
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, bookmarkedTasks || [], "Fetched bookmarked tasks successfully"));
+});
+
 export {
   createTask,
   getAllTasks,
@@ -594,4 +682,6 @@ export {
   updateTask,
   deleteTask,
   downloadTaskMaterialsZip,
+  toggleTaskBookmark,
+  getBookmarkedTasks,
 };

@@ -490,7 +490,7 @@ const updateUser = asyncHandler(async (req, res) => {
     if (internshipType) profileUpdate.internshipType = internshipType;
     if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
 
-    await Profile.findByIdAndUpdate(user.Profile, profileUpdate, { new: true });
+    await Profile.findByIdAndUpdate(user.Profile, profileUpdate, { returnDocument: "after" });
   }
 
   const updatedUser = await User.findById(req.params.id)
@@ -511,7 +511,7 @@ const logoutUser = asyncHandler(async (req, res) => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
     }
   );
 

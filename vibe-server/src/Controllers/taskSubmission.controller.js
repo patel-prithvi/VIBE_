@@ -124,7 +124,7 @@ export const updateSubmission = asyncHandler(async (req, res) => {
   const updatedSubmission = await TaskSubmission.findByIdAndUpdate(
     id,
     req.body,
-    { new: true, runValidators: true }
+    { returnDocument: "after", runValidators: true }
   )
     .populate("createdBy", "-password -otp")
     .populate("taskId");

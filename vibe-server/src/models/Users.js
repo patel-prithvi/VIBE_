@@ -105,6 +105,12 @@ const userSchema = new mongoose.Schema(
         ref: "Post",
       },
     ],
+    taskBookmarks: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "TaskMania",
+      },
+    ],
   },
 
   { timestamps: true }

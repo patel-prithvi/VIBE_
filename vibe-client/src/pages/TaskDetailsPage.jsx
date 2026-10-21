@@ -322,7 +322,18 @@ export const TaskDetailsPage = () => {
       <FacultyTopHeader
         user={currentUser}
         onLogout={handleLogout}
-        onNavigate={() => navigate(getDashboardHome())}
+        onNavigate={(dest) => {
+          if (dest === "bookmarks") {
+            if (isFaculty) localStorage.setItem("vibe_faculty_tab", "bookmarks");
+            else if (isIndustry) localStorage.setItem("vibe_industry_tab", "bookmarks");
+            else localStorage.setItem("vibe_student_tab", "bookmarks");
+          } else if (dest === "profile") {
+            if (isFaculty) localStorage.setItem("vibe_faculty_tab", "profile");
+            else if (isIndustry) localStorage.setItem("vibe_industry_tab", "profile");
+            else localStorage.setItem("vibe_student_tab", "profile");
+          }
+          navigate(getDashboardHome());
+        }}
         onSearch={() => {}}
         isSidebarCollapsed={true}
         onToggleSidebar={() => {}}

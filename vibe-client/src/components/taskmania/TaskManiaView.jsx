@@ -10,7 +10,12 @@ import api from '../../services/api';
 import { useToast } from '../Toast';
 import { useSmartPolling } from '../../hooks/useSmartPolling';
 
-export const TaskManiaView = () => {
+export const TaskManiaView = ({
+  bookmarkedTaskIds: propBookmarkedTaskIds,
+  onToggleTaskBookmark: propOnToggleTaskBookmark,
+}) => {
+  const [internalBookmarkedTaskIds, setInternalBookmarkedTaskIds] = useState(new Set());
+  const bookmarkedTaskIds = propBookmarkedTaskIds || internalBookmarkedTaskIds;
   const navigate = useNavigate();
   const toast = useToast();
   const [tasks, setTasks] = useState([]);
@@ -34,6 +39,45 @@ export const TaskManiaView = () => {
 
   const categories = ['All', 'Development', 'Design', 'AI/ML', 'Web Development', 'Healthcare'];
   const modes = ['All', 'Remote', 'Onsite', 'Hybrid'];
+
+  
+  const handleToggleTaskBookmark = async (taskId, fullTask = null) => {
+    if (propOnToggleTaskBookmark) {
+      return propOnToggleTaskBookmark(taskId, fullTask);
+    }
+    const tId = String(taskId);
+    try {
+      const isCurrentlyBookmarked = internalBookmarkedTaskIds.has(tId);
+      setInternalBookmarkedTaskIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.delete(tId);
+        else next.add(tId);
+        return next;
+      });
+      await api.post("/tasks/bookmark", { taskId: tId });
+    } catch (err) {
+      console.error("Error toggling task bookmark:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!propBookmarkedTaskIds) {
+      let mounted = true;
+      api
+        .get("/tasks/bookmarks")
+        .then((res) => {
+          if (mounted && res.data?.data && Array.isArray(res.data.data)) {
+            setInternalBookmarkedTaskIds(
+              new Set(res.data.data.map((t) => String(t._id || t.id)))
+            );
+          }
+        })
+        .catch(() => {});
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [propBookmarkedTaskIds]);
 
   const fetchTasks = useCallback(async (isBackground = false) => {
     try {
@@ -299,10 +343,16 @@ export const TaskManiaView = () => {
             );
             const isApplying = applyingTaskId === taskId;
 
+            const isBookmarked =
+              bookmarkedTaskIds.has(String(taskId)) ||
+              bookmarkedTaskIds.has(taskId);
+
             return (
               <TaskCard
                 key={taskId}
                 task={task}
+                isBookmarked={isBookmarked}
+                onToggleBookmark={() => handleToggleTaskBookmark(taskId, task)}
                 isAccepted={isAccepted}
                 isSolutionSubmitted={isSolutionSubmitted}
                 isApplying={isApplying}
