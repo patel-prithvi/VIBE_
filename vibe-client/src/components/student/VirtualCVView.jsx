@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '../shared/Avatar';
 import { useToast } from '../Toast';
 import {
@@ -12,7 +12,7 @@ import {
   Share2,
   Download,
   Briefcase,
-  Code,
+  Code2,
   CheckCircle,
   MapPin,
   Github,
@@ -20,7 +20,16 @@ import {
   GraduationCap,
   Building,
   Quote,
-  Check,
+  ChevronDown,
+  Layers,
+  GitBranch,
+  Palette,
+  Brain,
+  Users,
+  Wrench,
+  Sparkles,
+  Terminal,
+  Database,
 } from 'lucide-react';
 import api from "../../services/api";
 
@@ -114,6 +123,22 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
   };
 
   const skillCategories = ["Technical", "Tools", "Soft Skills"];
+
+  const [openCategories, setOpenCategories] = useState({
+    Technical: true,
+    Tools: false,
+    "Soft Skills": false,
+  });
+
+  const toggleCategory = (cat) => {
+    setOpenCategories((prev) => {
+      const current = prev[cat] ?? (cat === "Technical");
+      return {
+        ...prev,
+        [cat]: !current,
+      };
+    });
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -228,30 +253,71 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
             <h3 className="text-lg font-bold text-[#172554]">Skills Matrix</h3>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-5">
-            {skillCategories.map((cat) => (
-              <div key={cat} className="space-y-3">
-                <h4 className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">{cat}</h4>
-                <div className="space-y-2">
-                  {displayedSkills.filter(s => s.category === cat).map((skill) => (
-                    <div
-                      key={skill.name}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60 hover:border-[#E9E1FF] hover:bg-[#FDFBFF] transition-all"
-                    >
-                      <span className="text-xs sm:text-sm font-semibold text-[#172554] flex items-center gap-1.5">
-                        {skill.name}
-                        {skill.verified && (
-                          <ShieldCheck size={14} className="text-[#6D3DF5] shrink-0" />
-                        )}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] shrink-0 uppercase tracking-wider">
-                        {skill.level || "Verified"}
+          <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
+            {skillCategories.map((cat, idx) => {
+              const isExpanded = openCategories[cat] ?? (cat === "Technical");
+              const categorySkills = displayedSkills.filter((s) => s.category === cat);
+
+              return (
+                <div key={cat} className={`space-y-2.5 ${idx > 0 ? "pt-3 border-t border-[#F1F5F9]" : ""}`}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className="w-full flex items-center justify-between py-1 px-1 rounded-lg text-left hover:bg-[#F8FAFC] transition-colors group select-none cursor-pointer"
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-[11px] font-bold text-[#64748B] group-hover:text-[#172554] uppercase tracking-widest transition-colors">
+                        {cat}
+                      </h4>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#F1F5F9] group-hover:bg-[#E9E1FF] group-hover:text-[#6D3DF5] text-[#64748B] transition-colors">
+                        {categorySkills.length}
                       </span>
                     </div>
-                  ))}
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-[#94A3B8] group-hover:text-[#6D3DF5]"
+                    >
+                      <ChevronDown size={15} />
+                    </motion.div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key={`cat-content-${cat}`}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: "easeInOut" }}
+                        className="overflow-hidden space-y-2"
+                      >
+                        {categorySkills.map((skill) => (
+                          <div
+                            key={skill.name}
+                            className="flex items-center justify-between p-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60 hover:border-[#E9E1FF] hover:bg-[#FDFBFF] transition-all"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <SkillIcon name={skill.name} category={cat} />
+                              <span className="text-xs font-semibold text-[#172554] truncate flex items-center gap-1.5">
+                                {skill.name}
+                                {skill.verified && (
+                                  <ShieldCheck size={13} className="text-[#6D3DF5] shrink-0" />
+                                )}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] shrink-0 uppercase tracking-wider">
+                              {skill.level || "Verified"}
+                            </span>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <p className="text-[11px] text-[#64748B]">
             Tailored for tech roles and verified industry internship tasks.
@@ -304,26 +370,6 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                 </div>
               </motion.div>
             ))}
-          </div>
-
-          {/* 5. CV Tips */}
-          <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0] flex items-center justify-center flex-shrink-0">
-                <Check size={16} strokeWidth={3} />
-              </div>
-              <h4 className="text-sm font-bold text-[#172554]">Make your CV stand out</h4>
-            </div>
-            <ul className="space-y-2 text-xs text-[#475569]">
-              <li className="flex items-start gap-2">
-                <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
-                <span>Highlight live project links & GitHub repos</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Check size={13} className="text-[#6D3DF5] shrink-0 mt-0.5" />
-                <span>Connect with a faculty mentor for code reviews</span>
-              </li>
-            </ul>
           </div>
         </div>
       </div>
@@ -390,6 +436,141 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
         <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block mb-0.5">{label}</span>
         <span className="text-2xl font-black text-[#172554] tracking-tight">{value}</span>
       </div>
+    </div>
+  );
+};
+
+const SkillIcon = ({ name = '', category = '' }) => {
+  const lower = name.toLowerCase();
+
+  // 1. React
+  if (lower.includes('react')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0 border border-[#BAE6FD]">
+        <svg viewBox="-11.5 -10.23174 23 20.46348" className="w-3.5 h-3.5 fill-current">
+          <circle cx="0" cy="0" r="2.05" fill="#0284C7" />
+          <g stroke="#0284C7" strokeWidth="1" fill="none">
+            <ellipse rx="11" ry="4.2" />
+            <ellipse rx="11" ry="4.2" transform="rotate(60)" />
+            <ellipse rx="11" ry="4.2" transform="rotate(120)" />
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  // 2. JavaScript / TypeScript
+  if (lower.includes('javascript') || lower.includes('typescript') || lower.includes('js') || lower.includes('ts')) {
+    const isTS = lower.includes('typescript') || (lower.includes('ts') && !lower.includes('javascript') && !lower.includes('js'));
+    return (
+      <div
+        className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 font-black text-[9px] border ${
+          isTS
+            ? 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]'
+            : 'bg-[#FEF9C3] text-[#A16207] border-[#FDE047]'
+        }`}
+      >
+        {isTS ? 'TS' : 'JS'}
+      </div>
+    );
+  }
+
+  // 3. Node.js & Express
+  if (lower.includes('node') || lower.includes('express')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0 border border-[#BBF7D0]">
+        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2l7.5 4.33v8.67L12 19.33l-7.5-4.33V6.33L12 2z" />
+          <path d="M12 6.5v8.5" />
+          <path d="M7.5 9l4.5 2.5 4.5-2.5" />
+        </svg>
+      </div>
+    );
+  }
+
+  // 4. Data Structures & Algorithms
+  if (lower.includes('data structure') || lower.includes('algorithm') || lower.includes('dsa')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#F3E8FF] text-[#7E22CE] flex items-center justify-center shrink-0 border border-[#E9D5FF]">
+        <Layers size={13} />
+      </div>
+    );
+  }
+
+  // 5. Git & Version Control
+  if (lower.includes('git') || lower.includes('github') || lower.includes('version control')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#FFEDD5] text-[#C2410C] flex items-center justify-center shrink-0 border border-[#FED7AA]">
+        <GitBranch size={13} />
+      </div>
+    );
+  }
+
+  // 6. Figma & UI/UX Design
+  if (lower.includes('figma') || lower.includes('ui/ux') || lower.includes('design')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center shrink-0 border border-[#FBCFE8]">
+        <Palette size={13} />
+      </div>
+    );
+  }
+
+  // 7. Problem Solving
+  if (lower.includes('problem solving') || lower.includes('critical') || lower.includes('logic')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 border border-[#FDE68A]">
+        <Brain size={13} />
+      </div>
+    );
+  }
+
+  // 8. Team Collaboration
+  if (lower.includes('team') || lower.includes('collaboration') || lower.includes('communication') || lower.includes('leadership')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#E0E7FF] text-[#4F46E5] flex items-center justify-center shrink-0 border border-[#C7D2FE]">
+        <Users size={13} />
+      </div>
+    );
+  }
+
+  // 9. Python
+  if (lower.includes('python')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0 border border-[#BAE6FD]">
+        <Terminal size={13} />
+      </div>
+    );
+  }
+
+  // 10. Database
+  if (lower.includes('database') || lower.includes('sql') || lower.includes('mongo')) {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#CCFBF1] text-[#0D9488] flex items-center justify-center shrink-0 border border-[#99F6E4]">
+        <Database size={13} />
+      </div>
+    );
+  }
+
+  // Category-based fallback
+  if (category === 'Tools') {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#F1F5F9] text-[#475569] flex items-center justify-center shrink-0 border border-[#E2E8F0]">
+        <Wrench size={13} />
+      </div>
+    );
+  }
+
+  if (category === 'Soft Skills') {
+    return (
+      <div className="w-6 h-6 rounded-md bg-[#FDF2F8] text-[#DB2777] flex items-center justify-center shrink-0 border border-[#FCE7F3]">
+        <Sparkles size={13} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-6 h-6 rounded-md bg-[#F2ECFF] text-[#6D3DF5] flex items-center justify-center shrink-0 border border-[#E9E1FF]">
+      <Code2 size={13} />
     </div>
   );
 };
