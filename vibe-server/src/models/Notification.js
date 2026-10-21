@@ -21,6 +21,8 @@ const notificationSchema = new mongoose.Schema(
         "submission_received",
         "submission_reviewed",
         "comment",
+        "repost",
+        "reaction",
         "hired",
         "task_posted",
         "system",

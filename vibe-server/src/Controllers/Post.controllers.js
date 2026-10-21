@@ -8,6 +8,20 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { notify } from "../services/notify.js";
 // import { sendZohoEmail } from "../services/zohMail.js";
 
+const getDashboardPostLink = async (userId, postId) => {
+  try {
+    const user = await User.findById(userId).select("accountType");
+    const role = String(user?.accountType || "student").trim().toLowerCase();
+    if (role === "industry expert" || role === "industry") {
+      return `/dashboard/industry?tab=community&postId=${postId}`;
+    } else if (role === "faculty") {
+      return `/dashboard/faculty?view=home&postId=${postId}`;
+    }
+    return `/dashboard/student?view=home&postId=${postId}`;
+  } catch {
+    return `/dashboard/student?view=home&postId=${postId}`;
+  }
+};
 
 // Post.controllers.js
 export const createPost = asyncHandler(async (req, res) => {
@@ -97,13 +111,14 @@ export const createComment = asyncHandler(async (req, res) => {
 
   // In-app notification for the post author (fire-and-forget, skip self-comments)
   if (parentPost.author?._id && String(parentPost.author._id) !== String(author)) {
+    const notifLink = await getDashboardPostLink(parentPost.author._id, parentPost._id);
     await notify({
       recipient: parentPost.author._id,
       sender: author,
       type: "comment",
       title: "New comment on your post",
       message: `${req.user?.name || "Someone"} commented: "${String(content || "").slice(0, 120)}"`,
-      link: "",
+      link: notifLink,
       meta: { postId: parentPost._id, commentId: newComment._id },
     }).catch(() => {});
   }
@@ -112,13 +127,14 @@ export const createComment = asyncHandler(async (req, res) => {
   if (parentComment) {
     const parentCommentDoc = await Post.findById(parentComment);
     if (parentCommentDoc?.author && String(parentCommentDoc.author) !== String(author)) {
+      const replyLink = await getDashboardPostLink(parentCommentDoc.author, parentPost._id);
       await notify({
         recipient: parentCommentDoc.author,
         sender: author,
         type: "comment",
         title: "New reply to your comment",
         message: `${req.user?.name || "Someone"} replied: "${String(content || "").slice(0, 120)}"`,
-        link: "",
+        link: replyLink,
         meta: { postId: parentPost._id, commentId: newComment._id, parentCommentId: parentComment },
       }).catch(() => {});
     }
@@ -451,15 +467,16 @@ export const repostPost = asyncHandler(async (req, res) => {
       },
     });
 
-  // Notify original post author
-  if (originalPost.author && originalPost.author.toString() !== userId.toString()) {
-    notify({
+  // If original post author is different from reposter, send notification
+  if (originalPost.author && String(originalPost.author) !== String(userId)) {
+    const repostLink = await getDashboardPostLink(originalPost.author, originalPost._id);
+    await notify({
       recipient: originalPost.author,
       sender: userId,
       type: "repost",
       title: "Your post was reposted",
       message: `${req.user?.name || "Someone"} reposted your post: "${originalPost.title || originalPost.content?.slice(0, 50)}"`,
-      link: "",
+      link: repostLink,
       meta: { postId: originalPost._id, repostId: newRepost._id },
     }).catch(() => {});
   }
@@ -519,13 +536,14 @@ export const updateVibe = asyncHandler(async (req, res) => {
     };
     const emoji = reactionEmojis[selectedReaction] || "🤘";
     try {
+      const notifLink = await getDashboardPostLink(post.author, post._id);
       await notify({
         recipient: post.author,
         sender: req.user._id,
         type: "reaction",
         title: "New reaction on your post",
         message: `${req.user?.name || "Someone"} reacted ${emoji} to your post`,
-        link: "",
+        link: notifLink,
         meta: { postId: post._id, reaction: selectedReaction },
       });
     } catch (e) {
@@ -810,4 +828,3 @@ export const getBookmarkedPosts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, bookmarkedPosts, "Fetched bookmarked posts successfully"));
 });
-
