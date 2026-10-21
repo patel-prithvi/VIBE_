@@ -26,6 +26,7 @@ import {
   FileArchive,
   Image,
   ShieldCheck,
+  Video,
 } from "lucide-react";
 import Avatar from "../components/shared/Avatar";
 import { auth } from "../utils/auth";
@@ -306,6 +307,14 @@ export const TaskDetailsPage = () => {
   const companyUser = task?.createdBy && typeof task.createdBy === "object" ? task.createdBy : null;
   const companyAvatar = companyUser?.Profile?.avatar || companyUser?.ImageUrl;
   const companyName = task?.companyName || companyUser?.name || "Industry Partner";
+
+  const getMeetingUrl = (url) => {
+    if (!url || typeof url !== "string") return "";
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
@@ -844,16 +853,101 @@ export const TaskDetailsPage = () => {
                       </div>
                     )}
 
-                    {/* Mentorship Request Button for Students */}
+                    {/* Mentorship Section for Students */}
                     {mentorRequest ? (
-                      <div className="p-3.5 rounded-2xl bg-[#F3EEFF] border border-[#E9E1FF]">
-                        <p className="text-xs font-bold text-[#6D3DF5] flex items-center gap-1.5">
-                          <UserPlus size={14} /> Mentorship Requested
-                        </p>
-                        <p className="text-[11px] text-[#64748B] mt-1 capitalize">
-                          Status: {mentorRequest.status}
-                        </p>
-                      </div>
+                      mentorRequest.status === "accepted" ? (
+                        <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                              <UserPlus size={14} className="text-emerald-600" />
+                              <span>Mentorship Requested</span>
+                            </p>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Accepted
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-emerald-700">
+                            Status: <span className="font-semibold">Accepted</span>
+                          </p>
+
+                          {getMeetingUrl(mentorRequest.meetLink) ? (
+                            <a
+                              href={getMeetingUrl(mentorRequest.meetLink)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full mt-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <Video size={14} />
+                              <span>Join Mentor Meeting</span>
+                              <ExternalLink size={13} className="opacity-90" />
+                            </a>
+                          ) : (
+                            <div className="mt-2 p-2 rounded-xl bg-white/80 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-2">
+                              <Clock size={13} className="text-emerald-600 shrink-0" />
+                              <span>Meeting link will be shared by the mentor soon.</span>
+                            </div>
+                          )}
+
+                          {Array.isArray(mentorRequest.resources) && mentorRequest.resources.length > 0 && (
+                            <div className="mt-3 pt-2.5 border-t border-emerald-200/60 space-y-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                                Shared Resources
+                              </span>
+                              {mentorRequest.resources.map((res, i) => {
+                                const resUrl = getMeetingUrl(res.url);
+                                return (
+                                  <a
+                                    key={i}
+                                    href={resUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-emerald-200 text-xs text-emerald-900 hover:bg-emerald-50 transition-colors"
+                                  >
+                                    <span className="truncate text-[11px] font-medium">{res.label || "Resource"}</span>
+                                    <ExternalLink size={12} className="text-emerald-600 shrink-0 ml-1.5" />
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : mentorRequest.status === "rejected" ? (
+                        <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                              <UserPlus size={14} className="text-rose-600" />
+                              <span>Mentorship Requested</span>
+                            </p>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                              Declined
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-rose-700">
+                            Status: <span className="font-semibold">Declined</span>
+                          </p>
+                          <p className="text-[11px] text-rose-500 italic pt-0.5">
+                            Your request was declined by the mentor.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-[#F3EEFF] border border-[#E9E1FF] space-y-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-[#6D3DF5] flex items-center gap-1.5">
+                              <UserPlus size={14} />
+                              <span>Mentorship Requested</span>
+                            </p>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D3DF5] border-[#E9E1FF]">
+                              Pending
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#64748B]">
+                            Status: <span className="font-semibold capitalize">{mentorRequest.status || "Pending"}</span>
+                          </p>
+                          <p className="text-[11px] text-[#6D3DF5] italic pt-0.5">
+                            Waiting for mentor to review your request...
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <button
                         onClick={() => setIsMentorRequestOpen(true)}
@@ -951,7 +1045,24 @@ export const TaskDetailsPage = () => {
       {isStudent && task && (
         <MentorRequestModal
           isOpen={isMentorRequestOpen}
-          onClose={() => setIsMentorRequestOpen(false)}
+          onClose={async () => {
+            setIsMentorRequestOpen(false);
+            if (isStudent && taskId) {
+              try {
+                const mentorRes = await api.get("/mentor-requests/my-requests");
+                if (mentorRes.data?.data) {
+                  const foundReq = mentorRes.data.data.find(
+                    (r) => String(r.task?._id || r.task) === String(taskId)
+                  );
+                  if (foundReq) {
+                    setMentorRequest(foundReq);
+                  }
+                }
+              } catch (e) {
+                // Ignore silent refresh error
+              }
+            }
+          }}
           task={task}
         />
       )}

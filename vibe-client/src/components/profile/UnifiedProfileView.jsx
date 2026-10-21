@@ -354,9 +354,9 @@ export const UnifiedProfileView = ({
     }
     if (isIndustry) {
       return [
-        { id: "details", label: "Company Details", icon: Building2 },
+        { id: "details", label: "Details", icon: Building2 },
         { id: "posts", label: "Community Posts", icon: MessageSquare, badge: userPosts.length },
-        { id: "company-tasks", label: "Company Tasks", icon: Briefcase, badge: industryTasks.length },
+        { id: "held-tasks", label: "Held Tasks", icon: Briefcase, badge: industryTasks.length },
       ];
     }
     return [
@@ -664,7 +664,7 @@ export const UnifiedProfileView = ({
       {/* ======================================================== */}
       {/* 2. HORIZONTAL NAVIGATION TABS                            */}
       {/* ======================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-[#E2E8F0] no-scrollbar">
+      <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto select-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-[#E2E8F0] px-1 min-w-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -672,22 +672,31 @@ export const UnifiedProfileView = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 pb-3 pt-1 text-sm font-bold tracking-tight whitespace-nowrap relative transition-colors shrink-0 cursor-pointer ${
                 isActive
-                  ? "bg-[#6D3DF5] text-white shadow-xs"
-                  : "text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                  ? "text-[#6D3DF5]"
+                  : "text-[#64748B] hover:text-[#0F172A]"
               }`}
             >
-              <Icon size={16} />
+              <Icon size={16} className={isActive ? "text-[#6D3DF5]" : "text-[#94A3B8]"} />
               <span>{tab.label}</span>
               {typeof tab.badge === "number" && (
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    isActive ? "bg-white/20 text-white" : "bg-[#F1F5F9] text-[#64748B]"
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
+                    isActive
+                      ? "bg-[#F3EEFF] text-[#6D3DF5] border border-[#E9E1FF]"
+                      : "bg-[#F1F5F9] text-[#64748B]"
                   }`}
                 >
                   {tab.badge}
                 </span>
+              )}
+              {isActive && (
+                <motion.span
+                  layoutId="profileActiveTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#6D3DF5] rounded-full"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
               )}
             </button>
           );
@@ -1604,7 +1613,7 @@ export const UnifiedProfileView = ({
         )}
 
         {/* TAB 3: INDUSTRY COMPANY TASKS */}
-        {activeTab === "held-tasks" && isIndustry && (
+        {(activeTab === "held-tasks" || activeTab === "company-tasks") && isIndustry && (
           <div className="space-y-4">
             {industryLoading ? (
               <div className="bg-white rounded-2xl p-12 text-center border border-[#E1E8F2] flex flex-col items-center justify-center">
