@@ -14,14 +14,18 @@ import {
   Building2,
   Loader2,
   Clock,
+  Bookmark,
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
+import { auth } from "../../utils/auth";
 
 export const TaskCard = ({
   task,
   isAccepted,
   isSolutionSubmitted,
   isApplying,
+  isBookmarked = false,
+  onToggleBookmark,
   mentorRequest,
   onOpenInstructions,
   onApplyDirect,
@@ -31,6 +35,9 @@ export const TaskCard = ({
   const navigate = useNavigate();
   const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
   const taskId = task.id || task._id;
+  const currentUser = auth.getCurrentUser();
+  const rawRole = String(currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
+  const isStudent = rawRole === "student";
 
   return (
     <motion.div
@@ -38,7 +45,10 @@ export const TaskCard = ({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.25 }}
-      className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-shadow relative overflow-hidden group flex flex-col h-full"
+      onClick={() => {
+        if (taskId) navigate(`/tasks/${taskId}`);
+      }}
+      className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-shadow relative overflow-hidden group flex flex-col h-full cursor-pointer"
     >
       {/* Decorative Gradient Blob */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#F3EEFF] rounded-full blur-2xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0 pointer-events-none" />
@@ -52,7 +62,7 @@ export const TaskCard = ({
             <span>{task.category || "Development"}</span>
           </div>
 
-          {/* Status & Meta Badges (aligned neatly in a compact row/wrap) */}
+          {/* Status & Meta Badges + Bookmark */}
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             {/* Mode Badge */}
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-[#F3EEFF] text-[#6D3DF5] border-[#E9E1FF]">
@@ -87,6 +97,31 @@ export const TaskCard = ({
                 <span>In Progress</span>
               </span>
             ) : null}
+
+            {/* Task Bookmark Button (Students only) */}
+            {isStudent && Boolean(onToggleBookmark) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (typeof onToggleBookmark === "function") {
+                    onToggleBookmark(taskId);
+                  }
+                }}
+                title={isBookmarked ? "Remove from bookmarks" : "Save task to bookmarks"}
+                aria-label={isBookmarked ? "Remove from bookmarks" : "Save task to bookmarks"}
+                className={`p-1 rounded-full transition-all cursor-pointer ${
+                  isBookmarked
+                    ? "text-[#6D3DF5] bg-[#F3EEFF] hover:bg-[#EDE9FE]"
+                    : "text-[#94A3B8] hover:text-[#6D3DF5] hover:bg-[#F8FAFC]"
+                }`}
+              >
+                <Bookmark
+                  size={13}
+                  className={isBookmarked ? "fill-[#6D3DF5]" : ""}
+                />
+              </button>
+            )}
           </div>
         </div>
 

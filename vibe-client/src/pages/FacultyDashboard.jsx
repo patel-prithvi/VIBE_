@@ -29,6 +29,8 @@ const FacultyDashboard = () => {
   const [posts, setPosts] = useState([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+
+
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState("");
@@ -240,6 +242,7 @@ const FacultyDashboard = () => {
   };
 
   // Real backend Bookmark toggle
+  
   const handleToggleBookmark = async (postId) => {
     try {
       const isCurrentlyBookmarked = bookmarkedIds.has(postId);
@@ -426,6 +429,7 @@ const FacultyDashboard = () => {
                   bookmarkedIds={bookmarkedIds}
                   onToggleBookmark={handleToggleBookmark}
                   onBackToFeed={() => handleSectionChange("home")}
+                  loadingPosts={loadingPosts}
                 />
               ) : (
                 <FacultyCenterFeed

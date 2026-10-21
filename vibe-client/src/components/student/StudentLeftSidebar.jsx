@@ -5,7 +5,6 @@ import {
   Users,
   FileText,
   User,
-  Bookmark,
   LogOut,
 } from "lucide-react";
 
@@ -16,7 +15,6 @@ export const StudentLeftSidebar = ({ activeView, onNavigate, onLogout, isCollaps
     { id: "mentorship", label: "Mentorship", icon: Users },
     { id: "virtual-cv", label: "Virtual CV", icon: FileText },
     { id: "profile", label: "My Profile", icon: User },
-    { id: "bookmarks", label: "My Bookmarks", icon: Bookmark },
   ];
 
   return (

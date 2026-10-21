@@ -3,7 +3,6 @@ import {
   Home,
   Users,
   User,
-  Bookmark,
   LogOut,
 } from "lucide-react";
 
@@ -12,7 +11,6 @@ export const FacultyLeftSidebar = ({ activeView, onNavigate, onLogout, isCollaps
     { id: "home", label: "Home", icon: Home },
     { id: "mentorship", label: "Mentorship", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
-    { id: "bookmarks", label: "My Bookmarks", icon: Bookmark },
   ];
 
   return (
