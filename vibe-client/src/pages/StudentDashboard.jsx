@@ -10,6 +10,7 @@ import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { VirtualCVView } from "../components/student/VirtualCVView";
 import { TaskManiaView } from "../components/taskmania/TaskManiaView";
+import { SettingsView } from "../components/settings/SettingsView";
 import { MyMentorRequestsView } from "../components/student/MyMentorRequestsView";
 import { StudentBookmarksView } from "../components/student/StudentBookmarksView";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
@@ -366,6 +367,15 @@ const StudentDashboard = () => {
           <UnifiedProfileView
             user={user}
             currentUser={user}
+            onProfileUpdate={setUser}
+            onBack={() => handleSectionChange("home")}
+            onNavigateToSettings={() => handleSectionChange("settings")}
+          />
+        );
+      case "settings":
+        return (
+          <SettingsView
+            user={user}
             onProfileUpdate={setUser}
             onBack={() => handleSectionChange("home")}
           />

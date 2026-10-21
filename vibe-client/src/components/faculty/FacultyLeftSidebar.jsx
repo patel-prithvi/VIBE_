@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Settings,
   Home,
   Users,
   User,
@@ -11,6 +12,7 @@ export const FacultyLeftSidebar = ({ activeView, onNavigate, onLogout, isCollaps
     { id: "home", label: "Home", icon: Home },
     { id: "mentorship", label: "Mentorship", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (

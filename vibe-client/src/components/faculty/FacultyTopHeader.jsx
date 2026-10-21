@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, ChevronDown, LogOut, User, Menu, Bookmark } from "lucide-react";
+import { MessageSquare, ChevronDown, LogOut, User, Menu, Bookmark, Settings } from "lucide-react";
 import VibeLogo from "../public/VibeLogo";
 import Avatar from "../shared/Avatar";
 import { NotificationBell } from "../shared/NotificationBell";
@@ -120,6 +120,17 @@ export const FacultyTopHeader = ({
                 >
                   <Bookmark size={15} />
                   My Bookmarks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    if (onNavigate) onNavigate("settings");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#334155] hover:bg-[#F8FAFC] hover:text-[#6D3DF5] transition-colors text-left cursor-pointer"
+                >
+                  <Settings size={15} />
+                  Settings
                 </button>
                 <button
                   type="button"

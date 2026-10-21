@@ -9,6 +9,7 @@ import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
 import { Profile } from '../components/industry/Profile';
 import { UnifiedProfileView } from '../components/profile/UnifiedProfileView';
+import { SettingsView } from '../components/settings/SettingsView';
 import { StudentBookmarksView } from '../components/student/StudentBookmarksView';
 import { MobileBottomNav } from '../components/shared/MobileBottomNav';
 import { auth } from '../utils/auth';
@@ -412,6 +413,15 @@ const IndustryDashboard = () => {
             currentUser={user}
             onProfileUpdate={setUser}
             onBack={() => handleSectionChange('overview')}
+            onNavigateToSettings={() => handleSectionChange('settings')}
+          />
+        );
+      case 'settings':
+        return (
+          <SettingsView
+            user={user}
+            onProfileUpdate={setUser}
+            onBack={() => handleSectionChange('overview')}
           />
         );
       case 'bookmarks':
@@ -437,7 +447,7 @@ const IndustryDashboard = () => {
   };
 
   // Wide views (tasks, profile) get a 2-column layout; home views get the 3-column faculty shell
-  const isWideView = activeTab === 'tasks' || activeTab === 'profile' || activeTab === 'bookmarks';
+  const isWideView = activeTab === 'tasks' || activeTab === 'profile' || activeTab === 'bookmarks' || activeTab === 'settings';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">

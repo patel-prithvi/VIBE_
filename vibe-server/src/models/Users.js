@@ -111,6 +111,29 @@ const userSchema = new mongoose.Schema(
         ref: "TaskMania",
       },
     ],
+    pendingEmail: {
+      type: new mongoose.Schema(
+        {
+          email: {
+            type: String,
+            lowercase: true,
+            trim: true,
+          },
+          code: {
+            type: String,
+          },
+          expiresAt: {
+            type: Date,
+          },
+          attempts: {
+            type: Number,
+            default: 0,
+          },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
   },
 
   { timestamps: true }
