@@ -11,6 +11,10 @@ import {
   resetPassword,
   changePassword,
   sendOtp,
+  requestEmailChange,
+  verifyEmailChange,
+  resendEmailChangeOtp,
+  cancelEmailChange,
 } from "../Controllers/userControllers.js";
 
 import { verifyJWT } from "../middlewares/authMiddleware.js";
@@ -29,6 +33,10 @@ router.post("/reset-password", resetPassword);
 router.get("/me", verifyJWT, getCurrentUser);
 router.post("/logout", verifyJWT, logoutUser);
 router.post("/change-password", verifyJWT, changePassword);
+router.post("/request-email-change", verifyJWT, requestEmailChange);
+router.post("/verify-email-change", verifyJWT, verifyEmailChange);
+router.post("/resend-email-change-otp", verifyJWT, resendEmailChangeOtp);
+router.post("/cancel-email-change", verifyJWT, cancelEmailChange);
 
 router.post("/verify-token", verifyJWT, (req, res) => {
   res.status(200).json({ message: "Token is valid", user: req.user });

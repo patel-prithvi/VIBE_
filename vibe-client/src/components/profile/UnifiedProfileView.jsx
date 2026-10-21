@@ -607,7 +607,13 @@ export const UnifiedProfileView = ({
                 </>
               ) : (
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    if (typeof onNavigateToSettings === "function") {
+                      onNavigateToSettings("profile");
+                    } else {
+                      setIsEditing(true);
+                    }
+                  }}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#E1E8F2] bg-white text-xs font-bold text-[#172554] hover:border-[#6D3DF5] hover:text-[#6D3DF5] hover:bg-[#F2ECFF]/40 transition-all cursor-pointer shadow-xs"
                 >
                   <Edit3 size={14} />
@@ -1134,86 +1140,7 @@ export const UnifiedProfileView = ({
               </div>
             )}
 
-            {/* Change Password Card — ONLY VISIBLE TO OWNER */}
-            {isOwner && (
-              <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] flex items-center justify-center shrink-0">
-                      <Lock size={18} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-[#0F172A]">Account Security</h4>
-                      <p className="text-xs text-[#64748B]">Update your login password and manage credentials</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowPasswordSection(!showPasswordSection)}
-                    className="px-3.5 py-1.5 rounded-xl border border-[#E2E8F0] hover:border-[#6D3DF5] text-xs font-bold text-[#6D3DF5] hover:bg-[#F3EEFF] transition-all cursor-pointer"
-                  >
-                    {showPasswordSection ? "Hide" : "Change Password"}
-                  </button>
-                </div>
-
-                {showPasswordSection && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="pt-5 mt-4 border-t border-[#F1F5F9] space-y-4 max-w-md"
-                  >
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Current Password</label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className={inputClasses}
-                        placeholder="Current password"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">New Password</label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className={inputClasses}
-                        placeholder="Minimum 6 characters"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Confirm New Password</label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={inputClasses}
-                        placeholder="Repeat new password"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-xs text-[#64748B] hover:text-[#0F172A] flex items-center gap-1 font-semibold"
-                      >
-                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                        <span>{showPassword ? "Hide" : "Show"} password</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleUpdatePassword}
-                        disabled={pwLoading}
-                        className="px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                      >
-                        {pwLoading ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                        <span>Update Password</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            )}
+            
           </div>
         )}
 

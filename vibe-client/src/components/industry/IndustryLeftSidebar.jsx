@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Settings,
   Home,
   Briefcase,
   Users,
@@ -18,6 +19,7 @@ export const IndustryLeftSidebar = ({
     { id: "tasks", label: "My Tasks", icon: Briefcase },
     { id: "community", label: "Community", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (

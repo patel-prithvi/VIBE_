@@ -541,4 +541,209 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, user, "User found"));
 });
 
-export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, verifyResetOtp, resetPassword, changePassword };
+
+// Request Email Change (Authenticated)
+const requestEmailChange = asyncHandler(async (req, res) => {
+  const { newEmail } = req.body;
+  const userId = req.user._id;
+
+  if (!newEmail || typeof newEmail !== "string") {
+    throw new ApiError(400, "Valid new email address is required");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const normalizedNewEmail = newEmail.toLowerCase().trim();
+
+  if (!emailRegex.test(normalizedNewEmail)) {
+    throw new ApiError(400, "Please provide a valid email format");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.email.toLowerCase().trim() === normalizedNewEmail) {
+    throw new ApiError(400, "New email must be different from your current email address");
+  }
+
+  // Check if another account already uses this email
+  const existingUser = await User.findOne({
+    email: normalizedNewEmail,
+    _id: { $ne: user._id },
+  });
+  if (existingUser) {
+    throw new ApiError(400, "An account with this email address already exists");
+  }
+
+  // Generate 6-digit verification code
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  user.pendingEmail = {
+    email: normalizedNewEmail,
+    code: otpCode,
+    expiresAt,
+    attempts: 0,
+  };
+
+  await user.save({ validateBeforeSave: false });
+
+  console.log(`\n==============================================`);
+  console.log(`🔑 [EMAIL CHANGE VERIFICATION OTP GENERATED]`);
+  console.log(`User: ${user.name} (${user.accountType})`);
+  console.log(`Current Email: ${user.email}`);
+  console.log(`New Email: ${normalizedNewEmail}`);
+  console.log(`OTP Code: ${otpCode}`);
+  console.log(`==============================================\n`);
+
+  sendZohoEmail(normalizedNewEmail, "otp", { otpCode }).catch((emailErr) => {
+    console.error("Failed to send email-change verification code:", emailErr.message || emailErr);
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        pendingEmail: normalizedNewEmail,
+        expiresAt,
+      },
+      "Verification code sent to your new email address. Please verify to complete the update."
+    )
+  );
+});
+
+// Verify & Apply Email Change (Authenticated)
+const verifyEmailChange = asyncHandler(async (req, res) => {
+  const { otp } = req.body;
+  const userId = req.user._id;
+
+  if (!otp || typeof otp !== "string" || !otp.trim()) {
+    throw new ApiError(400, "Verification code is required");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.pendingEmail || !user.pendingEmail.email || !user.pendingEmail.code) {
+    throw new ApiError(400, "No pending email change request found. Please request a new verification code.");
+  }
+
+  // Check expiration
+  if (new Date() > new Date(user.pendingEmail.expiresAt)) {
+    throw new ApiError(400, "Verification code has expired. Please request a new one.");
+  }
+
+  // Check attempts
+  if ((user.pendingEmail.attempts || 0) >= 5) {
+    await User.findByIdAndUpdate(user._id, { $unset: { pendingEmail: 1 } });
+    throw new ApiError(400, "Too many failed attempts. Please request a new verification code.");
+  }
+
+  // Validate OTP code
+  if (String(user.pendingEmail.code).trim() !== String(otp).trim()) {
+    user.pendingEmail.attempts = (user.pendingEmail.attempts || 0) + 1;
+    await user.save({ validateBeforeSave: false });
+    const remaining = 5 - user.pendingEmail.attempts;
+    throw new ApiError(
+      400,
+      `Invalid verification code. ${remaining > 0 ? `${remaining} attempts remaining.` : "Please request a new code."}`
+    );
+  }
+
+  const newVerifiedEmail = user.pendingEmail.email;
+
+  // Double check uniqueness right before commit
+  const collision = await User.findOne({
+    email: newVerifiedEmail,
+    _id: { $ne: user._id },
+  });
+  if (collision) {
+    await User.findByIdAndUpdate(user._id, { $unset: { pendingEmail: 1 } });
+    throw new ApiError(400, "An account with this email address was registered by another user.");
+  }
+
+  // Apply new email and clear pendingEmail atomically
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: { email: newVerifiedEmail },
+      $unset: { pendingEmail: 1 },
+    },
+    { returnDocument: "after" }
+  )
+    .select("-password -refreshToken -otp -pendingEmail")
+    .populate("Profile");
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      updatedUser,
+      "Email address verified and updated successfully!"
+    )
+  );
+});
+
+// Resend Email Change OTP (Authenticated)
+const resendEmailChangeOtp = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.pendingEmail || !user.pendingEmail.email) {
+    throw new ApiError(400, "No pending email change request found.");
+  }
+
+  const targetEmail = user.pendingEmail.email;
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  user.pendingEmail.code = otpCode;
+  user.pendingEmail.expiresAt = expiresAt;
+  user.pendingEmail.attempts = 0;
+  await user.save({ validateBeforeSave: false });
+
+  console.log(`\n==============================================`);
+  console.log(`🔑 [RESENT EMAIL CHANGE VERIFICATION OTP]`);
+  console.log(`User: ${user.name}`);
+  console.log(`Target New Email: ${targetEmail}`);
+  console.log(`OTP Code: ${otpCode}`);
+  console.log(`==============================================\n`);
+
+  sendZohoEmail(targetEmail, "otp", { otpCode }).catch((emailErr) => {
+    console.error("Failed to resend email-change verification code:", emailErr.message || emailErr);
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { pendingEmail: targetEmail, expiresAt },
+      "A new verification code has been sent to your email address."
+    )
+  );
+});
+
+// Cancel Email Change Request (Authenticated)
+const cancelEmailChange = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $unset: { pendingEmail: 1 } },
+    { returnDocument: "after" }
+  );
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Email change request cancelled.")
+  );
+});
+
+export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, verifyResetOtp, resetPassword, changePassword, requestEmailChange, verifyEmailChange, resendEmailChangeOtp, cancelEmailChange };

@@ -7,6 +7,7 @@ import { FacultyRightPanel } from "../components/faculty/FacultyRightPanel";
 import { FacultyBookmarksView } from "../components/faculty/FacultyBookmarksView";
 import { ProfileView } from "../components/faculty/ProfileView";
 import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
+import { SettingsView } from "../components/settings/SettingsView";
 import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
@@ -419,6 +420,13 @@ const FacultyDashboard = () => {
                 <UnifiedProfileView
                   user={user}
                   currentUser={user}
+                  onProfileUpdate={setUser}
+                  onBack={() => handleSectionChange("home")}
+                  onNavigateToSettings={() => handleSectionChange("settings")}
+                />
+              ) : activeView === "settings" ? (
+                <SettingsView
+                  user={user}
                   onProfileUpdate={setUser}
                   onBack={() => handleSectionChange("home")}
                 />
