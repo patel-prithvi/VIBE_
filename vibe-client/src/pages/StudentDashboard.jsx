@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSmartPolling } from "../hooks/useSmartPolling";
 import { StudentTopHeader } from "../components/student/StudentTopHeader";
 import { StudentLeftSidebar } from "../components/student/StudentLeftSidebar";
@@ -16,10 +16,25 @@ import { MobileBottomNav } from "../components/shared/MobileBottomNav";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const [activeView, setActiveView] = useState(() => localStorage.getItem("vibe_student_tab") || "home");
+  const [searchParams] = useSearchParams();
+  const queryView = searchParams.get("view") || searchParams.get("tab");
+
+  const [activeView, setActiveView] = useState(() => {
+    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts"].includes(queryView)) {
+      return queryView;
+    }
+    return localStorage.getItem("vibe_student_tab") || "home";
+  });
+
+  useEffect(() => {
+    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts"].includes(queryView)) {
+      setActiveView(queryView);
+    }
+  }, [queryView]);
   const [activeFeedTab, setActiveFeedTab] = useState("for-you");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(

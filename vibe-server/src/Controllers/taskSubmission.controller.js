@@ -98,13 +98,20 @@ export const createSubmission = asyncHandler(async (req, res) => {
 
   // In-app notification for the task creator (fire-and-forget, skip self-submits)
   if (task.createdBy && String(task.createdBy) !== String(req.user.id)) {
+    const creatorUser = await User.findById(task.createdBy).select("accountType");
+    const creatorRole = String(creatorUser?.accountType || "").trim().toLowerCase();
+    const destinationLink =
+      creatorRole === "faculty"
+        ? "/dashboard/faculty?view=tasks"
+        : "/dashboard/industry?tab=tasks";
+
     await notify({
       recipient: task.createdBy,
       sender: req.user.id,
       type: "submission_received",
       title: "New submission received",
       message: `${req.user?.name || "Someone"} submitted work for "${task.title || "your task"}"`,
-      link: "/dashboard/industry",
+      link: destinationLink,
       meta: { submissionId: submission._id, taskId: task._id },
     });
   }
@@ -156,14 +163,15 @@ export const updateSubmission = asyncHandler(async (req, res) => {
 
     // In-app notification for the candidate (fire-and-forget)
     if (candidate?._id) {
+      const taskRoute = (task?._id || task) ? `/tasks/${task?._id || task}` : "/dashboard/student?view=taskmania";
       await notify({
         recipient: candidate._id,
         sender: req.user.id,
         type: "submission_reviewed",
         title: "Your submission was reviewed",
         message: `${reviewer?.name || "A reviewer"} reviewed your work for "${task?.title || "a task"}"`,
-        link: "/dashboard/student",
-        meta: { submissionId: updatedSubmission._id },
+        link: taskRoute,
+        meta: { submissionId: updatedSubmission._id, taskId: task?._id || task },
       });
     }
   }
@@ -186,14 +194,15 @@ export const updateSubmission = asyncHandler(async (req, res) => {
 
     // In-app notification for the candidate (fire-and-forget)
     if (candidate?._id) {
+      const taskRoute = (task?._id || task) ? `/tasks/${task?._id || task}` : "/dashboard/student?view=taskmania";
       await notify({
         recipient: candidate._id,
         sender: req.user.id,
         type: "hired",
         title: "You're hired!",
         message: `Congratulations! You were hired for "${task?.roleOffered || task?.title || "a role"}" at ${task?.companyName || "a company"}`,
-        link: "/dashboard/student",
-        meta: { submissionId: updatedSubmission._id },
+        link: taskRoute,
+        meta: { submissionId: updatedSubmission._id, taskId: task?._id || task },
       });
     }
   }

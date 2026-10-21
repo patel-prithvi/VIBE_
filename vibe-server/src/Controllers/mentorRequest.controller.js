@@ -12,6 +12,12 @@ const createMentorRequest = asyncHandler(async (req, res) => {
   const { facultyId, taskId, message, skills } = req.body;
   const studentId = req.user._id; // from auth middleware
 
+  // Enforce that only students can send mentorship requests
+  const requesterRole = String(req.user.accountType || "").trim().toLowerCase();
+  if (requesterRole !== "student") {
+    throw new ApiError(403, "Only students can request faculty mentorship");
+  }
+
   if (!facultyId || !taskId) {
     throw new ApiError(400, "Faculty ID and Task ID are required");
   }
@@ -54,7 +60,7 @@ const createMentorRequest = asyncHandler(async (req, res) => {
     type: "mentor_request",
     title: "New mentorship request",
     message: `${req.user?.name || "A student"} requested your mentorship for "${task.title || "a task"}"`,
-    link: "/dashboard/faculty",
+    link: "/dashboard/faculty?view=mentorship",
     meta: { requestId: newRequest._id, taskId },
   });
 
@@ -156,6 +162,12 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
   }
   await request.save();
 
+  // Resolve recipient user accountType to ensure correct dashboard routing
+  const studentUser = await User.findById(request.student).select("accountType");
+  const studentRole = String(studentUser?.accountType || "student").trim().toLowerCase();
+  const destinationRole = studentRole === "industry expert" ? "industry" : studentRole === "faculty" ? "faculty" : "student";
+  const destinationLink = `/dashboard/${destinationRole}?view=requests`;
+
   // In-app notification for the student (fire-and-forget)
   await notify({
     recipient: request.student,
@@ -166,7 +178,7 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
       status === "accepted"
         ? `${req.user?.name || "Your mentor"} accepted your request${meetLink ? ` — meet link: ${meetLink}` : ""}`
         : `${req.user?.name || "Your mentor"} declined your mentorship request`,
-    link: "/dashboard/student",
+    link: destinationLink,
     meta: { requestId: request._id },
   });
 

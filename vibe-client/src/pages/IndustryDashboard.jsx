@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSmartPolling } from '../hooks/useSmartPolling';
 import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
 import { IndustryLeftSidebar } from '../components/industry/IndustryLeftSidebar';
@@ -17,7 +17,21 @@ import { useToast } from '../components/Toast';
 const IndustryDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('vibe_industry_tab') || 'overview');
+  const [searchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab') || searchParams.get('view');
+
+  const [activeTab, setActiveTab] = useState(() => {
+    if (queryTab && ['overview', 'tasks', 'community', 'profile'].includes(queryTab)) {
+      return queryTab;
+    }
+    return localStorage.getItem('vibe_industry_tab') || 'overview';
+  });
+
+  useEffect(() => {
+    if (queryTab && ['overview', 'tasks', 'community', 'profile'].includes(queryTab)) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("vibe_industry_sidebar_collapsed") === "true"
   );

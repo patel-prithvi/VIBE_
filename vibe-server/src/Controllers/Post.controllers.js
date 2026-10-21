@@ -9,6 +9,21 @@ import { notify } from "../services/notify.js";
 // import { sendZohoEmail } from "../services/zohMail.js";
 
 
+const getDashboardPostLink = async (userId, postId) => {
+  try {
+    const user = await User.findById(userId).select("accountType");
+    const role = String(user?.accountType || "student").trim().toLowerCase();
+    if (role === "industry expert") {
+      return `/dashboard/industry?tab=community&postId=${postId}`;
+    } else if (role === "faculty") {
+      return `/dashboard/faculty?view=home&postId=${postId}`;
+    }
+    return `/dashboard/student?view=home&postId=${postId}`;
+  } catch {
+    return `/dashboard/student?view=home&postId=${postId}`;
+  }
+};
+
 // Post.controllers.js
 export const createPost = asyncHandler(async (req, res) => {
   const body = req.body || {};
@@ -97,15 +112,16 @@ export const createComment = asyncHandler(async (req, res) => {
 
   // In-app notification for the post author (fire-and-forget, skip self-comments)
   if (parentPost.author?._id && String(parentPost.author._id) !== String(author)) {
+    const notifLink = await getDashboardPostLink(parentPost.author._id, parentPost._id);
     await notify({
       recipient: parentPost.author._id,
       sender: author,
       type: "comment",
       title: "New comment on your post",
       message: `${req.user?.name || "Someone"} commented: "${String(content || "").slice(0, 120)}"`,
-      link: "",
+      link: notifLink,
       meta: { postId: parentPost._id, commentId: newComment._id },
-    });
+    }).catch(() => {});
   }
 
   res
@@ -300,6 +316,21 @@ export const updateVibe = asyncHandler(async (req, res) => {
   }
 
   await post.save();
+
+  // If reaction added (not removed) and not author's own post, send notification
+  if (!flag && post.author && String(post.author) !== String(userId)) {
+    getDashboardPostLink(post.author, post._id).then((notifLink) => {
+      notify({
+        recipient: post.author,
+        sender: req.user._id,
+        type: "reaction",
+        title: "New reaction on your post",
+        message: `${req.user?.name || "Someone"} gave a vibe to your post`,
+        link: notifLink,
+        meta: { postId: post._id, reaction: "vibe" },
+      }).catch(() => {});
+    }).catch(() => {});
+  }
 
   res
     .status(200)
