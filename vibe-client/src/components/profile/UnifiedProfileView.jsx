@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -37,16 +37,18 @@ import { StudentPostCard } from "../student/StudentPostCard";
 
 export const UnifiedProfileView = ({
   user,
-  currentUser: propCurrentUser,
+  currentUser,
   onProfileUpdate,
   onBack,
+  onNavigateToSettings,
   roleOverride,
 }) => {
   const navigate = useNavigate();
-  const toast = useToast();
+  const [searchParams] = useSearchParams();
 
-  const loggedInUser = propCurrentUser || auth.getCurrentUser();
+  // Determine whose profile is being viewed
   const targetUserId = user?._id || user?.id;
+  const loggedInUser = currentUser || auth.getCurrentUser();
   const currentUserId = loggedInUser?._id || loggedInUser?.id;
 
   // Strict ownership check: only true if target user matches logged in user
@@ -64,8 +66,6 @@ export const UnifiedProfileView = ({
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState("details");
-  const [isEditing, setIsEditing] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
 
   // Data states for tabs
   const [userPosts, setUserPosts] = useState([]);
@@ -79,67 +79,6 @@ export const UnifiedProfileView = ({
 
   const [industryTasks, setIndustryTasks] = useState([]);
   const [industryLoading, setIndustryLoading] = useState(false);
-
-  // Password change state (owner only)
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [pwLoading, setPwLoading] = useState(false);
-
-  // Edit form state
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    mobileNo: user?.mobileNo || "",
-    dob: user?.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
-    // Student
-    institutionName: user?.Profile?.InstituteName || "",
-    degree: user?.Profile?.degree || "B.Tech",
-    branch: user?.Profile?.branch || user?.Profile?.Branch || "",
-    currentYear: user?.Profile?.yearOfStudy || user?.Profile?.YearOfStudy || "1st Year",
-    // Faculty
-    position: user?.Profile?.position || "",
-    experience: user?.Profile?.YearOfExperience || "",
-    expertise: Array.isArray(user?.Profile?.ExpertiseDomains)
-      ? user.Profile.ExpertiseDomains.join(", ")
-      : user?.Profile?.ExpertiseDomains || "",
-    // Industry
-    companyName: user?.name || user?.companyName || "",
-    tagline: user?.Profile?.position || "",
-    about: user?.Profile?.IndustryType || "",
-    location: user?.Profile?.location || "",
-    techStack: Array.isArray(user?.Profile?.ExpertiseDomains)
-      ? user.Profile.ExpertiseDomains.join(", ")
-      : user?.Profile?.ExpertiseDomains || "",
-  });
-
-  // Keep form data synchronized if user prop changes
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        mobileNo: user.mobileNo || "",
-        dob: user.dob ? new Date(user.dob).toISOString().split("T")[0] : "",
-        institutionName: user.Profile?.InstituteName || "",
-        degree: user.Profile?.degree || "B.Tech",
-        branch: user.Profile?.branch || user.Profile?.Branch || "",
-        currentYear: user.Profile?.yearOfStudy || user.Profile?.YearOfStudy || "1st Year",
-        position: user.Profile?.position || "",
-        experience: user.Profile?.YearOfExperience || "",
-        expertise: Array.isArray(user.Profile?.ExpertiseDomains)
-          ? user.Profile.ExpertiseDomains.join(", ")
-          : user.Profile?.ExpertiseDomains || "",
-        companyName: user.name || user.companyName || "",
-        tagline: user.Profile?.position || "",
-        about: user.Profile?.IndustryType || "",
-        location: user.Profile?.location || "",
-        techStack: Array.isArray(user.Profile?.ExpertiseDomains)
-          ? user.Profile.ExpertiseDomains.join(", ")
-          : user.Profile?.ExpertiseDomains || "",
-      });
-    }
-  }, [user]);
 
   // Fetch Community Posts
   useEffect(() => {
@@ -301,7 +240,7 @@ export const UnifiedProfileView = ({
         user?.Profile?.yearOfStudy || user?.Profile?.YearOfStudy,
       ];
       if (isOwner && user?.mobileNo) fields.push(user.mobileNo);
-      const filled = fields.filter((v) => v && String(v).trim()).length;
+      const filled = fields.filter((v) => v && (Array.isArray(v) ? v.length > 0 : String(v).trim())).length;
       return Math.min(100, Math.round((filled / fields.length) * 100));
     }
     if (isFaculty) {
@@ -343,7 +282,6 @@ export const UnifiedProfileView = ({
       ];
     }
     if (isFaculty) {
-      // Mentored Tasks & Guided Students
       const acceptedRequests = facultyRequests.filter((r) => r.status === "accepted");
       return [
         { id: "details", label: "Details", icon: User },
@@ -366,100 +304,6 @@ export const UnifiedProfileView = ({
   };
 
   const tabs = getTabs();
-
-  // Handle Form Change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Handle Profile Update (owner only)
-  const handleSaveProfile = async () => {
-    if (!isOwner) return;
-    try {
-      setSaveLoading(true);
-
-      let payload = {};
-      if (isStudent) {
-        payload = {
-          name: formData.name,
-          mobileNo: formData.mobileNo,
-          dob: formData.dob,
-          institutionName: formData.institutionName,
-          degree: formData.degree,
-          branch: formData.branch,
-          currentYear: formData.currentYear,
-        };
-      } else if (isFaculty) {
-        payload = {
-          name: formData.name,
-          mobileNo: formData.mobileNo,
-          dob: formData.dob,
-          institutionName: formData.institutionName,
-          position: formData.position,
-          branch: formData.branch || formData.department,
-          experience: formData.experience,
-          expertise: formData.expertise,
-        };
-      } else if (isIndustry) {
-        payload = {
-          name: formData.companyName || formData.name,
-          companyName: formData.companyName,
-          tagline: formData.tagline,
-          position: formData.tagline,
-          about: formData.about,
-          industryType: formData.about,
-          location: formData.location,
-          expertise: formData.techStack,
-        };
-      }
-
-      const updated = await auth.updateProfile(targetUserId, payload);
-      if (onProfileUpdate) {
-        onProfileUpdate(updated);
-      }
-      setIsEditing(false);
-      toast.success("Profile updated successfully!");
-    } catch (error) {
-      console.error("Profile update error:", error);
-      toast.error(error.response?.data?.message || "Failed to update profile");
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  // Handle Password Update (owner only)
-  const handleUpdatePassword = async () => {
-    if (!isOwner) return;
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill in all password fields");
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters long");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("New password and confirmation do not match");
-      return;
-    }
-    try {
-      setPwLoading(true);
-      await api.post("/users/change-password", { currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setShowPasswordSection(false);
-      toast.success("Password updated successfully!");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update password");
-    } finally {
-      setPwLoading(false);
-    }
-  };
-
-  const inputClasses =
-    "w-full px-3.5 py-2.5 rounded-xl border border-[#E1E8F2] bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none transition-all text-[#172554] placeholder-[#94A3B8] text-sm font-medium hover:border-[#CBD5E1]";
 
   return (
     <div className="max-w-[1150px] mx-auto w-full space-y-6 pb-12">
@@ -584,45 +428,6 @@ export const UnifiedProfileView = ({
 
         {/* Right Action / Stats Area */}
         <div className="flex flex-col items-center md:items-end justify-between gap-4 w-full md:w-auto">
-          {/* Small Edit Profile Button — ONLY VISIBLE TO OWNER */}
-          {isOwner && (
-            <div className="flex items-center gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E1E8F2] bg-[#F8FAFC] text-xs font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-all cursor-pointer shadow-xs"
-                  >
-                    <X size={14} />
-                    <span>Cancel</span>
-                  </button>
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={saveLoading}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    {saveLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    <span>Save</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (typeof onNavigateToSettings === "function") {
-                      onNavigateToSettings("profile");
-                    } else {
-                      setIsEditing(true);
-                    }
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#E1E8F2] bg-white text-xs font-bold text-[#172554] hover:border-[#6D3DF5] hover:text-[#6D3DF5] hover:bg-[#F2ECFF]/40 transition-all cursor-pointer shadow-xs"
-                >
-                  <Edit3 size={14} />
-                  <span>Edit Profile</span>
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Quick Stats Badges */}
           <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end">
             {isStudent && (
@@ -716,269 +521,7 @@ export const UnifiedProfileView = ({
         {/* TAB 1: DETAILS / COMPANY DETAILS */}
         {activeTab === "details" && (
           <div className="space-y-6">
-            {isOwner && isEditing ? (
-              /* EDITING MODE FORM */
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6"
-              >
-                <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
-                  <h3 className="font-bold text-base text-[#0F172A] flex items-center gap-2">
-                    <Edit3 size={18} className="text-[#6D3DF5]" />
-                    <span>Edit Profile Details</span>
-                  </h3>
-                  <span className="text-xs text-[#64748B]">Changes are saved directly to your account</span>
-                </div>
-
-                {isStudent && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Full Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="Full Name"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Mobile Number</label>
-                      <input
-                        type="tel"
-                        name="mobileNo"
-                        value={formData.mobileNo}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. 9876543210"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Date of Birth</label>
-                      <input
-                        type="date"
-                        name="dob"
-                        value={formData.dob}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">College / University</label>
-                      <input
-                        type="text"
-                        name="institutionName"
-                        value={formData.institutionName}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="College name"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Degree</label>
-                      <input
-                        type="text"
-                        name="degree"
-                        value={formData.degree}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. B.Tech, BCA"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Branch / Department</label>
-                      <input
-                        type="text"
-                        name="branch"
-                        value={formData.branch}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Computer Science"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Year of Study</label>
-                      <select
-                        name="currentYear"
-                        value={formData.currentYear}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                      >
-                        <option>1st Year</option>
-                        <option>2nd Year</option>
-                        <option>3rd Year</option>
-                        <option>4th Year</option>
-                        <option>Graduated</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {isFaculty && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Full Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="Full Name"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Mobile Number</label>
-                      <input
-                        type="tel"
-                        name="mobileNo"
-                        value={formData.mobileNo}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="Mobile Number"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Institution / University</label>
-                      <input
-                        type="text"
-                        name="institutionName"
-                        value={formData.institutionName}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="Institution Name"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Designation / Title</label>
-                      <input
-                        type="text"
-                        name="position"
-                        value={formData.position}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Assistant Professor, HOD"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Department</label>
-                      <input
-                        type="text"
-                        name="branch"
-                        value={formData.branch}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Computer Science & Engineering"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Years of Experience</label>
-                      <input
-                        type="text"
-                        name="experience"
-                        value={formData.experience}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. 5+ years"
-                      />
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Expertise Domains (comma separated)</label>
-                      <input
-                        type="text"
-                        name="expertise"
-                        value={formData.expertise}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Machine Learning, Cloud Computing, System Design"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {isIndustry && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Company Name</label>
-                      <input
-                        type="text"
-                        name="companyName"
-                        value={formData.companyName}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="Company Name"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Tagline / Industry Subtitle</label>
-                      <input
-                        type="text"
-                        name="tagline"
-                        value={formData.tagline}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Next-Gen Tech Solutions"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Industry Domain</label>
-                      <input
-                        type="text"
-                        name="about"
-                        value={formData.about}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Software Development, Fintech"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Headquarters / Location</label>
-                      <input
-                        type="text"
-                        name="location"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. Bangalore, India"
-                      />
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
-                      <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Tech Stack & Domains (comma separated)</label>
-                      <input
-                        type="text"
-                        name="techStack"
-                        value={formData.techStack}
-                        onChange={handleInputChange}
-                        className={inputClasses}
-                        placeholder="e.g. React, Node.js, Python, AWS"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F1F5F9]">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 rounded-xl border border-[#E2E8F0] text-xs font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveProfile}
-                    disabled={saveLoading}
-                    className="px-5 py-2 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {saveLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span>Save Changes</span>
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              /* VIEW MODE DETAILS CARDS */
+            /* VIEW MODE DETAILS CARDS */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Card A: Institutional / Academic / Company Overview */}
                 <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
@@ -1138,9 +681,6 @@ export const UnifiedProfileView = ({
                   </div>
                 </div>
               </div>
-            )}
-
-            
           </div>
         )}
 

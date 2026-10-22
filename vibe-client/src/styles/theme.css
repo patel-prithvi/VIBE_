@@ -879,6 +879,19 @@ body.vibe-scroll-locked {
   animation-play-state: paused;
 }
 
+/* Continuous Marquee for Testimonials ("Wall of Love") */
+.animate-vibe-testimonial-marquee {
+  display: flex;
+  width: max-content;
+  animation: vibeContinuousMarquee 46s linear infinite;
+  will-change: transform;
+}
+
+.animate-vibe-testimonial-marquee:hover,
+.group\/testimonials:hover .animate-vibe-testimonial-marquee {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vibe-landing-doodle-1,
   .vibe-landing-doodle-2,
@@ -901,8 +914,10 @@ body.vibe-scroll-locked {
     transform: none !important;
   }
 
-  .animate-vibe-marquee {
+  .animate-vibe-marquee,
+  .animate-vibe-testimonial-marquee {
     animation: none !important;
+    transform: none !important;
     overflow-x: auto;
   }
 }

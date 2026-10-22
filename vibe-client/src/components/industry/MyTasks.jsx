@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -48,6 +48,10 @@ export const MyTasks = ({
   applicants,
   onUpdateApplicantStatus,
   user,
+  initialActiveTaskId,
+  onClearInitialTaskId,
+  initialOpenCreateModal,
+  onClearOpenCreateModal,
 }) => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -69,6 +73,28 @@ export const MyTasks = ({
       selectedApplicant
     )
   );
+
+  useEffect(() => {
+    if (initialActiveTaskId && tasks && tasks.length > 0) {
+      const match = tasks.find(
+        (t) => String(t.id || t._id) === String(initialActiveTaskId)
+      );
+      if (match) {
+        setActiveTask(match);
+        setShowApplicantsDrawer(true);
+      }
+      if (onClearInitialTaskId) onClearInitialTaskId();
+    }
+  }, [initialActiveTaskId, tasks, onClearInitialTaskId]);
+
+  useEffect(() => {
+    if (initialOpenCreateModal) {
+      setEditingId(null);
+      setCreateModalStep(1);
+      setShowCreateModal(true);
+      if (onClearOpenCreateModal) onClearOpenCreateModal();
+    }
+  }, [initialOpenCreateModal, onClearOpenCreateModal]);
   const [interviewFormFor, setInterviewFormFor] = useState(null); // Applicant ID for inline interview form
   const [interviewData, setInterviewData] = useState({
     date: "",

@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSmartPolling } from '../hooks/useSmartPolling';
 import { FacultyTopHeader } from '../components/faculty/FacultyTopHeader';
 import { IndustryLeftSidebar } from '../components/industry/IndustryLeftSidebar';
-import { IndustryRightPanel } from '../components/industry/IndustryRightPanel';
 import { Overview } from '../components/industry/Overview';
 import { Community } from '../components/industry/Community';
 import { MyTasks } from '../components/industry/MyTasks';
@@ -23,17 +22,18 @@ const IndustryDashboard = () => {
   const queryTab = searchParams.get('tab') || searchParams.get('view');
 
   const [activeTab, setActiveTab] = useState(() => {
-    if (queryTab && ['overview', 'tasks', 'community', 'profile'].includes(queryTab)) {
+    if (queryTab && ['overview', 'tasks', 'community', 'profile', 'bookmarks', 'settings'].includes(queryTab)) {
       return queryTab;
     }
     return localStorage.getItem('vibe_industry_tab') || 'overview';
   });
 
   useEffect(() => {
-    if (queryTab && ['overview', 'tasks', 'community', 'profile'].includes(queryTab)) {
+    if (queryTab && ['overview', 'tasks', 'community', 'profile', 'bookmarks', 'settings'].includes(queryTab)) {
       setActiveTab(queryTab);
     }
   }, [queryTab]);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     () => localStorage.getItem("vibe_industry_sidebar_collapsed") === "true"
   );
@@ -44,6 +44,10 @@ const IndustryDashboard = () => {
   const [bookmarkedPosts, setBookmarkedPosts] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
   const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+
+  // Cross-component contextual navigation states
+  const [focusedTaskId, setFocusedTaskId] = useState(null);
+  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   const fetchBookmarks = useCallback(async () => {
     try {
@@ -79,8 +83,6 @@ const IndustryDashboard = () => {
         setBookmarkedPosts(bmList);
         setBookmarkedIds(new Set(bmList.map((p) => String(p.id))));
       }
-
-
     } catch (err) {
       console.error("Error fetching bookmarks in IndustryDashboard:", err);
     } finally {
@@ -119,93 +121,174 @@ const IndustryDashboard = () => {
     });
   };
 
+  const processTasksAndApplicants = (taskList) => {
+    const mappedTasks = (taskList || []).map((task) => {
+      const deadlineDate = new Date(task.lastDateToSubmit);
+      const isPast =
+        !isNaN(deadlineDate.getTime()) &&
+        deadlineDate.setHours(23, 59, 59, 999) < Date.now();
+      const taskStatus = isPast ? "Closed" : "Active";
+
+      const creatorId = String(task.createdBy?._id || task.createdBy || "");
+      const validSubmissions = (task.submissions || []).filter((sub) => {
+        const submitterId = String(sub.createdBy?._id || sub.createdBy || "");
+        return submitterId !== creatorId;
+      });
+
+      const submissionsWithWork = validSubmissions.filter((sub) => {
+        const statusLower = String(sub.status || "").toLowerCase();
+        return Boolean(
+          sub.submissionUrl ||
+          sub.repoUrl ||
+          sub.driveUrl ||
+          sub.videoUrl ||
+          (sub.message && sub.message.trim()) ||
+          ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(statusLower)
+        );
+      });
+
+      return {
+        id: task._id,
+        title: task.title,
+        category: task.roleOffered || "Development",
+        role: task.roleOffered,
+        company: task.companyName,
+        location: task.location || "Remote",
+        type: task.location || "Remote",
+        payment: task.packageRange,
+        skills: task.skillsRequired || [],
+        perks:
+          task.perks && task.perks.trim()
+            ? task.perks.split(",").map((p) => p.trim()).filter(Boolean)
+            : [],
+        deadline: new Date(task.lastDateToSubmit).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        deadlineRaw: task.lastDateToSubmit,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        status: taskStatus,
+        applicantsCount: validSubmissions.length,
+        submissionsCount: submissionsWithWork.length,
+        postedAt: new Date(task.createdAt).toISOString().split("T")[0],
+        instructions: {
+          overview: task.description,
+          steps: task.instructions || [],
+          note: task.additionalDocumentsURL || "",
+        },
+        materials: task.materials || [],
+        _id: task._id,
+      };
+    });
+
+    const allApplicants = (taskList || []).flatMap((task) => {
+      const creatorId = String(task.createdBy?._id || task.createdBy || "");
+      return (task.submissions || [])
+        .filter((sub) => {
+          const submitterId = String(sub.createdBy?._id || sub.createdBy || "");
+          return submitterId !== creatorId;
+        })
+        .map((sub) => {
+          const studentUser = sub.createdBy || {};
+          const studentName =
+            (typeof studentUser.fullName === "string" && studentUser.fullName.trim()) ||
+            (typeof studentUser.name === "string" && studentUser.name.trim()) ||
+            (sub.email ? sub.email.split("@")[0] : "Unknown Student");
+
+          const rawStatus = String(sub.status || "applied");
+          const statusLower = rawStatus.toLowerCase();
+          const hasWorkSubmitted = Boolean(
+            sub.submissionUrl ||
+            sub.repoUrl ||
+            sub.driveUrl ||
+            sub.videoUrl ||
+            (sub.message && sub.message.trim()) ||
+            ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(statusLower)
+          );
+
+          return {
+            id: sub._id,
+            studentId:
+              studentUser._id ||
+              studentUser.id ||
+              (typeof sub.createdBy === "string" ? sub.createdBy : null),
+            name: studentName,
+            avatar:
+              studentUser.ImageUrl ||
+              studentUser.avatar ||
+              studentUser.Profile?.ImageUrl ||
+              "",
+            college:
+              typeof studentUser.Profile?.InstituteName === "string" &&
+              studentUser.Profile.InstituteName.trim()
+                ? studentUser.Profile.InstituteName.trim()
+                : "Unknown Institute",
+            branch:
+              (typeof studentUser.Profile?.branch === "string" && studentUser.Profile.branch.trim()) ||
+              (typeof studentUser.Profile?.department === "string" && studentUser.Profile.department.trim()) ||
+              (typeof studentUser.branch === "string" && studentUser.branch.trim()) ||
+              (typeof studentUser.department === "string" && studentUser.department.trim()) ||
+              "General",
+            status: sub.status || "applied",
+            rawStatus: rawStatus,
+            hasWorkSubmitted,
+            taskId: task._id,
+            taskTitle: task.title,
+            taskDeadline: task.lastDateToSubmit,
+            email: studentUser.email || sub.email || "",
+            resumeLink: String(
+              sub.submissionUrl || sub.demoUrl || sub.documentation_url || ""
+            ).trim(),
+            attachments: Array.isArray(sub.attachments) ? sub.attachments : [],
+            submittedAt: new Date(sub.createdAt).toLocaleDateString(),
+            submissionDate: new Date(sub.createdAt),
+            interviewDate: sub.interviewDate || "",
+            interviewTime: sub.interviewTime || "",
+            interviewMode: sub.interviewMode || "Online",
+            interviewLink: sub.interviewLink || "",
+            score: sub.score || 0,
+            reviewFeedback: sub.reviewFeedback || "",
+            submission: {
+              description: String(sub.message || "").trim(),
+              githubLink: String(
+                sub.repoUrl || sub.githubUrl || sub.github_url || ""
+              ).trim(),
+              videoLink: String(
+                sub.videoUrl || sub.video_demo_url || ""
+              ).trim(),
+              driveLink: String(
+                sub.driveUrl || sub.googleDriveUrl || sub.drive_url || ""
+              ).trim(),
+              otherLinks: (Array.isArray(sub.additionalLinks)
+                ? sub.additionalLinks
+                : Array.isArray(sub.additional_files)
+                ? sub.additional_files.map((f) => f.url)
+                : []
+              )
+                .filter((l) => typeof l === "string" && l.trim())
+                .map((l) => l.trim()),
+              projectTitle: String(
+                sub.projectTitle || `Submission for ${task.title}`
+              ).trim(),
+            },
+          };
+        });
+    });
+
+    return { mappedTasks, allApplicants };
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const userData = await auth.fetchUser();
       setUser(userData);
-      
+
       const tasksRes = await api.get('/tasks/myTasks');
       if (tasksRes.data && tasksRes.data.data) {
-        const fetchedTasks = tasksRes.data.data.map(task => ({
-          id: task._id,
-          title: task.title,
-          category: "Development", // Default as backend might not have it
-          role: task.roleOffered,
-          company: task.companyName,
-          location: "Remote",
-          type: "Remote",
-          payment: task.packageRange,
-          skills: task.skillsRequired || [],
-          perks: (task.perks && task.perks.trim()) ? task.perks.split(',').map(p => p.trim()).filter(Boolean) : [],
-          deadline: new Date(task.lastDateToSubmit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-          status: "Active",
-          applicantsCount: task.submissions?.length || 0,
-          postedAt: new Date(task.createdAt).toISOString().split('T')[0],
-          instructions: {
-            overview: task.description,
-            steps: task.instructions || [],
-            note: task.additionalDocumentsURL || ""
-          },
-          materials: task.materials || [],
-          // Keep original for updates
-          _id: task._id
-        }));
-        setTasks(fetchedTasks);
-        
-        // Extract applicants from tasks.
-        // Filter out any submission where the submitter is the task creator
-        // (prevents the industry owner's own submissions from appearing as "applicants").
-        const allApplicants = tasksRes.data.data.flatMap(task => {
-          const creatorId = String(task.createdBy?._id || task.createdBy || "");
-          return (task.submissions || [])
-            .filter(sub => {
-              // Skip submissions where createdBy is the task owner (industry)
-              const submitterId = String(sub.createdBy?._id || sub.createdBy || "");
-              return submitterId !== creatorId;
-            })
-            .map(sub => {
-              // Resolve student name — prefer fullName, fall back to name
-              const studentUser = sub.createdBy || {};
-              const studentName =
-                (typeof studentUser.fullName === "string" && studentUser.fullName.trim()) ||
-                (typeof studentUser.name === "string" && studentUser.name.trim()) ||
-                (sub.email ? sub.email.split("@")[0] : "Unknown Student");
-              return {
-                id: sub._id,
-                studentId: studentUser._id || studentUser.id || (typeof sub.createdBy === "string" ? sub.createdBy : null),
-                name: studentName,
-                avatar: studentUser.ImageUrl || studentUser.avatar || studentUser.Profile?.ImageUrl || "",
-                college: typeof studentUser.Profile?.InstituteName === "string" && studentUser.Profile.InstituteName.trim()
-                  ? studentUser.Profile.InstituteName.trim()
-                  : "Unknown Institute",
-                branch: typeof studentUser.Profile?.branch === "string" && studentUser.Profile.branch.trim()
-                  ? studentUser.Profile.branch.trim()
-                  : "General",
-                status: sub.status || "Pending",
-                taskId: task._id,
-                taskTitle: task.title,
-                email: studentUser.email || sub.email || "",
-                resumeLink: String(sub.submissionUrl || sub.demoUrl || sub.documentation_url || "").trim(),
-                attachments: Array.isArray(sub.attachments) ? sub.attachments : [],
-                submittedAt: new Date(sub.createdAt).toLocaleDateString(),
-                submissionDate: new Date(sub.createdAt),
-                submission: {
-                  description: String(sub.message || "").trim(),
-                  githubLink: String(sub.repoUrl || sub.githubUrl || sub.github_url || "").trim(),
-                  videoLink: String(sub.videoUrl || sub.video_demo_url || "").trim(),
-                  driveLink: String(sub.driveUrl || sub.googleDriveUrl || sub.drive_url || "").trim(),
-                  otherLinks: (Array.isArray(sub.additionalLinks)
-                    ? sub.additionalLinks
-                    : Array.isArray(sub.additional_files)
-                      ? sub.additional_files.map(f => f.url)
-                      : [])
-                    .filter(l => typeof l === "string" && l.trim())
-                    .map(l => l.trim()),
-                  projectTitle: String(sub.projectTitle || `Submission for ${task.title}`).trim()
-                }
-              };
-            });
-        });
+        const { mappedTasks, allApplicants } = processTasksAndApplicants(tasksRes.data.data);
+        setTasks(mappedTasks);
         setApplicants(allApplicants);
       }
     } catch (error) {
@@ -218,7 +301,7 @@ const IndustryDashboard = () => {
     fetchBookmarks();
   }, [fetchData, fetchBookmarks]);
 
-  // Smart polling every 30s (visibility-aware, refetches on focus)
+  // Smart polling every 30s
   useSmartPolling(fetchData, {
     intervalMs: 30000,
     enabled: true,
@@ -229,23 +312,13 @@ const IndustryDashboard = () => {
 
   // Scroll to top when section changes
   useEffect(() => {
-    // Scroll the main content area to top
     const mainContent = document.querySelector('main');
     if (mainContent) {
-      mainContent.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      mainContent.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    // Also scroll window to top as fallback
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
-  // Custom handler for section navigation with scroll
   const handleSectionChange = (newSection) => {
     const next = newSection === 'home' ? 'overview' : newSection;
     setActiveTab(next);
@@ -266,38 +339,18 @@ const IndustryDashboard = () => {
     }
   };
 
-  const fetchAndMapTasks = async () => {
-    try {
-      const tasksRes = await api.get('/tasks/myTasks');
-      if (tasksRes.data && tasksRes.data.data) {
-        const fetchedTasks = tasksRes.data.data.map(task => ({
-          id: task._id,
-          title: task.title,
-          category: "Development",
-          role: task.roleOffered,
-          company: task.companyName,
-          location: task.location || "Remote",
-          type: task.location || "Remote",
-          payment: task.packageRange,
-          skills: task.skillsRequired || [],
-          perks: (task.perks && task.perks.trim()) ? task.perks.split(',').map(p => p.trim()).filter(Boolean) : [],
-          deadline: new Date(task.lastDateToSubmit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-          status: "Active",
-          applicantsCount: task.submissions?.length || 0,
-          postedAt: new Date(task.createdAt).toISOString().split('T')[0],
-          instructions: {
-            overview: task.description,
-            steps: task.instructions || [],
-            note: task.additionalDocumentsURL || ""
-          },
-          materials: task.materials || [],
-          _id: task._id
-        }));
-        setTasks(fetchedTasks);
-      }
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-    }
+  const handleReviewTask = (taskId) => {
+    setFocusedTaskId(taskId);
+    handleSectionChange('tasks');
+  };
+
+  const handleOpenCreateTask = () => {
+    setOpenCreateModal(true);
+    handleSectionChange('tasks');
+  };
+
+  const handleViewTaskDetails = (taskId) => {
+    navigate(`/tasks/${taskId}`);
   };
 
   const handleAddTask = async (newTask) => {
@@ -368,8 +421,8 @@ const IndustryDashboard = () => {
       await fetchData();
       toast.success("Task updated successfully!");
     } catch (error) {
-       console.error("Error updating task:", error);
-       toast.error(error.response?.data?.message || "Failed to update task");
+      console.error("Error updating task:", error);
+      toast.error(error.response?.data?.message || "Failed to update task");
     }
   };
 
@@ -383,13 +436,23 @@ const IndustryDashboard = () => {
         REJECTED: "rejected",
         Approved: "hired",
         Rejected: "rejected",
-        Pending: "applied"
+        Pending: "applied",
       };
-      const payload = { status: statusMap[newStatus] || "applied", ...(details || {}) };
+      const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
+      const payload = { status: backendStatus, ...(details || {}) };
       await api.put(`/submissions/${applicantId}`, payload);
-      setApplicants(prev => prev.map(applicant =>
-        applicant.id === applicantId ? { ...applicant, status: newStatus } : applicant
-      ));
+      setApplicants((prev) =>
+        prev.map((applicant) =>
+          applicant.id === applicantId
+            ? {
+                ...applicant,
+                status: newStatus,
+                rawStatus: backendStatus,
+                ...(details || {}),
+              }
+            : applicant
+        )
+      );
       toast.success("Status updated");
     } catch (error) {
       console.error("Error updating applicant status:", error);
@@ -402,9 +465,13 @@ const IndustryDashboard = () => {
       case 'overview':
         return (
           <Overview
-            setActiveTab={setActiveTab}
             tasks={tasks}
             applicants={applicants}
+            user={user}
+            setActiveTab={handleSectionChange}
+            onReviewTask={handleReviewTask}
+            onCreateTask={handleOpenCreateTask}
+            onViewTaskDetails={handleViewTaskDetails}
           />
         );
       case 'community':
@@ -418,6 +485,10 @@ const IndustryDashboard = () => {
             applicants={applicants}
             onUpdateApplicantStatus={handleUpdateApplicantStatus}
             user={user}
+            initialActiveTaskId={focusedTaskId}
+            onClearInitialTaskId={() => setFocusedTaskId(null)}
+            initialOpenCreateModal={openCreateModal}
+            onClearOpenCreateModal={() => setOpenCreateModal(false)}
           />
         );
       case 'profile':
@@ -452,20 +523,21 @@ const IndustryDashboard = () => {
       default:
         return (
           <Overview
-            setActiveTab={setActiveTab}
             tasks={tasks}
             applicants={applicants}
+            user={user}
+            setActiveTab={handleSectionChange}
+            onReviewTask={handleReviewTask}
+            onCreateTask={handleOpenCreateTask}
+            onViewTaskDetails={handleViewTaskDetails}
           />
         );
     }
   };
 
-  // Wide views (tasks, profile) get a 2-column layout; home views get the 3-column faculty shell
-  const isWideView = activeTab === 'tasks' || activeTab === 'profile' || activeTab === 'bookmarks' || activeTab === 'settings';
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#6D3DF5] selection:text-white">
-      {/* 1. Horizontal Header Aligned across the top */}
+      {/* 1. Top Horizontal Header */}
       <FacultyTopHeader
         user={user}
         onLogout={handleLogout}
@@ -475,64 +547,31 @@ const IndustryDashboard = () => {
         onToggleSidebar={handleToggleSidebar}
       />
 
-      {/* 2. Main Desktop Dashboard Container */}
+      {/* 2. Main Desktop Dashboard Container (2-Column layout, full available width, no unused column) */}
       <main className="flex-1 w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-5">
-        {isWideView ? (
-          <div
-            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
-              isSidebarCollapsed
-                ? "md:grid-cols-[76px_minmax(0,1fr)]"
-                : "md:grid-cols-[260px_minmax(0,1fr)]"
-            }`}
-          >
-            {/* Column 1: Left Fixed-Width Sidebar */}
-            <IndustryLeftSidebar
-              activeView={activeTab}
-              onNavigate={handleSectionChange}
-              onLogout={handleLogout}
-              isCollapsed={isSidebarCollapsed}
-            />
+        <div
+          className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
+            isSidebarCollapsed
+              ? "md:grid-cols-[76px_minmax(0,1fr)]"
+              : "md:grid-cols-[260px_minmax(0,1fr)]"
+          }`}
+        >
+          {/* Column 1: Left Fixed-Width Sidebar */}
+          <IndustryLeftSidebar
+            activeView={activeTab}
+            onNavigate={handleSectionChange}
+            onLogout={handleLogout}
+            isCollapsed={isSidebarCollapsed}
+          />
 
-            {/* Dedicated View Column (Full available width, no right panel) */}
-            <div className="min-w-0 w-full">
-              {renderContent()}
-            </div>
+          {/* Column 2: Dedicated Content Area (Uses all remaining space cleanly) */}
+          <div className="min-w-0 w-full">
+            {renderContent()}
           </div>
-        ) : (
-          <div
-            className={`grid grid-cols-1 gap-5 items-start transition-all duration-300 ${
-              isSidebarCollapsed
-                ? "md:grid-cols-[76px_minmax(0,1fr)] lg:grid-cols-[76px_minmax(0,1fr)_260px]"
-                : "md:grid-cols-[260px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)_260px]"
-            }`}
-          >
-            {/* Column 1: Left Fixed-Width Sidebar */}
-            <IndustryLeftSidebar
-              activeView={activeTab}
-              onNavigate={handleSectionChange}
-              onLogout={handleLogout}
-              isCollapsed={isSidebarCollapsed}
-            />
-
-            {/* Column 2: Center (Primary content area, visibly wider than sidebars) */}
-            <div className="min-w-0 w-full">
-              {renderContent()}
-            </div>
-
-            {/* Column 3: Right Sidebar — Hidden on tablet (< lg) and mobile */}
-            <div className="hidden lg:block">
-              <IndustryRightPanel
-                applicants={applicants}
-                onUpdateApplicantStatus={handleUpdateApplicantStatus}
-                onNavigate={handleSectionChange}
-                onPostTask={() => handleSectionChange('tasks')}
-              />
-            </div>
-          </div>
-        )}
+        </div>
       </main>
 
-      {/* Mobile Bottom Navigation Bar (app-style fixed bar for mobile screens) */}
+      {/* 3. Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         role="industry"
         activeView={activeTab}

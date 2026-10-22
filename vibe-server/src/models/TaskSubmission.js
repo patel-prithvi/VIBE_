@@ -59,6 +59,22 @@ const taskSubmissionSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    interviewDate: {
+      type: String,
+      default: "",
+    },
+    interviewTime: {
+      type: String,
+      default: "",
+    },
+    interviewMode: {
+      type: String,
+      default: "Online",
+    },
+    interviewLink: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
