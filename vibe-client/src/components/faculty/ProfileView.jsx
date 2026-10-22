@@ -27,7 +27,7 @@ export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditing = false;
   const [loading, setLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -179,20 +179,7 @@ export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
           </div>
         </div>
 
-        {/* Edit Profile Action Button */}
-        <button
-          onClick={handleEditClick}
-          disabled={loading}
-          className={`w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex-shrink-0 ${
-            isEditing
-              ? "bg-[#6D3DF5] text-white shadow-xs hover:bg-[#5B2FD6]"
-              : "bg-[#F8FAFC] text-[#172554] hover:bg-[#F2ECFF] hover:text-[#6D3DF5] border border-[#E1E8F2]"
-          }`}
-        >
-          <Edit3 size={16} />
-          <span>{isEditing ? "Save Changes" : "Edit Profile"}</span>
-        </button>
-      </motion.section>
+        </motion.section>
 
       {/* 2. Stepper Form Section */}
       <section className="space-y-4">
@@ -382,13 +369,7 @@ export const ProfileView = ({ user, onProfileUpdate, onBackToFeed }) => {
                   >
                     <ChevronLeft size={16} /> Back
                   </button>
-                  <button
-                    onClick={handleUpdateProfile}
-                    disabled={!isEditing || loading}
-                    className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#6D3DF5] text-white px-7 py-2.5 rounded-xl text-sm font-bold shadow-xs hover:bg-[#5B2FD6] transition-all disabled:opacity-50"
-                  >
-                    {loading ? 'Updating...' : 'Update Profile'} <CheckCircle2 size={16} />
-                  </button>
+                  
                 </div>
               </motion.div>
             )}

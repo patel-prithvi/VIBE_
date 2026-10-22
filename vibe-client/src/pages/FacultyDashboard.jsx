@@ -24,7 +24,7 @@ const FacultyDashboard = () => {
 
   // Default view is "home" which represents the 3-column feed dashboard
   const [activeView, setActiveView] = useState(() => {
-    if (queryView && ["home", "mentorship", "requests", "profile", "bookmarks"].includes(queryView)) {
+    if (queryView && ["home", "mentorship", "requests", "profile", "bookmarks", "settings"].includes(queryView)) {
       return queryView === "requests" ? "mentorship" : queryView;
     }
     return localStorage.getItem("vibe_faculty_tab") || "home";
@@ -34,7 +34,7 @@ const FacultyDashboard = () => {
     if (queryView) {
       if (queryView === "requests" || queryView === "mentorship") {
         setActiveView("mentorship");
-      } else if (["home", "profile", "bookmarks"].includes(queryView)) {
+      } else if (["home", "profile", "bookmarks", "settings"].includes(queryView)) {
         setActiveView(queryView);
       }
     }

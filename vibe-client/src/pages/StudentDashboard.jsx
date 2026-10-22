@@ -25,14 +25,14 @@ const StudentDashboard = () => {
   const queryView = searchParams.get("view") || searchParams.get("tab");
 
   const [activeView, setActiveView] = useState(() => {
-    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts"].includes(queryView)) {
+    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts", "settings"].includes(queryView)) {
       return queryView;
     }
     return localStorage.getItem("vibe_student_tab") || "home";
   });
 
   useEffect(() => {
-    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts"].includes(queryView)) {
+    if (queryView && ["home", "taskmania", "mentorship", "requests", "profile", "virtual-cv", "cv-analysis", "bookmarks", "posts", "settings"].includes(queryView)) {
       setActiveView(queryView);
     }
   }, [queryView]);
