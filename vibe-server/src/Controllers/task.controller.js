@@ -5,6 +5,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import { User }  from "../models/Users.js";
+import Profile from "../models/Profile.js";
+import { rankTasksForStudent } from "../utils/recommendationEngine.js";
 import { ZipArchive } from "archiver";
 import axios from "axios";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
@@ -267,10 +269,22 @@ const getAllTasks = asyncHandler(async (req, res) => {
       select: "-password -mobileNo -createdAt -updatedAt -otp",
     });
 
-  // Return empty array instead of 404 so student view renders correctly
-  return res
-    .status(200)
-    .json(new ApiResponse(200, tasks || [], "Fetched all Task Mania challenges"));
+  let finalTasks = tasks || [];
+
+  if (req.user?.accountType === "student") {
+    let userProfile = null;
+    if (req.user.Profile) {
+      userProfile = await Profile.findById(req.user.Profile).lean();
+    }
+
+    const manualOrder = (req.user.taskOrder || [])
+      .filter(Boolean)
+      .map((id) => id.toString());
+
+    finalTasks = rankTasksForStudent(finalTasks, req.user, userProfile, manualOrder);
+  }
+
+  return res.status(200).json(new ApiResponse(200, finalTasks, "Fetched all Task Mania challenges"));
 });
 
 
@@ -652,7 +666,9 @@ const getBookmarkedTasks = asyncHandler(async (req, res) => {
 
   if (taskBookmarkIds.length === 0) {
     return res
+  
       .status(200)
+  
       .json(new ApiResponse(200, [], "Fetched bookmarked tasks successfully"));
   }
 

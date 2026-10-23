@@ -9,6 +9,7 @@ import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
 import { useToast } from '../Toast';
 import { useSmartPolling } from '../../hooks/useSmartPolling';
+import { orderTasksWithFallback, sortTasksByRelevance } from '../../utils/taskRelevance';
 
 export const TaskManiaView = ({
   bookmarkedTaskIds: propBookmarkedTaskIds,
@@ -64,30 +65,23 @@ export const TaskManiaView = ({
     { value: 'rejected', label: 'Rejected' },
   ];
 
-  // Order sorting utility
+  // Order sorting utility: combines manual priority ordering with skill relevance
   const sortTasksByOrder = useCallback((taskList, orderIds) => {
-    if (!Array.isArray(taskList)) return [];
-    if (!Array.isArray(orderIds) || orderIds.length === 0) return [...taskList];
-
-    const orderMap = new Map();
-    orderIds.forEach((id, index) => {
-      orderMap.set(String(id), index);
-    });
-
-    return [...taskList].sort((a, b) => {
-      const idA = String(a.id || a._id);
-      const idB = String(b.id || b._id);
-      const hasA = orderMap.has(idA);
-      const hasB = orderMap.has(idB);
-
-      if (hasA && hasB) {
-        return orderMap.get(idA) - orderMap.get(idB);
-      }
-      if (hasA) return -1;
-      if (hasB) return 1;
-      return 0;
-    });
+    return orderTasksWithFallback(taskList, orderIds);
   }, []);
+
+  // Reset custom manual order back to skill-based recommendation
+  const handleResetToSkillsOrder = useCallback(async () => {
+    try {
+      await api.put('/tasks/order', { taskOrder: [] });
+      setSavedOrder([]);
+      setTasks((prev) => sortTasksByRelevance(prev));
+      toast.success('Restored skills-based recommendation order');
+    } catch (err) {
+      console.error('Failed to reset task order:', err);
+      toast.error('Failed to reset task order');
+    }
+  }, [toast]);
 
   // Determine stage progress of student application
   const getTaskProgressStatus = useCallback((task, submission) => {
@@ -208,6 +202,10 @@ export const TaskManiaView = ({
             : [],
           description: task.description,
           instructions: task.instructions || [],
+          matchScore: typeof task.matchScore === 'number' ? task.matchScore : 0,
+          matchedSkills: Array.isArray(task.matchedSkills) ? task.matchedSkills : [],
+          matchStrength: task.matchStrength || 'none',
+          matchReason: task.matchReason || '',
         }));
 
         const ordered = sortTasksByOrder(mappedTasks, backendOrder);
@@ -551,9 +549,26 @@ export const TaskManiaView = ({
 
         {/* Results Count and Reordering hint */}
         <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748B]">
-          <div>
-            Showing <span className="font-bold text-[#0F172A]">{filteredTasks.length}</span> of{" "}
-            <span className="font-bold text-[#0F172A]">{tasks.length}</span> tasks
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Showing <span className="font-bold text-[#0F172A]">{filteredTasks.length}</span> of{" "}
+              <span className="font-bold text-[#0F172A]">{tasks.length}</span> tasks
+            </span>
+            {savedOrder && savedOrder.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 ml-1">
+                <span className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md">
+                  Custom priority active ({savedOrder.length} tasks)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResetToSkillsOrder}
+                  className="text-[11px] font-semibold text-[#6D3DF5] hover:text-[#5B2FD6] underline underline-offset-2 transition-colors cursor-pointer"
+                  title="Reset custom drag-and-drop order back to skill-based recommendation"
+                >
+                  Reset to Skills Match
+                </button>
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
             <GripVertical size={13} className="text-[#6D3DF5]" />
