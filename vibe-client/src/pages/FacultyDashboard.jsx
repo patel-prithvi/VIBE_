@@ -404,6 +404,7 @@ const FacultyDashboard = () => {
                 error={postsError}
                 onRetry={fetchPostsAndBookmarks}
                 searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
             </div>
 
@@ -471,6 +472,7 @@ const FacultyDashboard = () => {
                   error={postsError}
                   onRetry={fetchPostsAndBookmarks}
                   searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
                 />
               )}
             </div>
