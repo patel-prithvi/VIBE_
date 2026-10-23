@@ -511,7 +511,13 @@ const updateUser = asyncHandler(async (req, res) => {
       }
     }
 
+  // Update or create Profile document
+  if (user.Profile) {
     await Profile.findByIdAndUpdate(user.Profile, profileUpdate, { returnDocument: "after" });
+  } else if (Object.keys(profileUpdate).length > 0) {
+    const newProfile = await Profile.create(profileUpdate);
+    user.Profile = newProfile._id;
+    await user.save({ validateBeforeSave: false });
   }
 
   const updatedUser = await User.findById(req.params.id)
@@ -698,13 +704,32 @@ const verifyEmailChange = asyncHandler(async (req, res) => {
     .select("-password -refreshToken -otp -pendingEmail")
     .populate("Profile");
 
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      updatedUser,
-      "Email address verified and updated successfully!"
-    )
-  );
+  // Issue fresh tokens reflecting the updated email
+  const { accessToken, refreshToken } = await generateToken(user._id);
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+
+  const responsePayload = {
+    ...updatedUser.toObject(),
+    accessToken,
+    refreshToken,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        responsePayload,
+        "Email address verified and updated successfully!"
+      )
+    );
 });
 
 // Resend Email Change OTP (Authenticated)

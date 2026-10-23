@@ -28,7 +28,7 @@ import {
   Link as LinkIcon,
   File,
   Pencil,
-  Sparkles,
+  Award,
   Layers,
   GraduationCap,
   RotateCcw,
@@ -213,6 +213,14 @@ export const MyTasks = ({
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  // Get current local time as "HH:mm"
+  const getCurrentTimeStr = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
   // Helper to parse dates to "YYYY-MM-DD" for input type date
   const parseDateForInput = (dateStr) => {
     if (!dateStr) return "";
@@ -390,6 +398,20 @@ export const MyTasks = ({
         toast.error("Please fill interview date, time and mode.");
         return;
       }
+
+      const todayStr = getTodayStr();
+      const currentTimeStr = getCurrentTimeStr();
+
+      if (interviewData.date < todayStr) {
+        toast.error("Interview date cannot be in the past.");
+        return;
+      }
+
+      if (interviewData.date === todayStr && interviewData.time < currentTimeStr) {
+        toast.error("Interview time cannot be in the past for today.");
+        return;
+      }
+
       handleStatusUpdate(appId, "INTERVIEW_SCHEDULED", {
         interviewDate: interviewData.date,
         interviewTime: interviewData.time,
@@ -585,13 +607,23 @@ export const MyTasks = ({
                                       </label>
                                       <input
                                         type="date"
+                                        min={getTodayStr()}
                                         value={interviewData.date}
-                                        onChange={(e) =>
-                                          setInterviewData((d) => ({
-                                            ...d,
-                                            date: e.target.value,
-                                          }))
-                                        }
+                                        onChange={(e) => {
+                                          const selectedDate = e.target.value;
+                                          const isToday = selectedDate === getTodayStr();
+                                          setInterviewData((d) => {
+                                            const nextTime =
+                                              isToday && d.time && d.time < getCurrentTimeStr()
+                                                ? ""
+                                                : d.time;
+                                            return {
+                                              ...d,
+                                              date: selectedDate,
+                                              time: nextTime,
+                                            };
+                                          });
+                                        }}
                                         className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
                                       />
                                     </div>
@@ -601,6 +633,11 @@ export const MyTasks = ({
                                       </label>
                                       <input
                                         type="time"
+                                        min={
+                                          interviewData.date === getTodayStr()
+                                            ? getCurrentTimeStr()
+                                            : undefined
+                                        }
                                         value={interviewData.time}
                                         onChange={(e) =>
                                           setInterviewData((d) => ({
@@ -935,7 +972,7 @@ export const MyTasks = ({
                   <div className="flex flex-wrap gap-2">
                     {(Array.isArray(task.perks) ? task.perks : (task.perks?.split(',') || [])).map((perk, idx) => (
                       <div key={idx} className="flex items-center gap-2 px-3.5 py-1.5 bg-green-50 text-green-700 border border-green-100 rounded-xl text-xs font-bold">
-                        <Sparkles size={13} />
+                        <Award size={13} />
                         {perk.trim()}
                       </div>
                     ))}
@@ -1175,7 +1212,7 @@ export const MyTasks = ({
               <div className="mb-3 flex-1">
                 <div className="flex items-start gap-2 p-3 bg-gradient-to-br from-[#F3EEFF] to-transparent border border-[#EDE9FE] rounded-xl">
                   <div className="p-1.5 bg-white rounded-lg text-[#6D3DF5] shadow-sm shrink-0">
-                    <Sparkles size={14} />
+                    <Award size={14} />
                   </div>
                   <div>
                     <span className="text-sm font-bold text-[#5B2FD6] block mb-0.5">

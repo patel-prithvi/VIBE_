@@ -21,7 +21,7 @@ import {
   Award,
   Users,
   CheckCircle2,
-  Sparkles,
+  MessageSquare,
   ChevronDown,
 } from 'lucide-react';
 import Button from '../components/Button';
@@ -273,7 +273,7 @@ const Signup = () => {
           desc: "Receive guidance, feedback, and support from professors."
         },
         {
-          icon: <Sparkles size={18} className="text-[#6D3DF5]" />,
+          icon: <MessageSquare size={18} className="text-[#6D3DF5]" />,
           title: "Collaborative Campus Community",
           desc: "Share resources, join discussions, and grow with peers."
         }

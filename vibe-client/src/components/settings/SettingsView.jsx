@@ -315,9 +315,20 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
       });
       const updatedUser = res.data?.data;
       if (updatedUser) {
-        localStorage.setItem("vibe_user", JSON.stringify(updatedUser));
+        const newAccessToken = updatedUser.accessToken || res.data?.accessToken;
+        const newRefreshToken = updatedUser.refreshToken || res.data?.refreshToken;
+        const normalized = auth.setUserSession
+          ? auth.setUserSession(updatedUser, newAccessToken, newRefreshToken)
+          : {
+              ...updatedUser,
+              role:
+                updatedUser.accountType === "industry expert"
+                  ? "industry"
+                  : updatedUser.accountType || updatedUser.role,
+            };
+
         if (onProfileUpdate) {
-          onProfileUpdate(updatedUser);
+          onProfileUpdate(normalized);
         }
       }
       setPendingEmail("");
