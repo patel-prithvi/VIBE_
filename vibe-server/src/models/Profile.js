@@ -43,6 +43,10 @@ const profileSchema=new mongoose.Schema({
     establishmentYear:{
         type:String,
         default:"",
+    },
+    website:{
+        type:String,
+        default:"",
     }
 });
 

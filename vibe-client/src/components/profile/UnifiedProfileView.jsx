@@ -610,6 +610,24 @@ export const UnifiedProfileView = ({
                             <p className="font-semibold text-[#0F172A] mt-0.5">{user?.Profile?.location || "Remote"}</p>
                           </div>
                         </div>
+                        {Boolean(user?.Profile?.website && user.Profile.website.trim()) && (
+                          <div>
+                            <span className="text-xs text-[#94A3B8] font-bold block uppercase tracking-wider">Website</span>
+                            <a
+                              href={
+                                user.Profile.website.startsWith("http://") || user.Profile.website.startsWith("https://")
+                                  ? user.Profile.website
+                                  : `https://${user.Profile.website}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 font-semibold text-[#6D3DF5] hover:text-[#5B2FD6] hover:underline mt-0.5 break-all transition-colors cursor-pointer"
+                            >
+                              <span>{user.Profile.website}</span>
+                              <ExternalLink size={13} className="shrink-0" />
+                            </a>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

@@ -17,6 +17,7 @@ import {
   Lock,
   Briefcase,
   MapPin,
+  Globe,
   Award,
   Users,
   CheckCircle2,
@@ -75,6 +76,7 @@ const Signup = () => {
     establishmentYear: '',
     location: '',
     internshipType: 'Remote',
+    website: '',
     otp: ''
   });
 
@@ -134,6 +136,9 @@ const Signup = () => {
       if (!formData.establishmentYear) newErrors.establishmentYear = 'Establishment year is required';
       if (!formData.location.trim()) newErrors.location = 'Location is required';
       if (!formData.internshipType) newErrors.internshipType = 'Internship type is required';
+      if (formData.website && formData.website.trim() && !isValidUrl(formData.website)) {
+        newErrors.website = 'Please enter a valid URL starting with http:// or https://';
+      }
     }
 
     setErrors(newErrors);
@@ -193,6 +198,17 @@ const Signup = () => {
     return mobileRegex.test(mobile);
   };
 
+  // URL validation (optional website with http:// or https://)
+  const isValidUrl = (url) => {
+    if (!url || !url.trim()) return true;
+    try {
+      const parsed = new URL(url.trim());
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const isStep1Valid = (() => {
     if (role === 'industry') {
       return formData.companyName.trim() &&
@@ -220,9 +236,11 @@ const Signup = () => {
         formData.expertise.trim();
     }
     if (role === 'industry') {
-      return formData.establishmentYear &&
+      const hasRequired = formData.establishmentYear &&
         formData.location.trim() &&
         formData.internshipType;
+      const isWebsiteOk = !formData.website || !formData.website.trim() || isValidUrl(formData.website);
+      return Boolean(hasRequired && isWebsiteOk);
     }
     return false;
   })();
@@ -347,7 +365,8 @@ const Signup = () => {
       industryType: formData.industryType,
       establishmentYear: formData.establishmentYear,
       location: formData.location,
-      internshipType: formData.internshipType
+      internshipType: formData.internshipType,
+      website: formData.website ? formData.website.trim() : ""
     };
 
     setIsLoading(true);
@@ -755,6 +774,15 @@ const Signup = () => {
                               onChange={v => updateFormData({ internshipType: v })}
                               error={errors.internshipType}
                             />
+                            <InputField
+                              label="Company Website (Optional)"
+                              icon={<Globe size={18} />}
+                              type="url"
+                              placeholder="https://www.example.com"
+                              value={formData.website}
+                              onChange={v => updateFormData({ website: v })}
+                              error={errors.website}
+                            />
                             <p className="text-xs text-[#64748B] italic mt-1 ml-1">
                               “All companies are verified before posting internships.”
                             </p>
@@ -881,7 +909,8 @@ const Signup = () => {
                               industryType: formData.industryType,
                               establishmentYear: formData.establishmentYear,
                               location: formData.location,
-                              internshipType: formData.internshipType
+                              internshipType: formData.internshipType,
+                              website: formData.website ? formData.website.trim() : ""
                             };
 
                             setIsLoading(true);

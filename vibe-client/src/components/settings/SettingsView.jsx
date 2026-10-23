@@ -73,6 +73,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
     industryType: "",
     establishmentYear: "",
     internshipType: "",
+    website: "",
   });
 
   const [initialProfileData, setInitialProfileData] = useState(null);
@@ -110,6 +111,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
         industryType: prof.IndustryType || "",
         establishmentYear: prof.establishmentYear || "",
         internshipType: prof.internshipType || "",
+        website: prof.website || "",
       };
 
       setProfileData(initialData);
@@ -135,7 +137,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
       : isFaculty
       ? ["name", "position", "institutionName", "department", "expertise", "experience", "mobileNo"]
       : isIndustry
-      ? ["companyName", "tagline", "location", "industryType", "establishmentYear", "about", "mobileNo"]
+      ? ["companyName", "tagline", "location", "industryType", "establishmentYear", "about", "mobileNo", "website"]
       : ["name", "mobileNo"];
 
     return fieldsToCheck.some((key) => {
@@ -191,6 +193,23 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
           setSavingProfile(false);
           return;
         }
+
+        const websiteVal = (profileData.website || "").trim();
+        if (websiteVal) {
+          try {
+            const parsed = new URL(websiteVal);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+              toast.error("Website must start with http:// or https://");
+              setSavingProfile(false);
+              return;
+            }
+          } catch {
+            toast.error("Please enter a valid website URL (e.g. https://www.example.com)");
+            setSavingProfile(false);
+            return;
+          }
+        }
+
         payload = {
           name: compName,
           companyName: compName,
@@ -202,6 +221,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
           location: profileData.location.trim(),
           establishmentYear: profileData.establishmentYear.trim(),
           internshipType: profileData.internshipType.trim(),
+          website: websiteVal,
         };
       } else {
         payload = {
@@ -771,6 +791,20 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
                           value={profileData.establishmentYear}
                           onChange={handleProfileInputChange}
                           placeholder="e.g. 2018"
+                          className={inputClasses}
+                        />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+                          Company Website (Optional)
+                        </label>
+                        <input
+                          type="url"
+                          name="website"
+                          value={profileData.website || ""}
+                          onChange={handleProfileInputChange}
+                          placeholder="https://www.example.com"
                           className={inputClasses}
                         />
                       </div>
