@@ -307,12 +307,13 @@ const getTaskById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Task not found");
   }
 
-  // Check if current user is creator, admin, or an accepted applicant
+  // Check if current user is creator, admin, accepted applicant, or faculty mentor
   const isCreator = String(task.createdBy?._id || task.createdBy) === String(req.user?._id || req.user?.id);
   const isAdmin = req.user?.isAdmin || req.user?.accountType === "admin";
+  const isFaculty = String(req.user?.accountType || req.user?.role || "").toLowerCase() === "faculty";
   let isAccepted = false;
 
-  if (!isCreator && !isAdmin && req.user) {
+  if (!isCreator && !isAdmin && !isFaculty && req.user) {
     const sub = await TaskSubmission.findOne({
       taskId: task._id,
       createdBy: req.user._id || req.user.id,
@@ -323,7 +324,7 @@ const getTaskById = asyncHandler(async (req, res) => {
   }
 
   const taskObj = task.toObject();
-  const isMaterialsUnlocked = Boolean(isCreator || isAdmin || isAccepted);
+  const isMaterialsUnlocked = Boolean(isCreator || isAdmin || isAccepted || isFaculty);
   taskObj.isMaterialsUnlocked = isMaterialsUnlocked;
 
   // Mask sensitive URLs if student has not accepted the task yet
@@ -514,12 +515,13 @@ const downloadTaskMaterialsZip = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Task not found");
   }
 
-  // Authorization Check: Must be creator, admin, or accepted applicant
+  // Authorization Check: Must be creator, admin, accepted applicant, or faculty mentor
   const isCreator = String(task.createdBy) === String(req.user._id || req.user.id);
   const isAdmin = req.user?.isAdmin || req.user?.accountType === "admin";
+  const isFaculty = String(req.user?.accountType || req.user?.role || "").toLowerCase() === "faculty";
 
   let isAccepted = false;
-  if (!isCreator && !isAdmin && req.user) {
+  if (!isCreator && !isAdmin && !isFaculty && req.user) {
     const submission = await TaskSubmission.findOne({
       taskId: id,
       createdBy: req.user._id || req.user.id,
@@ -529,7 +531,7 @@ const downloadTaskMaterialsZip = asyncHandler(async (req, res) => {
     }
   }
 
-  if (!isCreator && !isAdmin && !isAccepted) {
+  if (!isCreator && !isAdmin && !isAccepted && !isFaculty) {
     throw new ApiError(
       403,
       "Access denied. You must accept this task first before downloading the required materials."
@@ -673,7 +675,61 @@ const getBookmarkedTasks = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, bookmarkedTasks || [], "Fetched bookmarked tasks successfully"));
 });
 
+
+// Get task order preferences for current user
+const getTaskOrder = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  const taskOrder = (user.taskOrder || [])
+    .filter(Boolean)
+    .map((id) => id.toString());
+
+  return res.status(200).json(
+    new ApiResponse(200, { taskOrder }, "Task order fetched successfully")
+  );
+});
+
+// Update task order preferences for current user
+const updateTaskOrder = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { taskOrder } = req.body;
+
+  if (!Array.isArray(taskOrder)) {
+    throw new ApiError(400, "taskOrder must be an array of task IDs");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  // Deduplicate and filter valid ObjectIds
+  const seen = new Set();
+  const validOrder = [];
+
+  for (const id of taskOrder) {
+    const strId = String(id).trim();
+    if (mongoose.Types.ObjectId.isValid(strId) && !seen.has(strId)) {
+      seen.add(strId);
+      validOrder.push(new mongoose.Types.ObjectId(strId));
+    }
+  }
+
+  user.taskOrder = validOrder;
+  await user.save({ validateBeforeSave: false });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { taskOrder: validOrder.map((id) => id.toString()) },
+      "Task order updated successfully"
+    )
+  );
+});
+
 export {
+  getTaskOrder,
+  updateTaskOrder,
   createTask,
   getAllTasks,
   getTaskById,

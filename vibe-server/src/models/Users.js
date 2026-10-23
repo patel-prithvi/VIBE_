@@ -111,6 +111,12 @@ const userSchema = new mongoose.Schema(
         ref: "TaskMania",
       },
     ],
+    taskOrder: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "TaskMania",
+      },
+    ],
     pendingEmail: {
       type: new mongoose.Schema(
         {

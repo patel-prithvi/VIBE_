@@ -17,6 +17,7 @@ import {
   Loader2,
   Plus,
   Trash2,
+  FileText,
 } from "lucide-react";
 import api from '../../services/api';
 import { useToast } from '../Toast';
@@ -27,9 +28,41 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
   const navigate = useNavigate();
   const toast = useToast();
   const [requests, setRequests] = useState([]);
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState(() => {
+    return sessionStorage.getItem("vibe_faculty_requests_filter") || "all";
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return sessionStorage.getItem("vibe_faculty_requests_search") || "";
+  });
   const [selectedRequest, setSelectedRequest] = useState(null);
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    sessionStorage.setItem("vibe_faculty_requests_filter", newFilter);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    sessionStorage.setItem("vibe_faculty_requests_search", val);
+  };
+
+  const handleOpenTaskDetails = (taskId) => {
+    if (!taskId) {
+      toast.error("This task is no longer available or was removed.");
+      return;
+    }
+    try {
+      localStorage.setItem("vibe_faculty_tab", "mentorship");
+    } catch (e) {
+      // ignore
+    }
+    navigate(`/tasks/${taskId}`, {
+      state: {
+        from: "/dashboard/faculty?view=mentorship",
+        fromTab: "mentorship",
+      },
+    });
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acceptingRequestId, setAcceptingRequestId] = useState(null);
@@ -64,7 +97,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
             company: req.task?.companyName || "VIBE Task",
             category: req.task?.category || "General",
             deadline: req.task?.lastDateToSubmit ? new Date(req.task.lastDateToSubmit).toLocaleDateString() : "Flexible",
-            id: req.task?._id,
+            id: req.task?._id || req.task?.id || (typeof req.task === "string" ? req.task : null),
           },
           requestDate: new Date(req.createdAt).toLocaleDateString(),
           message: req.message,
@@ -185,7 +218,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
             {["all", "pending", "accepted", "rejected"].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => handleFilterChange(f)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
                   filter === f
                     ? "bg-[#6D3DF5] text-white shadow-xs"
@@ -203,7 +236,7 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
               type="text"
               placeholder="Search by student name or topic..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-3.5 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white transition-all"
             />
           </div>
@@ -287,10 +320,22 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
                   <p className="text-xs font-bold text-[#6D3DF5] uppercase tracking-wider mb-1">
                     Task Details
                   </p>
-                  <h4 className="font-bold text-[#172554] line-clamp-1">
-                    {request.task.title}
-                  </h4>
-                  <p className="text-sm text-[#64748B]">{request.task.company}</p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenTaskDetails(request.task.id);
+                    }}
+                    className="group/task text-left font-bold text-[#172554] hover:text-[#6D3DF5] transition-colors cursor-pointer line-clamp-1 hover:underline decoration-[#6D3DF5]/40 underline-offset-2 flex items-center gap-1.5 focus:outline-none"
+                    title={`View full details for "${request.task.title}"`}
+                  >
+                    <span>{request.task.title}</span>
+                    <ExternalLink
+                      size={13}
+                      className="text-[#94A3B8] group-hover/task:text-[#6D3DF5] opacity-70 group-hover/task:opacity-100 transition-all flex-shrink-0"
+                    />
+                  </button>
+                  <p className="text-sm text-[#64748B] mt-0.5">{request.task.company}</p>
                 </div>
 
                 <div className="bg-[#F8FAFC] rounded-xl p-4 border border-[#E1E8F2]">
@@ -401,12 +446,31 @@ export const MentorRequestsView = ({ onBackToFeed }) => {
 
                 {/* Task Info */}
                 <div className="space-y-3">
-                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Calendar size={18} className="text-[#6D3DF5]" /> Task Information
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                      <Calendar size={18} className="text-[#6D3DF5]" /> Task Information
+                    </h4>
+                    {selectedRequest.task.id && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTaskDetails(selectedRequest.task.id)}
+                        className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] flex items-center gap-1 hover:underline"
+                      >
+                        View Full Task <ExternalLink size={12} />
+                      </button>
+                    )}
+                  </div>
                   <div className="border border-gray-100 rounded-2xl p-4">
-                    <h5 className="font-bold text-gray-800">{selectedRequest.task.title}</h5>
-                    <p className="text-sm text-gray-500 mb-3">{selectedRequest.task.company}</p>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenTaskDetails(selectedRequest.task.id)}
+                      className="group/modaltask text-left font-bold text-gray-800 hover:text-[#6D3DF5] transition-colors cursor-pointer flex items-center gap-1.5 hover:underline decoration-[#6D3DF5]/40 underline-offset-2 focus:outline-none"
+                      title={`View full details for "${selectedRequest.task.title}"`}
+                    >
+                      <span>{selectedRequest.task.title}</span>
+                      <ExternalLink size={13} className="text-[#94A3B8] group-hover/modaltask:text-[#6D3DF5] transition-colors" />
+                    </button>
+                    <p className="text-sm text-gray-500 mb-3 mt-0.5">{selectedRequest.task.company}</p>
                     <div className="flex items-center justify-between text-xs font-medium">
                       <span className="px-2 py-1 bg-[#F3EEFF] text-[#6D3DF5] rounded-md capitalize">
                         {selectedRequest.task.category}
