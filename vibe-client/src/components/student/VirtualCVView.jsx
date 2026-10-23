@@ -89,13 +89,20 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
   const effectiveUserId = targetUserId || currentUserId;
   const isOwner = !targetUserId || String(targetUserId) === String(currentUserId);
 
-  // Skills management modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSkills, setEditingSkills] = useState([]);
+  // Separate modal states: Add New Skill vs Configure Skills
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isConfigureModalOpen, setIsConfigureModalOpen] = useState(false);
+
+  // Add Skill state
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillCategory, setNewSkillCategory] = useState("Technical");
   const [newSkillLevel, setNewSkillLevel] = useState("Intermediate");
-  const [savingSkills, setSavingSkills] = useState(false);
+  const [savingAddSkill, setSavingAddSkill] = useState(false);
+
+  // Configure Skills state
+  const [editingSkills, setEditingSkills] = useState([]);
+  const [configureFilterCategory, setConfigureFilterCategory] = useState("All");
+  const [savingConfigureSkills, setSavingConfigureSkills] = useState(false);
 
   useEffect(() => {
     const fetchVirtualResume = async () => {
@@ -148,35 +155,59 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
         }))
       : defaultSkills;
 
-  // Skills modal operations
-  const handleOpenSkillsModal = (initialCategory = "Technical") => {
-    if (backendSkills && backendSkills.length > 0) {
-      setEditingSkills(
-        backendSkills.map((s) => ({
-          name: typeof s === "string" ? s : s.name,
-          category: s.category || "Technical",
-          level: s.level || "Intermediate",
-          score: typeof s.score === "number" ? s.score : 85,
-          verified: Boolean(s.verified),
-        }))
-      );
-    } else {
-      setEditingSkills([...defaultSkills]);
+  // Helper to persist updated skills to backend
+  const saveSkillsToBackend = async (skillsToSave) => {
+    if (!effectiveUserId) throw new Error("User ID not found");
+    try {
+      const res = await api.put(`/virtual-resume/${effectiveUserId}/skills`, {
+        skills: skillsToSave,
+      });
+      return res.data?.data?.skills || skillsToSave;
+    } catch (err) {
+      console.warn("Primary skills update failed, trying fallback /users endpoint:", err);
+      await api.put(`/users/${effectiveUserId}`, { skills: skillsToSave });
+      return skillsToSave;
     }
+  };
+
+  // Open "Add New Skill" modal
+  const handleOpenAddModal = (initialCategory = "Technical") => {
     setNewSkillCategory(initialCategory);
     setNewSkillName("");
     setNewSkillLevel("Intermediate");
-    setIsModalOpen(true);
+    setIsConfigureModalOpen(false);
+    setIsAddModalOpen(true);
   };
 
-  const handleAddSkillToEditing = (e) => {
+  // Open "Configure Skills" modal
+  const handleOpenConfigureModal = (initialCategory = "All") => {
+    const list = displayedSkills.map((s) => ({
+      name: typeof s === "string" ? s : s.name,
+      category: s.category || "Technical",
+      level: s.level || "Intermediate",
+      score: typeof s.score === "number" ? s.score : 85,
+      verified: Boolean(s.verified),
+    }));
+    setEditingSkills(list);
+    setConfigureFilterCategory(initialCategory);
+    setIsAddModalOpen(false);
+    setIsConfigureModalOpen(true);
+  };
+
+  // Backward compatibility alias
+  const handleOpenSkillsModal = (initialCategory = "Technical") => {
+    handleOpenAddModal(initialCategory);
+  };
+
+  // Add new skill handler
+  const handleAddNewSkill = async (e) => {
     if (e) e.preventDefault();
     const trimmed = newSkillName.trim();
     if (!trimmed) {
       toast.error("Please enter a skill name");
       return;
     }
-    const alreadyExists = editingSkills.some(
+    const alreadyExists = displayedSkills.some(
       (s) => s.name.toLowerCase() === trimmed.toLowerCase()
     );
     if (alreadyExists) {
@@ -192,66 +223,63 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
       verified: false,
     };
 
-    setEditingSkills((prev) => [newSkillItem, ...prev]);
-    setNewSkillName("");
-    toast.success(`Added "${trimmed}" to list`);
+    const updatedSkills = [newSkillItem, ...displayedSkills];
+
+    try {
+      setSavingAddSkill(true);
+      const saved = await saveSkillsToBackend(updatedSkills);
+      setResumeData((prev) => ({
+        ...prev,
+        skills: saved,
+        hasCustomSkills: true,
+      }));
+      setNewSkillName("");
+      setIsAddModalOpen(false);
+      toast.success(`"${trimmed}" added to your skills matrix!`);
+    } catch (err) {
+      console.error("Add skill error:", err);
+      toast.error(err.response?.data?.message || "Failed to add skill");
+    } finally {
+      setSavingAddSkill(false);
+    }
   };
 
+  // Configure modal handlers
   const handleRemoveFromEditing = (skillNameToRemove) => {
     setEditingSkills((prev) => prev.filter((s) => s.name !== skillNameToRemove));
   };
 
   const handleLoadStarterTemplate = () => {
     setEditingSkills([...defaultSkills]);
-    toast.info("Loaded starter skills template into editor");
+    toast.info("Loaded starter skills template into configuration");
   };
 
   const handleClearAllSkills = () => {
     setEditingSkills([]);
-    toast.info("Cleared skills editor list");
+    toast.info("Cleared all skills in configuration");
   };
 
-  const handleSaveSkills = async () => {
+  const handleSaveConfigureSkills = async () => {
     if (!effectiveUserId) {
       toast.error("User ID not found. Please log in again.");
       return;
     }
 
     try {
-      setSavingSkills(true);
-      const res = await api.put(`/virtual-resume/${effectiveUserId}/skills`, {
-        skills: editingSkills,
-      });
-
-      const savedSkills = res.data?.data?.skills || editingSkills;
+      setSavingConfigureSkills(true);
+      const savedSkills = await saveSkillsToBackend(editingSkills);
       setResumeData((prev) => ({
         ...prev,
         skills: savedSkills,
         hasCustomSkills: true,
       }));
-
-      setIsModalOpen(false);
-      toast.success("Skills matrix saved successfully!");
+      setIsConfigureModalOpen(false);
+      toast.success("Skills matrix configured successfully!");
     } catch (err) {
-      console.error("Save skills error:", err);
-      try {
-        await api.put(`/users/${effectiveUserId}`, { skills: editingSkills });
-        setResumeData((prev) => ({
-          ...prev,
-          skills: editingSkills,
-          hasCustomSkills: true,
-        }));
-        setIsModalOpen(false);
-        toast.success("Skills matrix saved successfully!");
-      } catch (fallbackErr) {
-        toast.error(
-          err.response?.data?.message ||
-          fallbackErr.response?.data?.message ||
-          "Failed to save skills"
-        );
-      }
+      console.error("Save configured skills error:", err);
+      toast.error(err.response?.data?.message || "Failed to save skills configuration");
     } finally {
-      setSavingSkills(false);
+      setSavingConfigureSkills(false);
     }
   };
 
@@ -266,7 +294,7 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
     }));
 
     try {
-      await api.put(`/virtual-resume/${effectiveUserId}/skills`, { skills: updated });
+      await saveSkillsToBackend(updated);
       toast.success(`Removed "${skillNameToDelete}"`);
     } catch (err) {
       console.warn("Could not save deleted skill to backend:", err);
@@ -440,10 +468,19 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
               <h3 className="text-lg font-bold text-[#172554]">Skills Matrix</h3>
             </div>
             {isOwner && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleOpenSkillsModal()}
+                  onClick={() => handleOpenConfigureModal()}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#475569] bg-[#F8FAFC] hover:bg-[#F1F5F9] hover:text-[#172554] border border-[#E2E8F0] px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Configure and manage existing skills"
+                >
+                  <SlidersHorizontal size={13} />
+                  <span>Configure Skills</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddModal()}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#6D3DF5] hover:bg-[#5B2FD6] px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
                   title="Add new skills to your matrix"
                 >
@@ -537,7 +574,7 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                         {isOwner && (
                           <button
                             type="button"
-                            onClick={() => handleOpenSkillsModal(cat)}
+                            onClick={() => handleOpenAddModal(cat)}
                             className="w-full py-1.5 px-2 rounded-xl border border-dashed border-[#CBD5E1] hover:border-[#6D3DF5] bg-white hover:bg-[#F8FAFF] text-[11px] font-bold text-[#64748B] hover:text-[#6D3DF5] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                           >
                             <Plus size={13} />
@@ -647,9 +684,193 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
         <p className="text-center text-xs text-[#94A3B8]">Syncing with verified records…</p>
       )}
 
-      {/* 7. Manage / Add Skills Modal */}
+      {/* 7. Modal 1: Add New Skill Modal */}
       <AnimatePresence>
-        {isModalOpen && (
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-3xl w-full max-w-lg flex flex-col shadow-2xl border border-[#E1E8F2] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="p-5 md:p-6 border-b border-[#F1F5F9] flex items-center justify-between bg-gradient-to-r from-[#FAF8FF] to-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center shrink-0">
+                    <Plus size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#172554]">Add New Skill</h3>
+                    <p className="text-xs text-[#64748B]">
+                      Add technical, tools, or soft skills directly to your verified profile
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#172554] hover:bg-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleAddNewSkill} className="p-5 md:p-6 space-y-4 overflow-y-auto max-h-[75vh] custom-scrollbar">
+                {/* Category Picker */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#475569]">Select Category</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["Technical", "Tools", "Soft Skills"].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setNewSkillCategory(cat)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          newSkillCategory === cat
+                            ? "bg-[#6D3DF5] text-white border-[#6D3DF5] shadow-xs"
+                            : "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-white"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Level Picker */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#475569]">Proficiency Level</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {["Beginner", "Intermediate", "Advanced", "Expert"].map((lvl) => (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setNewSkillLevel(lvl)}
+                        className={`py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${
+                          newSkillLevel === lvl
+                            ? "bg-[#172554] text-white border-[#172554] shadow-xs"
+                            : "bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-white"
+                        }`}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skill Name Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#475569]">Skill Name</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newSkillName}
+                      onChange={(e) => setNewSkillName(e.target.value)}
+                      placeholder={`e.g. ${newSkillCategory === "Technical" ? "React, Python, TypeScript, GraphQL..." : newSkillCategory === "Tools" ? "Git, Figma, Docker, Postman..." : "Problem Solving, Leadership, Teamwork..."}`}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none text-xs font-semibold text-[#0F172A] placeholder-[#94A3B8]"
+                    />
+                    {newSkillName && (
+                      <button
+                        type="button"
+                        onClick={() => setNewSkillName("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#475569] text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Suggestions */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                      Popular {newSkillCategory} Suggestions
+                    </span>
+                    <span className="text-[10px] text-[#94A3B8]">Click to select</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                    {(POPULAR_SKILLS[newSkillCategory] || []).map((suggestion) => {
+                      const isAdded = displayedSkills.some(
+                        (s) => s.name.toLowerCase() === suggestion.toLowerCase()
+                      );
+                      const isCurrentInput = newSkillName.toLowerCase() === suggestion.toLowerCase();
+
+                      return (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          disabled={isAdded}
+                          onClick={() => setNewSkillName(suggestion)}
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                            isAdded
+                              ? "bg-[#F1F5F9] text-[#94A3B8] border-[#E2E8F0] cursor-not-allowed opacity-60"
+                              : isCurrentInput
+                              ? "bg-[#F2ECFF] text-[#6D3DF5] border-[#6D3DF5] shadow-xs"
+                              : "bg-white text-[#475569] border-[#E2E8F0] hover:border-[#6D3DF5] hover:text-[#6D3DF5]"
+                          }`}
+                        >
+                          {isAdded ? `✓ ${suggestion}` : `+ ${suggestion}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="pt-4 border-t border-[#F1F5F9] flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      handleOpenConfigureModal();
+                    }}
+                    className="text-xs font-bold text-[#6D3DF5] hover:underline flex items-center gap-1.5 cursor-pointer py-1"
+                  >
+                    <SlidersHorizontal size={13} />
+                    <span>Configure Existing ({displayedSkills.length})</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-[#E2E8F0] bg-white text-xs font-bold text-[#475569] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingAddSkill || !newSkillName.trim()}
+                      className="px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingAddSkill ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Adding…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={14} />
+                          <span>Add Skill</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 8. Modal 2: Configure Skills Modal */}
+      <AnimatePresence>
+        {isConfigureModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -658,183 +879,141 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
               transition={{ duration: 0.2 }}
               className="bg-white rounded-3xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl border border-[#E1E8F2] overflow-hidden"
             >
-              {/* Modal Header */}
+              {/* Header */}
               <div className="p-5 md:p-6 border-b border-[#F1F5F9] flex items-center justify-between bg-gradient-to-r from-[#FAF8FF] to-white">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center shrink-0">
-                    <Zap size={20} />
+                    <SlidersHorizontal size={20} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold text-[#172554]">Manage Skills Matrix</h3>
+                      <h3 className="text-lg font-bold text-[#172554]">Configure Skills</h3>
                       <span className="px-2 py-0.5 rounded-full bg-[#F2ECFF] text-[#6D3DF5] text-[11px] font-bold">
-                        {editingSkills.length} skills
+                        {editingSkills.length} configured
                       </span>
                     </div>
                     <p className="text-xs text-[#64748B]">
-                      Add, categorize, and tailor skills displayed on your verified virtual CV
+                      Review, filter, remove, or reset skills on your verified virtual CV
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsConfigureModalOpen(false)}
                   className="w-8 h-8 rounded-xl bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#172554] hover:bg-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-5 md:p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-                {/* Add new skill form */}
-                <form onSubmit={handleAddSkillToEditing} className="space-y-3.5 bg-[#F8FAFC] p-4 rounded-2xl border border-[#E2E8F0]">
-                  <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-                    Add New Skill
-                  </span>
-
-                  {/* Category Picker */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-[#475569]">Category</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {["Technical", "Tools", "Soft Skills"].map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setNewSkillCategory(cat)}
-                          className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                            newSkillCategory === cat
-                              ? "bg-[#6D3DF5] text-white border-[#6D3DF5] shadow-xs"
-                              : "bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#CBD5E1]"
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Level Picker */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-[#475569]">Proficiency Level</label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {["Beginner", "Intermediate", "Advanced", "Expert"].map((lvl) => (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => setNewSkillLevel(lvl)}
-                          className={`py-1 px-2 rounded-xl text-[11px] font-bold transition-all cursor-pointer border ${
-                            newSkillLevel === lvl
-                              ? "bg-[#172554] text-white border-[#172554] shadow-xs"
-                              : "bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#CBD5E1]"
-                          }`}
-                        >
-                          {lvl}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Name Input & Add Button */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-[#475569]">Skill Name</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newSkillName}
-                        onChange={(e) => setNewSkillName(e.target.value)}
-                        placeholder={`e.g. ${newSkillCategory === "Technical" ? "Python, React, Docker..." : newSkillCategory === "Tools" ? "Git, Figma, Postman..." : "Problem Solving, Leadership..."}`}
-                        className="flex-1 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white focus:border-[#6D3DF5] focus:ring-2 focus:ring-[#6D3DF5]/15 outline-none text-xs font-semibold text-[#0F172A] placeholder-[#94A3B8]"
-                      />
+              {/* Filter Tabs & Quick Actions */}
+              <div className="px-5 md:px-6 pt-4 pb-2 border-b border-[#F1F5F9] flex flex-wrap items-center justify-between gap-2 bg-[#F8FAFC]">
+                {/* Category Filters */}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                  {["All", "Technical", "Tools", "Soft Skills"].map((cat) => {
+                    const count =
+                      cat === "All"
+                        ? editingSkills.length
+                        : editingSkills.filter((s) => s.category === cat).length;
+                    const isActive = configureFilterCategory === cat;
+                    return (
                       <button
-                        type="submit"
-                        className="px-4 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+                        key={cat}
+                        type="button"
+                        onClick={() => setConfigureFilterCategory(cat)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer border ${
+                          isActive
+                            ? "bg-[#6D3DF5] text-white border-[#6D3DF5] shadow-xs"
+                            : "bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#CBD5E1]"
+                        }`}
                       >
-                        <Plus size={14} />
-                        <span>Add</span>
+                        {cat} ({count})
                       </button>
-                    </div>
-                  </div>
+                    );
+                  })}
+                </div>
 
-                  {/* Popular suggestions */}
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block">
-                      Quick Suggestions ({newSkillCategory})
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                      {(POPULAR_SKILLS[newSkillCategory] || []).map((suggestion) => {
-                        const isAdded = editingSkills.some(
-                          (s) => s.name.toLowerCase() === suggestion.toLowerCase()
-                        );
-                        return (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            disabled={isAdded}
-                            onClick={() => setNewSkillName(suggestion)}
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                              isAdded
-                                ? "bg-[#F1F5F9] text-[#94A3B8] border-[#E2E8F0] cursor-not-allowed"
-                                : "bg-white text-[#475569] border-[#E2E8F0] hover:border-[#6D3DF5] hover:text-[#6D3DF5]"
-                            }`}
-                          >
-                            + {suggestion}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </form>
-
-                {/* Current skills list */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                      Configured Skills ({editingSkills.length})
-                    </span>
-                    <div className="flex items-center gap-2">
+                {/* Quick Reset / Clear */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleLoadStarterTemplate}
+                    className="text-[10px] font-bold text-[#6D3DF5] hover:underline cursor-pointer flex items-center gap-1"
+                    title="Load standard starter set"
+                  >
+                    <RotateCcw size={11} /> Starter Set
+                  </button>
+                  {editingSkills.length > 0 && (
+                    <>
+                      <span className="text-[#CBD5E1]">•</span>
                       <button
                         type="button"
-                        onClick={handleLoadStarterTemplate}
-                        className="text-[10px] font-bold text-[#6D3DF5] hover:underline cursor-pointer flex items-center gap-1"
+                        onClick={handleClearAllSkills}
+                        className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer flex items-center gap-1"
+                        title="Clear all skills"
                       >
-                        <RotateCcw size={11} /> Starter Set
+                        <Trash2 size={11} /> Clear All
                       </button>
-                      {editingSkills.length > 0 && (
-                        <>
-                          <span className="text-[#CBD5E1]">•</span>
-                          <button
-                            type="button"
-                            onClick={handleClearAllSkills}
-                            className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
-                          >
-                            Clear All
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                    </>
+                  )}
+                </div>
+              </div>
 
-                  {editingSkills.length === 0 ? (
-                    <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-dashed border-[#CBD5E1] text-center space-y-2">
-                      <p className="text-xs text-[#64748B] font-medium">
-                        Your skills matrix is currently empty.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleLoadStarterTemplate}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6D3DF5] bg-[#F2ECFF] px-3 py-1.5 rounded-xl border border-[#E9E1FF] hover:bg-[#E9E1FF] transition-colors cursor-pointer"
-                      >
-                        <RotateCcw size={13} />
-                        <span>Load Recommended Starter Set</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                      {editingSkills.map((s, idx) => (
+              {/* Skills List Body */}
+              <div className="p-5 md:p-6 overflow-y-auto space-y-2 flex-1 custom-scrollbar">
+                {(() => {
+                  const filteredSkills =
+                    configureFilterCategory === "All"
+                      ? editingSkills
+                      : editingSkills.filter((s) => s.category === configureFilterCategory);
+
+                  if (editingSkills.length === 0) {
+                    return (
+                      <div className="p-8 rounded-2xl bg-[#F8FAFC] border border-dashed border-[#CBD5E1] text-center space-y-3">
+                        <div className="w-12 h-12 mx-auto rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] flex items-center justify-center">
+                          <Zap size={22} />
+                        </div>
+                        <p className="text-xs text-[#64748B] font-medium">
+                          Your skills matrix is currently empty.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleLoadStarterTemplate}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6D3DF5] bg-[#F2ECFF] px-4 py-2 rounded-xl border border-[#E9E1FF] hover:bg-[#E9E1FF] transition-colors cursor-pointer"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Load Recommended Starter Set</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (filteredSkills.length === 0) {
+                    return (
+                      <div className="p-8 rounded-2xl bg-[#F8FAFC] border border-dashed border-[#CBD5E1] text-center space-y-2">
+                        <p className="text-xs text-[#64748B] font-medium">
+                          No {configureFilterCategory.toLowerCase()} skills found in your configured matrix.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsConfigureModalOpen(false);
+                            handleOpenAddModal(configureFilterCategory);
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6D3DF5] hover:underline cursor-pointer"
+                        >
+                          <Plus size={13} /> Add {configureFilterCategory} Skill
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-1.5">
+                      {filteredSkills.map((s, idx) => (
                         <div
                           key={`${s.name}-${idx}`}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] transition-all"
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-xs transition-all"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 pr-2">
                             <SkillIcon name={s.name} category={s.category} />
@@ -856,7 +1035,7 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                               type="button"
                               onClick={() => handleRemoveFromEditing(s.name)}
                               className="p-1.5 text-[#94A3B8] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                              title="Remove skill"
+                              title={`Remove ${s.name}`}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -864,38 +1043,52 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Modal Footer */}
               <div className="p-4 md:p-5 border-t border-[#F1F5F9] bg-[#FAF8FF] flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-[#E2E8F0] bg-white text-xs font-bold text-[#475569] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                  onClick={() => {
+                    setIsConfigureModalOpen(false);
+                    handleOpenAddModal();
+                  }}
+                  className="text-xs font-bold text-[#6D3DF5] hover:underline flex items-center gap-1.5 cursor-pointer py-1"
                 >
-                  Cancel
+                  <Plus size={14} />
+                  <span>Add New Skill</span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={savingSkills}
-                  onClick={handleSaveSkills}
-                  className="px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {savingSkills ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      <span>Saving Matrix…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check size={14} />
-                      <span>Save Skills Matrix</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfigureModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-[#E2E8F0] bg-white text-xs font-bold text-[#475569] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingConfigureSkills}
+                    onClick={handleSaveConfigureSkills}
+                    className="px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {savingConfigureSkills ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Saving Changes…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
