@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   TrendingUp,
-  Sparkles,
   Heart,
   Plus,
   Minus,
@@ -464,7 +463,7 @@ const Features = () => {
 
           <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center flex-shrink-0">
-              <Sparkles size={22} />
+              <LayoutGrid size={22} />
             </div>
             <div>
               <p className="text-xl sm:text-2xl font-black text-[#111B5E]"><CountUpNumber target={2000} suffix="+" /></p>

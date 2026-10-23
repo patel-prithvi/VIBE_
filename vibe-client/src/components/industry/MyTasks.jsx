@@ -28,7 +28,7 @@ import {
   Link as LinkIcon,
   File,
   Pencil,
-  Sparkles,
+  Award,
   Layers,
   GraduationCap,
   RotateCcw,
@@ -935,7 +935,7 @@ export const MyTasks = ({
                   <div className="flex flex-wrap gap-2">
                     {(Array.isArray(task.perks) ? task.perks : (task.perks?.split(',') || [])).map((perk, idx) => (
                       <div key={idx} className="flex items-center gap-2 px-3.5 py-1.5 bg-green-50 text-green-700 border border-green-100 rounded-xl text-xs font-bold">
-                        <Sparkles size={13} />
+                        <Award size={13} />
                         {perk.trim()}
                       </div>
                     ))}
@@ -1175,7 +1175,7 @@ export const MyTasks = ({
               <div className="mb-3 flex-1">
                 <div className="flex items-start gap-2 p-3 bg-gradient-to-br from-[#F3EEFF] to-transparent border border-[#EDE9FE] rounded-xl">
                   <div className="p-1.5 bg-white rounded-lg text-[#6D3DF5] shadow-sm shrink-0">
-                    <Sparkles size={14} />
+                    <Award size={14} />
                   </div>
                   <div>
                     <span className="text-sm font-bold text-[#5B2FD6] block mb-0.5">

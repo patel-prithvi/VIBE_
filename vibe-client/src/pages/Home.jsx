@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Star,
-  Sparkles,
+  Flame,
   MessageSquare,
   Zap,
   UserCheck,
@@ -491,9 +491,7 @@ const Home = () => {
                 delay: 0.85,
               }}
               className="absolute -top-3 -right-6 hidden sm:inline-block pointer-events-none text-[#FBBF24]"
-            >
-              {/* <Sparkles size={22} className="fill-[#FBBF24]/30 text-[#F59E0B]" /> */}
-            </motion.span>
+            />
           </span>
         </motion.h1>
 
@@ -920,7 +918,7 @@ const Home = () => {
                   <Award size={14} className="text-[#7540F5]" /> Task Mania Top 5%
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-[#111B5E]">
-                  <Sparkles size={14} className="text-[#FBBF24]" /> 18 Day Streak
+                  <Flame size={14} className="text-[#FBBF24]" /> 18 Day Streak
                 </span>
               </div>
             </div>

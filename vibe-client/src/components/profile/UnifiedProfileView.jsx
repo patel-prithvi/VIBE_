@@ -23,11 +23,11 @@ import {
   ExternalLink,
   ChevronRight,
   ArrowLeft,
-  Sparkles,
   Lock,
   Eye,
   EyeOff,
   FileText,
+  Zap,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import { auth } from "../../utils/auth";
@@ -619,7 +619,7 @@ export const UnifiedProfileView = ({
                 {/* Card B: Contact & Specialization */}
                 <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
                   <h3 className="font-bold text-sm uppercase tracking-wider text-[#64748B] flex items-center gap-2 pb-2 border-b border-[#F1F5F9]">
-                    <Sparkles size={16} className="text-[#6D3DF5]" />
+                    <Zap size={16} className="text-[#6D3DF5]" />
                     <span>{isIndustry ? "Focus & Contacts" : "Expertise & Details"}</span>
                   </h3>
 

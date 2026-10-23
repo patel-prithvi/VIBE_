@@ -7,7 +7,6 @@ import {
   Compass,
   MessageSquare,
   GraduationCap,
-  Sparkles,
   Users,
   BookOpen,
   Calendar,
@@ -188,7 +187,7 @@ const HowItWorks = () => {
             {/* Floating Mock Registration Card */}
             <div className="absolute -bottom-5 -right-3 sm:right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 max-w-[220px]">
               <p className="text-xs font-bold text-[#111B5E] mb-2 flex items-center gap-1.5">
-                <Sparkles size={14} className="text-[#7540F5]" /> Create Account
+                <UserCheck size={14} className="text-[#7540F5]" /> Create Account
               </p>
               <div className="space-y-1.5 text-[11px]">
                 <div className="px-2.5 py-1 bg-[#F5F1FF] text-[#7540F5] font-semibold rounded-lg">
