@@ -301,18 +301,29 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
     }
   };
 
-  // Real or simulated experience/tasks
+  // Experience section expansion state
+  const [showAllExperience, setShowAllExperience] = useState(false);
+
+  // Real or simulated experience/tasks (latest first)
+  const rawBackendExperience = resumeData?.experience || [];
   const displayedExperience =
-    resumeData?.experience && resumeData.experience.length > 0
-      ? resumeData.experience.map((exp, idx) => ({
-          id: String(idx),
-          role: exp.taskTitle || "Industry Challenge",
-          company: "VIBE Partner Organization",
-          duration: exp.completedAt ? new Date(exp.completedAt).toLocaleDateString() : "Recent",
-          description: exp.problemStatement || "Completed real industry task requirements with verified submission.",
-          verified: true,
-          techStack: Array.isArray(exp.techStack) ? exp.techStack : [],
-        }))
+    rawBackendExperience.length > 0
+      ? [...rawBackendExperience]
+          .sort((a, b) => {
+            if (a.completedAt && b.completedAt) {
+              return new Date(b.completedAt) - new Date(a.completedAt);
+            }
+            return 0;
+          })
+          .map((exp, idx) => ({
+            id: String(idx),
+            role: exp.taskTitle || "Industry Challenge",
+            company: "VIBE Partner Organization",
+            duration: exp.completedAt ? new Date(exp.completedAt).toLocaleDateString() : "Recent",
+            description: exp.problemStatement || "Completed real industry task requirements with verified submission.",
+            verified: true,
+            techStack: Array.isArray(exp.techStack) ? exp.techStack : [],
+          }))
       : [
           {
             id: "1",
@@ -323,7 +334,48 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
             verified: true,
             techStack: ["React", "Tailwind CSS", "REST APIs"],
           },
+          {
+            id: "2",
+            role: "Frontend UI Engineering Intern",
+            company: "TechFlow Solutions",
+            duration: "Summer 2024",
+            description: "Built accessible responsive components, optimized bundle size and integrated RESTful endpoints.",
+            verified: true,
+            techStack: ["React", "TypeScript", "Tailwind CSS"],
+          },
+          {
+            id: "3",
+            role: "Open Source Contributor & Peer Mentor",
+            company: "VIBE Community",
+            duration: "Early 2024",
+            description: "Mentored student developers on version control workflows and participated in open-source sprint challenges.",
+            verified: true,
+            techStack: ["Git", "GitHub", "JavaScript"],
+          },
+          {
+            id: "4",
+            role: "Backend API Challenge Participant",
+            company: "CloudScale Systems",
+            duration: "Late 2023",
+            description: "Designed secure JWT authentication services and MongoDB schema indexing for high throughput.",
+            verified: true,
+            techStack: ["Node.js", "Express", "MongoDB"],
+          },
+          {
+            id: "5",
+            role: "Hackathon Finalist - Smart Campus App",
+            company: "VIBE Innovation Summit",
+            duration: "Mid 2023",
+            description: "Led a 4-person team to prototype an interactive campus tracking dashboard that won top 5 rank.",
+            verified: true,
+            techStack: ["React Native", "Firebase", "Figma"],
+          },
         ];
+
+  const visibleExperience = showAllExperience
+    ? displayedExperience
+    : displayedExperience.slice(0, 3);
+  const hasMoreExperience = displayedExperience.length > 3;
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {
@@ -595,27 +647,48 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
 
         {/* 4. Experience Timeline */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#FFFBEB] text-[#D97706] border border-[#FEF3C7] flex items-center justify-center flex-shrink-0">
-              <Briefcase size={18} />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#FFFBEB] text-[#D97706] border border-[#FEF3C7] flex items-center justify-center flex-shrink-0">
+                <Briefcase size={18} />
+              </div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-[#172554]">Experience</h3>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FFFBEB] text-[#D97706] border border-[#FEF3C7]">
+                  {displayedExperience.length}
+                </span>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-[#172554]">Experience</h3>
+
+            {hasMoreExperience && (
+              <button
+                type="button"
+                onClick={() => setShowAllExperience((prev) => !prev)}
+                className="text-xs font-bold text-[#6D3DF5] hover:text-[#5B2FD6] bg-[#F2ECFF] hover:bg-[#E9E1FF] px-3 py-1.5 rounded-xl border border-[#E9E1FF] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              >
+                <span>{showAllExperience ? "Show Less" : `Show All (${displayedExperience.length})`}</span>
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${showAllExperience ? "rotate-180" : ""}`}
+                />
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
-            {displayedExperience.map((exp, idx) => (
+            {visibleExperience.map((exp, idx) => (
               <motion.div
                 key={exp.id}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
+                transition={{ delay: idx * 0.08 }}
                 className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex gap-4 group"
               >
                 <div className="hidden sm:flex flex-col items-center">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${exp.verified ? 'bg-[#6D3DF5] text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
                     {exp.company[0]}
                   </div>
-                  {idx < displayedExperience.length - 1 && <div className="w-0.5 h-full bg-[#F1F5F9] my-3" />}
+                  {idx < visibleExperience.length - 1 && <div className="w-0.5 h-full bg-[#F1F5F9] my-3" />}
                 </div>
                 <div className="flex-1 space-y-1.5 min-w-0">
                   <div className="flex justify-between items-start gap-3">
@@ -639,6 +712,26 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                 </div>
               </motion.div>
             ))}
+
+            {hasMoreExperience && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAllExperience((prev) => !prev)}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-white border border-[#E2E8F0] hover:border-[#6D3DF5] hover:bg-[#F8FAFF] text-xs font-bold text-[#64748B] hover:text-[#6D3DF5] transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer group"
+                >
+                  <span>
+                    {showAllExperience
+                      ? "Show Less (Latest 3)"
+                      : `Show All Experiences (+${displayedExperience.length - 3} more)`}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform duration-200 group-hover:translate-y-0.5 ${showAllExperience ? "rotate-180 group-hover:-translate-y-0.5" : ""}`}
+                  />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
