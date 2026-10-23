@@ -35,7 +35,8 @@ const sendOtp = asyncHandler(async (req, res) => {
     industryType,
     establishmentYear,
     location,
-    internshipType
+    internshipType,
+    website
   } = req.body;
 
   if (
@@ -73,7 +74,8 @@ const sendOtp = asyncHandler(async (req, res) => {
       IndustryType: industryType,
       location,
       internshipType,
-      establishmentYear
+      establishmentYear,
+      website: website ? website.trim() : ""
   });
 
   // Generate 6-digit OTP
@@ -459,7 +461,8 @@ const updateUser = asyncHandler(async (req, res) => {
     establishmentYear, 
     location, 
     internshipType,
-    skills 
+    website,
+    skills
   } = req.body;
 
   const user = await User.findById(req.params.id);
@@ -476,33 +479,37 @@ const updateUser = asyncHandler(async (req, res) => {
   
   await user.save({ validateBeforeSave: false });
 
-  // Prepare profile fields
-  const profileUpdate = {};
-  if (institutionName || req.body.companyName) profileUpdate.InstituteName = institutionName || req.body.companyName;
-  if (degree) profileUpdate.degree = degree;
-  if (branch) profileUpdate.branch = branch;
-  if (currentYear) profileUpdate.yearOfStudy = currentYear;
-  if (position || req.body.tagline) profileUpdate.position = position || req.body.tagline;
-  if (experience) profileUpdate.YearOfExperience = experience;
-  if (expertise) profileUpdate.ExpertiseDomains = expertise;
-  if (industryType || req.body.about) profileUpdate.IndustryType = industryType || req.body.about;
-  if (location) profileUpdate.location = location;
-  if (internshipType) profileUpdate.internshipType = internshipType;
-  if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
+  // Update Profile fields if user has a profile
+  if (user.Profile) {
+    const profileUpdate = {};
+    if (institutionName || req.body.companyName) profileUpdate.InstituteName = institutionName || req.body.companyName;
+    if (degree) profileUpdate.degree = degree;
+    if (branch) profileUpdate.branch = branch;
+    if (currentYear) profileUpdate.yearOfStudy = currentYear;
+    if (position || req.body.tagline) profileUpdate.position = position || req.body.tagline;
+    if (experience) profileUpdate.YearOfExperience = experience;
+    if (expertise) profileUpdate.ExpertiseDomains = expertise;
+    if (industryType || req.body.about) profileUpdate.IndustryType = industryType || req.body.about;
+    if (location) profileUpdate.location = location;
+    if (internshipType) profileUpdate.internshipType = internshipType;
+    if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
+    if (website !== undefined) {
+      profileUpdate.website = website ? website.trim() : "";
+    }
 
-  if (skills !== undefined) {
-    let parsedSkills = skills;
-    if (typeof parsedSkills === "string") {
-      try {
-        parsedSkills = JSON.parse(parsedSkills);
-      } catch {
-        parsedSkills = [];
+    if (skills !== undefined) {
+      let parsedSkills = skills;
+      if (typeof parsedSkills === "string") {
+        try {
+          parsedSkills = JSON.parse(parsedSkills);
+        } catch {
+          parsedSkills = [];
+        }
+      }
+      if (Array.isArray(parsedSkills)) {
+        profileUpdate.skills = parsedSkills;
       }
     }
-    if (Array.isArray(parsedSkills)) {
-      profileUpdate.skills = parsedSkills;
-    }
-  }
 
   // Update or create Profile document
   if (user.Profile) {
