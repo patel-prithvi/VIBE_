@@ -2,7 +2,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  Sparkles,
   Briefcase,
   Users,
   MessageSquare,
@@ -127,43 +126,6 @@ export const IndustryRightPanel = ({
               <p className="text-[11px] text-[#64748B]">New submissions on your tasks will appear here.</p>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* ======================================================== */}
-      {/* B. Talent Pipeline Promo Card                            */}
-      {/* ======================================================== */}
-      <div className="bg-[#F8F5FF] border border-[#E9E1FF] rounded-2xl p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0 relative overflow-hidden">
-        {/* Top Header Row with Icon & Title */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-9 h-9 rounded-xl bg-white text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center shrink-0 shadow-2xs">
-              <Sparkles size={17} />
-            </div>
-            <h3 className="font-bold text-sm text-[#0F172A] tracking-tight leading-snug truncate">
-              Verified Talent Pipeline
-            </h3>
-          </div>
-          <span className="px-2 py-0.5 rounded-full bg-[#6D3DF5]/10 text-[#6D3DF5] text-[10px] font-bold uppercase tracking-wider shrink-0">
-            For Hiring
-          </span>
-        </div>
-
-        <p className="text-xs text-[#64748B] leading-relaxed mt-2 mb-3.5 break-words [overflow-wrap:anywhere]">
-          Post real-world tasks and evaluate student work objectively before you hire.
-        </p>
-
-        <div>
-          <button
-            onClick={() => {
-              if (onPostTask) onPostTask();
-              else if (onNavigate) onNavigate("tasks");
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white rounded-xl text-xs font-bold transition-all shadow-xs group"
-          >
-            <span>Post a Task</span>
-            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-          </button>
         </div>
       </div>
 

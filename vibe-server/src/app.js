@@ -79,6 +79,7 @@ app.use("/api/v1/tasks", checkDbConnection, taskRouter);
 app.use("/api/v1/submissions", checkDbConnection, submissionRouter);
 app.use("/api/v1/notifications", checkDbConnection, notificationRouter);
 app.use("/api/v1/virtualresume", checkDbConnection, virtualresume);
+app.use("/api/v1/virtual-resume", checkDbConnection, virtualresume);
 
 // 404 handler
 app.use((req, res) => {
