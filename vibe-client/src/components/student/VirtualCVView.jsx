@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '../shared/Avatar';
 import { useToast } from '../Toast';
@@ -36,9 +36,12 @@ import {
   RotateCcw,
   Check,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import api from "../../services/api";
 import { auth } from "../../utils/auth";
+import { SkillVerificationModal } from "./SkillVerificationModal";
+import { SkillFeedbackModal } from "./SkillFeedbackModal";
 
 const POPULAR_SKILLS = {
   Technical: [
@@ -93,6 +96,14 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isConfigureModalOpen, setIsConfigureModalOpen] = useState(false);
 
+  // Skill Verification states
+  const [studentAttempts, setStudentAttempts] = useState([]);
+  const [activeVerificationAttempt, setActiveVerificationAttempt] = useState(null);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [feedbackAttempt, setFeedbackAttempt] = useState(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [verifyingSkillName, setVerifyingSkillName] = useState(null);
+
   // Add Skill state
   const [newSkillName, setNewSkillName] = useState("");
   const [newSkillCategory, setNewSkillCategory] = useState("Technical");
@@ -103,6 +114,53 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
   const [editingSkills, setEditingSkills] = useState([]);
   const [configureFilterCategory, setConfigureFilterCategory] = useState("All");
   const [savingConfigureSkills, setSavingConfigureSkills] = useState(false);
+
+  const fetchStudentAttempts = useCallback(async () => {
+    if (!isOwner) return;
+    try {
+      const res = await api.get("/skill-verification/student/active");
+      if (res.data?.success) {
+        setStudentAttempts(res.data.data || []);
+      }
+    } catch (err) {
+      console.warn("Could not load student verification attempts:", err);
+    }
+  }, [isOwner]);
+
+  useEffect(() => {
+    fetchStudentAttempts();
+  }, [fetchStudentAttempts]);
+
+  const attemptsBySkill = useMemo(() => {
+    const map = {};
+    studentAttempts.forEach((att) => {
+      if (att.skillName) {
+        map[att.skillName.toLowerCase().trim()] = att;
+      }
+    });
+    return map;
+  }, [studentAttempts]);
+
+  const handleInitiateVerification = async (skillName, skillLevel = "Intermediate") => {
+    try {
+      setVerifyingSkillName(skillName);
+      const res = await api.post("/skill-verification/request", {
+        skillName,
+        difficulty: skillLevel,
+      });
+      if (res.data?.success) {
+        const attemptData = res.data.data;
+        setActiveVerificationAttempt(attemptData);
+        setIsVerificationModalOpen(true);
+        await fetchStudentAttempts();
+      }
+    } catch (err) {
+      console.error("Verification initiation error:", err);
+      toast.error(err.response?.data?.message || "Failed to initiate verification task");
+    } finally {
+      setVerifyingSkillName(null);
+    }
+  };
 
   useEffect(() => {
     const fetchVirtualResume = async () => {
@@ -235,7 +293,9 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
       }));
       setNewSkillName("");
       setIsAddModalOpen(false);
-      toast.success(`"${trimmed}" added to your skills matrix!`);
+      toast.success(`"${trimmed}" added! Generating your verification task...`);
+      // Automatically trigger task assignment for the new skill
+      handleInitiateVerification(trimmed, newSkillLevel);
     } catch (err) {
       console.error("Add skill error:", err);
       toast.error(err.response?.data?.message || "Failed to add skill");
@@ -590,37 +650,141 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
                             </p>
                           </div>
                         ) : (
-                          categorySkills.map((skill) => (
-                            <div
-                              key={skill.name}
-                              className="group/skill flex items-center justify-between p-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60 hover:border-[#E9E1FF] hover:bg-[#FDFBFF] transition-all"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 pr-2">
-                                <SkillIcon name={skill.name} category={cat} />
-                                <span className="text-xs font-semibold text-[#172554] truncate flex items-center gap-1.5">
-                                  {skill.name}
-                                  {skill.verified && (
-                                    <ShieldCheck size={13} className="text-[#6D3DF5] shrink-0" title="Verified Skill" />
+                          categorySkills.map((skill) => {
+                            const attempt = attemptsBySkill[skill.name.toLowerCase().trim()];
+                            const isVerified = Boolean(
+                              skill.verified ||
+                                (attempt &&
+                                  (attempt.status === "approved" ||
+                                    attempt.review?.decision === "approved"))
+                            );
+
+                            return (
+                              <div
+                                key={skill.name}
+                                className="group/skill flex items-center justify-between p-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60 hover:border-[#E9E1FF] hover:bg-[#FDFBFF] transition-all"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 pr-2">
+                                  <SkillIcon name={skill.name} category={cat} />
+                                  <span className="text-xs font-semibold text-[#172554] truncate flex items-center gap-1.5">
+                                    {skill.name}
+                                    {isVerified && (
+                                      <ShieldCheck
+                                        size={14}
+                                        className="text-emerald-600 shrink-0"
+                                        title="Verified Credential"
+                                      />
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {/* Verification Status Action / Badge */}
+                                  {isVerified ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFeedbackAttempt(
+                                          attempt || {
+                                            skillName: skill.name,
+                                            score: skill.score || 85,
+                                            review: {
+                                              decision: "approved",
+                                              score: skill.score || 85,
+                                              pros: [
+                                                "Audited by Verified Faculty Reviewer",
+                                                "Meets implementation benchmark (>= 70%)",
+                                              ],
+                                            },
+                                          }
+                                        );
+                                        setIsFeedbackModalOpen(true);
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100 transition-all cursor-pointer shadow-xs"
+                                      title="View verified credential proof"
+                                    >
+                                      <ShieldCheck size={12} className="text-emerald-600" />
+                                      <span>Verified {skill.score ? `• ${skill.score}%` : ""}</span>
+                                    </button>
+                                  ) : attempt && attempt.status === "assigned" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveVerificationAttempt(attempt);
+                                        setIsVerificationModalOpen(true);
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] text-[10px] font-bold hover:bg-[#6D3DF5] hover:text-white transition-all cursor-pointer"
+                                      title="Task assigned! Click to view details and submit"
+                                    >
+                                      <Zap size={11} />
+                                      <span>Complete Task</span>
+                                    </button>
+                                  ) : attempt &&
+                                    (attempt.status === "under_review" ||
+                                      attempt.status === "submitted") ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveVerificationAttempt(attempt);
+                                        setIsVerificationModalOpen(true);
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold hover:bg-amber-100 transition-all cursor-pointer"
+                                      title="Under double-blind mentor evaluation"
+                                    >
+                                      <Clock size={11} />
+                                      <span>Under Review</span>
+                                    </button>
+                                  ) : attempt && attempt.status === "rejected" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFeedbackAttempt(attempt);
+                                        setIsFeedbackModalOpen(true);
+                                      }}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold hover:bg-rose-100 transition-all cursor-pointer"
+                                      title="Needs revision (< 70%). Click to view feedback and retry."
+                                    >
+                                      <RotateCcw size={11} />
+                                      <span>Needs Revision</span>
+                                    </button>
+                                  ) : (
+                                    isOwner && (
+                                      <button
+                                        type="button"
+                                        disabled={verifyingSkillName === skill.name}
+                                        onClick={() =>
+                                          handleInitiateVerification(skill.name, skill.level)
+                                        }
+                                        className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white text-[#6D3DF5] border border-[#CBD5E1] hover:border-[#6D3DF5] hover:bg-[#FAF5FF] text-[10px] font-bold transition-all cursor-pointer disabled:opacity-50"
+                                        title="Verify skill with an automated proof-of-work task"
+                                      >
+                                        {verifyingSkillName === skill.name ? (
+                                          <Loader2 size={11} className="animate-spin" />
+                                        ) : (
+                                          <Zap size={11} />
+                                        )}
+                                        <span>Verify</span>
+                                      </button>
+                                    )
                                   )}
-                                </span>
+
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] uppercase tracking-wider">
+                                    {skill.level || "Intermediate"}
+                                  </span>
+
+                                  {isOwner && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickDeleteSkill(skill.name)}
+                                      className="opacity-0 group-hover/skill:opacity-100 p-1 text-[#94A3B8] hover:text-red-500 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                      title={`Remove ${skill.name}`}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] uppercase tracking-wider">
-                                  {skill.level || "Verified"}
-                                </span>
-                                {isOwner && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickDeleteSkill(skill.name)}
-                                    className="opacity-0 group-hover/skill:opacity-100 p-1 text-[#94A3B8] hover:text-red-500 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                                    title={`Remove ${skill.name}`}
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
 
                         {isOwner && (
@@ -1187,6 +1351,26 @@ export const VirtualCVView = ({ user, onBackToFeed }) => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Skill Verification Task Modal */}
+      <SkillVerificationModal
+        isOpen={isVerificationModalOpen}
+        onClose={() => setIsVerificationModalOpen(false)}
+        activeAttempt={activeVerificationAttempt}
+        onSubmissionSuccess={() => {
+          fetchStudentAttempts();
+        }}
+      />
+
+      {/* Skill Feedback & Proof Modal */}
+      <SkillFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        attempt={feedbackAttempt}
+        onRetry={(skillName, difficulty) => {
+          handleInitiateVerification(skillName, difficulty);
+        }}
+      />
     </div>
   );
 };

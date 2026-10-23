@@ -137,31 +137,42 @@ export const updateVirtualResumeSkills = async (req, res) => {
       });
     }
 
-    // Format and sanitize skill items
+    // Fetch existing profile and approved skill verification attempts to enforce security checks
+    let profileId = user.Profile;
+    let existingProfile = profileId ? await Profile.findById(profileId) : null;
+    const previouslyVerifiedSet = new Set(
+      (existingProfile?.skills || []).filter(s => s.verified).map(s => s.name.toLowerCase())
+    );
+
+    // Format and sanitize skill items with security verification checks
     const validCategories = ["Technical", "Tools", "Soft Skills"];
     const formattedSkills = skills
       .filter(s => s && (typeof s === "string" ? s.trim() : s.name?.trim()))
       .map(s => {
+        const rawName = typeof s === "string" ? s.trim() : String(s.name).trim();
+        const lowerName = rawName.toLowerCase();
+        // A skill can only be verified if it was already verified in profile
+        const isLegitVerified = previouslyVerifiedSet.has(lowerName);
+
         if (typeof s === "string") {
           return {
-            name: s.trim(),
+            name: rawName,
             category: "Technical",
             level: "Intermediate",
             score: 85,
-            verified: false
+            verified: isLegitVerified
           };
         }
         const cat = validCategories.includes(s.category) ? s.category : "Technical";
         return {
-          name: String(s.name).trim(),
+          name: rawName,
           category: cat,
           level: s.level || "Intermediate",
           score: typeof s.score === "number" ? s.score : 85,
-          verified: Boolean(s.verified)
+          verified: isLegitVerified
         };
       });
 
-    let profileId = user.Profile;
     if (!profileId) {
       const newProfile = await Profile.create({ skills: formattedSkills });
       user.Profile = newProfile._id;

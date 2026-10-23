@@ -5,11 +5,13 @@ dotenv.config({
 });
 import connectDB from "./DB/index.js";
 import { app } from "./app.js";
+import { seedSkillTasks } from "./seeders/skillTasksSeed.js";
 
 const PORT = process.env.PORT || 8000;
 
 connectDB()
-  .then(() => {
+  .then(async () => {
+    await seedSkillTasks();
     app.listen(PORT, () => {
       console.log(`⚙️ Server is ready and running on port: ${PORT}`);
     });
