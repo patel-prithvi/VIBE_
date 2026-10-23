@@ -401,11 +401,11 @@ const Home = () => {
   ];
 
   return (
-    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
+    <div className="roboto-bold min-h-screen bg-white text-[#111B5E] pt-14 md:pt-20 overflow-x-hidden selection:bg-[#7540F5] selection:text-white">
       {/* ======================================================== */}
       {/* 1. HERO SECTION                                         */}
       {/* ======================================================== */}
-      <section className="relative pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+      <section className="relative pt-4 sm:pt-8 md:pt-12 pb-14 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
         {/* Floating Doodles around Hero */}
         <div className="absolute top-8 left-6 hidden sm:block pointer-events-none vibe-doodle-float-1">
           <SparkDoodle color="#FBBF24" size={32} />
@@ -425,7 +425,7 @@ const Home = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider mb-6"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#EDF7FF] border border-[#D3E3EE] text-[#2F6DB5] text-xs font-bold uppercase tracking-wider mb-3.5 md:mb-6"
         >
           <ShieldCheck size={14} className="text-[#16A34A]" />
           <span>Verified Opportunities • Free for Students</span>
