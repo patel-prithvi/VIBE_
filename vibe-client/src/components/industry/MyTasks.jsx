@@ -40,6 +40,7 @@ import {
 import { useToast } from "../Toast";
 import Avatar from "../shared/Avatar";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import SubmissionModal from "./SubmissionModal";
 
 export const MyTasks = ({
   tasks,
@@ -851,6 +852,18 @@ export const MyTasks = ({
   const InstructionModal = ({ task, onClose }) => {
     const [instructionStep, setInstructionStep] = useState(1);
 
+    const handleOpenFullPage = () => {
+      const targetId = task.id || task._id;
+      if (!targetId) return;
+      onClose();
+      navigate(`/tasks/${targetId}`, {
+        state: {
+          from: "/dashboard/industry",
+          fromTab: "tasks",
+        },
+      });
+    };
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
         <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden">
@@ -974,330 +987,63 @@ export const MyTasks = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 px-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0 rounded-b-3xl">
-            {instructionStep === 1 ? (
-              <>
+          <div className="p-4 px-6 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-3 shrink-0 rounded-b-3xl">
+            <div className="flex items-center gap-2">
+              {instructionStep === 1 ? (
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-white transition-all"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-white transition-all cursor-pointer"
                 >
                   Close
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setInstructionStep(2)}
-                  className="bg-[#6D3DF5] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#5B2FD6] transition-colors shadow-md shadow-[#6D3DF5]/20 flex items-center gap-1.5"
-                >
-                  <span>Next: Steps to Complete</span>
-                  <ChevronRight size={14} />
-                </button>
-              </>
-            ) : (
-              <>
+              ) : (
                 <button
                   type="button"
                   onClick={() => setInstructionStep(1)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <ChevronLeft size={14} />
                   <span>Back</span>
                 </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleOpenFullPage}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#6D3DF5] bg-white border border-[#E9E1FF] hover:bg-[#F3EEFF] hover:border-[#C4B5FD] transition-all cursor-pointer shadow-xs"
+                title="Open full task instructions page"
+              >
+                <ExternalLink size={13} />
+                <span>View Full Instructions</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {instructionStep === 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setInstructionStep(2)}
+                  className="bg-[#6D3DF5] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#5B2FD6] transition-colors shadow-md shadow-[#6D3DF5]/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Next: Steps to Complete</span>
+                  <ChevronRight size={14} />
+                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={onClose}
-                  className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-colors shadow-md shadow-slate-900/20"
+                  className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-colors shadow-md shadow-slate-900/20 cursor-pointer"
                 >
                   Got it, close
                 </button>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
     );
   };
-
-  // ----------------------------------------------------------------------------------
-  // VIEW: Submission Details Modal
-  // ----------------------------------------------------------------------------------
-  const SubmissionModal = ({ applicant, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 touch-none">
-      <div role="dialog" aria-modal="true" className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col relative overflow-hidden overscroll-contain">
-        {/* Header */}
-        <div className="p-8 pb-4 bg-white border-b border-[#F3EEFF] shrink-0">
-          <div className="flex justify-between items-start mb-2">
-            <span className="flex items-center gap-2 text-xs font-bold text-[#6D3DF5] uppercase tracking-widest mb-2">
-              <Check size={16} /> Solution Submitted
-            </span>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">
-            {applicant.submission.projectTitle}
-          </h2>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-slate-500 text-sm flex items-center gap-2">
-              Submitted by{" "}
-              <span className="font-bold text-slate-800">{applicant.name}</span> •{" "}
-              {applicant.college}
-            </p>
-            {applicant.submission.githubLink && (
-              <a
-                href={applicant.submission.githubLink}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F3EEFF] text-[#5B2FD6] hover:bg-[#EDE9FE] border border-[#E9E1FF] transition-colors"
-                title="Open GitHub repository"
-              >
-                <Github size={14} /> View GitHub
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="overflow-y-auto p-8 pt-6 space-y-6 overscroll-contain">
-          {/* Key Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Student Project Title</h3>
-              <p className="text-slate-700 text-sm">
-                {applicant.submission.projectTitle}
-              </p>
-            </div>
-            {applicant.submission.githubLink && (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 mb-2">GitHub Repository</h3>
-                <a
-                  href={applicant.submission.githubLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-bold text-[#5B2FD6] hover:text-[#4C1D95] underline break-all"
-                >
-                  {applicant.submission.githubLink}
-                </a>
-              </div>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-2">
-              Description / Approach
-            </h3>
-            <div className="bg-slate-50 p-4 rounded-xl text-slate-700 text-sm leading-relaxed border border-slate-100">
-              {applicant.submission.description}
-            </div>
-          </div>
-
-          {/* Links Grid */}
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">
-              Submitted Assets
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Resume - NEW */}
-              {applicant.resumeLink && (
-                <a
-                  href={applicant.resumeLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-violet-600 transition-colors">
-                    <FileText size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-violet-700">
-                      Submission URL
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      View Link
-                    </p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-violet-400"
-                  />
-                </a>
-              )}
-
-              {/* Github */}
-              {applicant.submission.githubLink && (
-                <a
-                  href={applicant.submission.githubLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-[#C4B5FD] hover:bg-[#F3EEFF]/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-[#6D3DF5] transition-colors">
-                    <Github size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-[#5B2FD6]">
-                      GitHub Repository
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {applicant.submission.githubLink}
-                    </p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-[#8B5CF6]"
-                  />
-                </a>
-              )}
-
-              {/* Video */}
-              {applicant.submission.videoLink && (
-                <a
-                  href={applicant.submission.videoLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-red-200 hover:bg-red-50/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-red-600 transition-colors">
-                    <Youtube size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-red-700">
-                      Video Demo
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {applicant.submission.videoLink}
-                    </p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-red-400"
-                  />
-                </a>
-              )}
-
-              {/* Drive */}
-              {applicant.submission.driveLink && (
-                <a
-                  href={applicant.submission.driveLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-blue-600 transition-colors">
-                    <File size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">
-                      Additional Resources
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      Google Drive
-                    </p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-blue-400"
-                  />
-                </a>
-              )}
-
-              {/* Other Links */}
-              {applicant.submission.otherLinks?.filter(Boolean).map((link, i) => (
-                <a
-                  key={i}
-                  href={link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-[#C4B5FD] hover:bg-[#F3EEFF]/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-[#6D3DF5] transition-colors">
-                    <LinkIcon size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-[#5B2FD6]">
-                      Link #{i + 1}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">{link}</p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-[#8B5CF6]"
-                  />
-                </a>
-              ))}
-              {/* Attachments */}
-              {applicant.attachments?.filter(Boolean).map((url, i) => (
-                <a
-                  key={`att-${i}`}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 group-hover:bg-white group-hover:text-emerald-600 transition-colors">
-                    <File size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-emerald-700">
-                      Attachment #{i + 1}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">{url}</p>
-                  </div>
-                  <ExternalLink
-                    size={16}
-                    className="text-slate-300 group-hover:text-emerald-400"
-                  />
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-3xl">
-          {applicant.status === "Pending" ? (
-            <>
-              <button
-                onClick={() => handleStatusUpdate(applicant.id, "Rejected")}
-                className="px-6 py-2.5 rounded-xl font-bold text-red-600 bg-white border border-red-100 hover:bg-red-50 hover:border-red-200 transition-all text-sm flex items-center gap-2"
-              >
-                Reject Solution
-              </button>
-              <button
-                onClick={() => handleStatusUpdate(applicant.id, "Approved")}
-                className="px-6 py-2.5 rounded-xl font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all text-sm flex items-center gap-2"
-              >
-                <Check size={16} /> Approve Solution
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => handleStatusUpdate(applicant.id, "Pending")}
-                className="px-4 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all text-sm flex items-center gap-2"
-                title="Undo Decision"
-              >
-                <RotateCcw size={16} /> Undo
-              </button>
-              <div
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm ${
-                  applicant.status === "Approved"
-                    ? "bg-green-100 text-green-700 border border-green-200"
-                    : "bg-red-100 text-red-700 border border-red-200"
-                }`}
-              >
-                {applicant.status === "Approved" ? "Accepted" : "Rejected"}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // (Removed alternate applicant page; using single Drawer for applicants)
 
@@ -1511,6 +1257,7 @@ export const MyTasks = ({
         <SubmissionModal
           applicant={selectedApplicant}
           onClose={() => setSelectedApplicant(null)}
+          onStatusUpdate={handleStatusUpdate}
         />
       )}
 

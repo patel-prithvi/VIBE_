@@ -15,6 +15,9 @@ import {
   Loader2,
   Clock,
   Bookmark,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
 import { auth } from "../../utils/auth";
@@ -31,6 +34,14 @@ export const TaskCard = ({
   onApplyDirect,
   onOpenSubmitTask,
   onOpenMentorRequest,
+  // Drag & Reorder props
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
+  isDragging = false,
+  isDropTarget = false,
+  onMoveTask,
 }) => {
   const navigate = useNavigate();
   const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
@@ -48,7 +59,26 @@ export const TaskCard = ({
       onClick={() => {
         if (taskId) navigate(`/tasks/${taskId}`);
       }}
-      className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm transition-shadow relative overflow-hidden group flex flex-col h-full cursor-pointer"
+      draggable={isStudent && Boolean(onDragStart)}
+      onDragStart={(e) => {
+        if (onDragStart) onDragStart(e, task);
+      }}
+      onDragOver={(e) => {
+        if (onDragOver) onDragOver(e, task);
+      }}
+      onDragEnd={(e) => {
+        if (onDragEnd) onDragEnd(e, task);
+      }}
+      onDrop={(e) => {
+        if (onDrop) onDrop(e, task);
+      }}
+      className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all relative overflow-hidden group flex flex-col h-full cursor-pointer ${
+        isDragging
+          ? "opacity-35 scale-[0.98] border-dashed border-[#6D3DF5] shadow-lg bg-[#FAF7FF]"
+          : isDropTarget
+          ? "border-2 border-[#6D3DF5] ring-4 ring-[#6D3DF5]/15 shadow-md bg-[#FAF7FF]"
+          : "border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm"
+      }`}
     >
       {/* Decorative Gradient Blob */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#F3EEFF] rounded-full blur-2xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0 pointer-events-none" />
@@ -56,10 +86,54 @@ export const TaskCard = ({
       <div className="relative z-10 flex-1 flex flex-col">
         {/* Top Badges Row */}
         <div className="flex items-start justify-between gap-2 mb-3">
-          {/* Category Badge */}
-          <div className="flex items-center gap-1.5 text-[#6D3DF5] bg-[#F3EEFF] px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-[#E9E1FF] shrink-0">
-            {CATEGORY_ICONS[task.category] || <Briefcase size={11} />}
-            <span>{task.category || "Development"}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Drag Handle & Touch/Keyboard Reorder Controls */}
+            {isStudent && Boolean(onMoveTask) && (
+              <div
+                className="flex items-center text-slate-400 bg-slate-50 hover:bg-[#F3EEFF] rounded-lg p-0.5 border border-slate-200/80 transition-colors shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  title="Drag to reorder task"
+                  aria-label="Drag to reorder task"
+                  className="p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:text-[#6D3DF5] transition-colors"
+                >
+                  <GripVertical size={14} />
+                </div>
+                <div className="flex flex-col border-l border-slate-200/80 pl-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveTask(task, -1);
+                    }}
+                    title="Move higher in priority"
+                    aria-label="Move task up"
+                    className="p-0.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-white rounded transition-colors cursor-pointer"
+                  >
+                    <ChevronUp size={10} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveTask(task, 1);
+                    }}
+                    title="Move lower in priority"
+                    aria-label="Move task down"
+                    className="p-0.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-white rounded transition-colors cursor-pointer"
+                  >
+                    <ChevronDown size={10} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Category Badge */}
+            <div className="flex items-center gap-1.5 text-[#6D3DF5] bg-[#F3EEFF] px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-[#E9E1FF] shrink-0">
+              {CATEGORY_ICONS[task.category] || <Briefcase size={11} />}
+              <span className="truncate">{task.category || "Development"}</span>
+            </div>
           </div>
 
           {/* Status & Meta Badges + Bookmark */}

@@ -10,6 +10,8 @@ import {
   downloadTaskMaterialsZip,
   toggleTaskBookmark,
   getBookmarkedTasks,
+  getTaskOrder,
+  updateTaskOrder,
 // sendSampleTask,
 } from "../Controllers/task.controller.js";
 
@@ -31,6 +33,10 @@ router.get("/:id/download-materials", verifyJWT, downloadTaskMaterialsZip);
 // Task bookmarks (placed before /:id)
 router.post("/bookmark", verifyJWT, toggleTaskBookmark);
 router.get("/bookmarks", verifyJWT, getBookmarkedTasks);
+
+// Task ordering preferences (placed before /:id)
+router.get("/order", verifyJWT, getTaskOrder);
+router.put("/order", verifyJWT, updateTaskOrder);
 
 router.get("/:id", verifyJWT, getTaskById);
 router.put("/:id", verifyJWT, upload.array("materials", 10), updateTask);
