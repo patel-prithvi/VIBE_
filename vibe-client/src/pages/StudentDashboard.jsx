@@ -74,6 +74,10 @@ const StudentDashboard = () => {
     description: task.description,
     instructions: task.instructions || [],
     submissions: task.submissions || [],
+    matchScore: typeof task.matchScore === 'number' ? task.matchScore : 0,
+    matchedSkills: Array.isArray(task.matchedSkills) ? task.matchedSkills : [],
+    matchStrength: task.matchStrength || 'none',
+    matchReason: task.matchReason || '',
   });
 
   const [searchQuery, setSearchQuery] = useState("");

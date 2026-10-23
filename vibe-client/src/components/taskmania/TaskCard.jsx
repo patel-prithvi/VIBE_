@@ -18,6 +18,7 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
 import { auth } from "../../utils/auth";
@@ -230,6 +231,18 @@ export const TaskCard = ({
             {task.company}
           </span>
         </div>
+
+        {/* Subtle Skill Match Badge (Only on genuinely relevant tasks) */}
+        {task.matchStrength && task.matchStrength !== "none" && task.matchReason && (
+          <div
+            className="inline-flex items-center gap-1.5 mb-2.5 px-2.5 py-1 rounded-lg bg-[#FAF5FF] border border-[#E9D5FF] text-[11px] font-medium text-[#6D3DF5] w-fit max-w-full"
+            title={task.matchReason}
+          >
+            <Sparkles size={12} className="text-[#7C3AED] shrink-0" />
+            <span className="font-bold text-[#6D3DF5] shrink-0">Skill Match:</span>
+            <span className="text-[#475569] font-medium truncate">{task.matchReason}</span>
+          </div>
+        )}
 
         {/* Role */}
         <div className="flex items-center gap-2 mb-3 text-xs text-gray-600 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100">
