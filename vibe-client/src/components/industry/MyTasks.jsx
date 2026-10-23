@@ -213,6 +213,14 @@ export const MyTasks = ({
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  // Get current local time as "HH:mm"
+  const getCurrentTimeStr = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
   // Helper to parse dates to "YYYY-MM-DD" for input type date
   const parseDateForInput = (dateStr) => {
     if (!dateStr) return "";
@@ -390,6 +398,20 @@ export const MyTasks = ({
         toast.error("Please fill interview date, time and mode.");
         return;
       }
+
+      const todayStr = getTodayStr();
+      const currentTimeStr = getCurrentTimeStr();
+
+      if (interviewData.date < todayStr) {
+        toast.error("Interview date cannot be in the past.");
+        return;
+      }
+
+      if (interviewData.date === todayStr && interviewData.time < currentTimeStr) {
+        toast.error("Interview time cannot be in the past for today.");
+        return;
+      }
+
       handleStatusUpdate(appId, "INTERVIEW_SCHEDULED", {
         interviewDate: interviewData.date,
         interviewTime: interviewData.time,
@@ -585,13 +607,23 @@ export const MyTasks = ({
                                       </label>
                                       <input
                                         type="date"
+                                        min={getTodayStr()}
                                         value={interviewData.date}
-                                        onChange={(e) =>
-                                          setInterviewData((d) => ({
-                                            ...d,
-                                            date: e.target.value,
-                                          }))
-                                        }
+                                        onChange={(e) => {
+                                          const selectedDate = e.target.value;
+                                          const isToday = selectedDate === getTodayStr();
+                                          setInterviewData((d) => {
+                                            const nextTime =
+                                              isToday && d.time && d.time < getCurrentTimeStr()
+                                                ? ""
+                                                : d.time;
+                                            return {
+                                              ...d,
+                                              date: selectedDate,
+                                              time: nextTime,
+                                            };
+                                          });
+                                        }}
                                         className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
                                       />
                                     </div>
@@ -601,6 +633,11 @@ export const MyTasks = ({
                                       </label>
                                       <input
                                         type="time"
+                                        min={
+                                          interviewData.date === getTodayStr()
+                                            ? getCurrentTimeStr()
+                                            : undefined
+                                        }
                                         value={interviewData.time}
                                         onChange={(e) =>
                                           setInterviewData((d) => ({
