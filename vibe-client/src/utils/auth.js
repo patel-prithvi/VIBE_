@@ -17,26 +17,47 @@ export const auth = {
     }
   },
 
+  // Helper to normalize user role from accountType
+  normalizeUser: (user) => {
+    if (!user) return null;
+    const cloned = typeof user.toObject === 'function' ? user.toObject() : { ...user };
+    const roleMapping = {
+      'student': 'student',
+      'faculty': 'faculty',
+      'industry expert': 'industry',
+      'industry': 'industry',
+      'company': 'industry',
+    };
+    if (cloned.accountType || cloned.role) {
+      cloned.role = roleMapping[cloned.accountType] || cloned.role || cloned.accountType;
+    }
+    return cloned;
+  },
+
+  // Helper to update session in localStorage
+  setUserSession: (user, accessToken = null, refreshToken = null) => {
+    if (!user) return null;
+    const normalized = auth.normalizeUser(user);
+    localStorage.setItem('vibe_user', JSON.stringify(normalized));
+    if (accessToken) localStorage.setItem('vibe_access_token', accessToken);
+    if (refreshToken) localStorage.setItem('vibe_refresh_token', refreshToken);
+    return normalized;
+  },
+
   // Fetch user from backend (async) and update local storage
   fetchUser: async () => {
     try {
       const response = await api.get('/users/me');
       const user = response.data.data;
-      
-      // Normalize role from accountType
-      const roleMapping = {
-          'student': 'student',
-          'faculty': 'faculty',
-          'industry expert': 'industry'
-      };
-      if (user.accountType) {
-        user.role = roleMapping[user.accountType] || user.accountType;
-      }
-
-      localStorage.setItem('vibe_user', JSON.stringify(user));
-      return user;
+      return auth.setUserSession(user);
     } catch (error) {
-      localStorage.removeItem('vibe_user');
+      // ONLY clear session if server explicitly returns 401 Unauthorized.
+      // Never wipe user session on network glitches, 503 DB reconnects, or server restarts!
+      if (error.response?.status === 401) {
+        localStorage.removeItem('vibe_user');
+        localStorage.removeItem('vibe_access_token');
+        localStorage.removeItem('vibe_refresh_token');
+      }
       throw error;
     }
   },
@@ -46,19 +67,7 @@ export const auth = {
     try {
       const response = await api.put(`/users/${userId}`, userData);
       const updatedUser = response.data.data;
-      
-      // Normalize role from accountType
-      const roleMapping = {
-          'student': 'student',
-          'faculty': 'faculty',
-          'industry expert': 'industry'
-      };
-      if (updatedUser.accountType) {
-        updatedUser.role = roleMapping[updatedUser.accountType] || updatedUser.accountType;
-      }
-
-      localStorage.setItem('vibe_user', JSON.stringify(updatedUser));
-      return updatedUser;
+      return auth.setUserSession(updatedUser);
     } catch (error) {
       console.error("Update profile failed", error);
       throw error;
@@ -71,20 +80,7 @@ export const auth = {
       const response = await api.post('/users/login', { email, password });
       // Backend returns: { data: { user: accessToken, refreshToken, loggedInUser: {...} }, ... }
       const { user: accessToken, refreshToken, loggedInUser } = response.data.data;
-
-      // Normalize role from accountType
-      const roleMapping = {
-          'student': 'student',
-          'faculty': 'faculty',
-          'industry expert': 'industry'
-      };
-      if (loggedInUser.accountType) {
-        loggedInUser.role = roleMapping[loggedInUser.accountType] || loggedInUser.accountType;
-      }
-
-      localStorage.setItem('vibe_user', JSON.stringify(loggedInUser));
-      if (accessToken) localStorage.setItem('vibe_access_token', accessToken);
-      if (refreshToken) localStorage.setItem('vibe_refresh_token', refreshToken);
+      auth.setUserSession(loggedInUser, accessToken, refreshToken);
       return true;
     } catch (error) {
       const message =
