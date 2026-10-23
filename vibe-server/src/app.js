@@ -67,6 +67,7 @@ import submissionRouter from "./routes/taskSubmissionRoutes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import virtualresume from "./routes/VirtualResume.js";  
 import mentorRequestRouter from "./routes/mentorRequest.routes.js";
+import skillVerificationRouter from "./routes/skillVerificationRoutes.js";
 
 // router declarations
 app.use("/api/v1/mentor-requests", (req, res, next) => {
@@ -80,6 +81,7 @@ app.use("/api/v1/submissions", checkDbConnection, submissionRouter);
 app.use("/api/v1/notifications", checkDbConnection, notificationRouter);
 app.use("/api/v1/virtualresume", checkDbConnection, virtualresume);
 app.use("/api/v1/virtual-resume", checkDbConnection, virtualresume);
+app.use("/api/v1/skill-verification", checkDbConnection, skillVerificationRouter);
 
 // 404 handler
 app.use((req, res) => {

@@ -9,6 +9,7 @@ import { ProfileView } from "../components/faculty/ProfileView";
 import { UnifiedProfileView } from "../components/profile/UnifiedProfileView";
 import { SettingsView } from "../components/settings/SettingsView";
 import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
+import { SkillVerificationReviewsView } from "../components/faculty/SkillVerificationReviewsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
 import { auth } from "../utils/auth";
@@ -24,7 +25,7 @@ const FacultyDashboard = () => {
 
   // Default view is "home" which represents the 3-column feed dashboard
   const [activeView, setActiveView] = useState(() => {
-    if (queryView && ["home", "mentorship", "requests", "profile", "bookmarks"].includes(queryView)) {
+    if (queryView && ["home", "mentorship", "requests", "skill-verifications", "profile", "bookmarks"].includes(queryView)) {
       return queryView === "requests" ? "mentorship" : queryView;
     }
     return localStorage.getItem("vibe_faculty_tab") || "home";
@@ -34,7 +35,7 @@ const FacultyDashboard = () => {
     if (queryView) {
       if (queryView === "requests" || queryView === "mentorship") {
         setActiveView("mentorship");
-      } else if (["home", "profile", "bookmarks"].includes(queryView)) {
+      } else if (["home", "skill-verifications", "profile", "bookmarks"].includes(queryView)) {
         setActiveView(queryView);
       }
     }
@@ -434,6 +435,8 @@ const FacultyDashboard = () => {
             <div className="min-w-0 w-full">
               {activeView === "mentorship" || activeView === "requests" ? (
                 <MentorRequestsView onBackToFeed={() => handleSectionChange("home")} />
+              ) : activeView === "skill-verifications" ? (
+                <SkillVerificationReviewsView />
               ) : activeView === "profile" ? (
                 <UnifiedProfileView
                   user={user}

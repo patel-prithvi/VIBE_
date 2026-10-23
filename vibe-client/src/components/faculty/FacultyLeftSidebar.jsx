@@ -5,12 +5,14 @@ import {
   Users,
   User,
   LogOut,
+  Award,
 } from "lucide-react";
 
 export const FacultyLeftSidebar = ({ activeView, onNavigate, onLogout, isCollapsed = false }) => {
   const navItems = [
     { id: "home", label: "Home", icon: Home },
     { id: "mentorship", label: "Mentorship", icon: Users },
+    { id: "skill-verifications", label: "Skill Reviews", icon: Award },
     { id: "profile", label: "My Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },
   ];
