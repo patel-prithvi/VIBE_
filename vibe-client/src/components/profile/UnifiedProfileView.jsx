@@ -521,7 +521,6 @@ export const UnifiedProfileView = ({
         {/* TAB 1: DETAILS / COMPANY DETAILS */}
         {activeTab === "details" && (
           <div className="space-y-6">
-            /* VIEW MODE DETAILS CARDS */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Card A: Institutional / Academic / Company Overview */}
                 <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
