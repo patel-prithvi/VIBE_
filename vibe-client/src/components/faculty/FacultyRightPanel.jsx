@@ -11,6 +11,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Zap,
+  Plus,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import api from "../../services/api";
@@ -25,6 +27,7 @@ export const FacultyRightPanel = ({
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
 
   useEffect(() => {
@@ -189,14 +192,45 @@ export const FacultyRightPanel = ({
       </div>
 
       {/* ======================================================== */}
-      {/* C. Quick Actions (2x2 Grid)                              */}
+      {/* C. Quick Actions (Small Square Button which opens up)    */}
       {/* ======================================================== */}
-      <div className="vibe-card p-4 sm:p-5">
-        <h3 className="font-bold text-xs uppercase tracking-wider text-[#64748B] mb-3">
-          Quick Actions
-        </h3>
+      {!isQuickActionsOpen ? (
+        <div className="flex items-center gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => setIsQuickActionsOpen(true)}
+            className="w-10 h-10 rounded-xl bg-white hover:bg-[#F3EEFF] border border-[#E2E8F0] hover:border-[#6D3DF5] text-[#6D3DF5] shadow-xs flex items-center justify-center transition-all cursor-pointer group shrink-0"
+            title="Open Quick Actions"
+            aria-label="Open Quick Actions"
+          >
+            <Zap size={18} className="group-hover:scale-110 transition-transform" />
+          </button>
+          <span
+            onClick={() => setIsQuickActionsOpen(true)}
+            className="hidden sm:inline-block text-xs font-bold uppercase tracking-wider text-[#64748B] hover:text-[#6D3DF5] cursor-pointer transition-colors select-none"
+          >
+            Quick Actions
+          </span>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-w-0 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#64748B] flex items-center gap-1.5">
+              <Zap size={14} className="text-[#6D3DF5]" />
+              Quick Actions
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsQuickActionsOpen(false)}
+              className="w-8 h-8 rounded-lg bg-[#F8FAFC] hover:bg-[#F3EEFF] text-[#64748B] hover:text-[#6D3DF5] border border-[#E2E8F0] flex items-center justify-center transition-all cursor-pointer"
+              title="Close Quick Actions"
+              aria-label="Close Quick Actions"
+            >
+              <Plus size={16} className="rotate-45" />
+            </button>
+          </div>
 
-        <div className="grid grid-cols-2 gap-2.5 min-w-0">
+          <div className="grid grid-cols-2 gap-2.5 min-w-0">
           {/* Action 1: Create Event */}
           <button
             onClick={() => onOpenCreatePost && onOpenCreatePost()}
@@ -250,6 +284,7 @@ export const FacultyRightPanel = ({
           </button>
         </div>
       </div>
+      )}
     </aside>
   );
 };

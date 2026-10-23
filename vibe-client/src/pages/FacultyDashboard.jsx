@@ -11,6 +11,7 @@ import { SettingsView } from "../components/settings/SettingsView";
 import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
+import { FloatingQuickActions } from "../components/shared/FloatingQuickActions";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -476,6 +477,15 @@ const FacultyDashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Floating Quick Actions (Mobile view only) */}
+      {(activeView === "home" || activeView === "posts") && !isCreatePostOpen && (
+        <FloatingQuickActions
+          role="faculty"
+          onNavigate={handleSectionChange}
+          onOpenCreatePost={() => setIsCreatePostOpen(true)}
+        />
+      )}
 
       {/* Mobile Bottom Navigation Bar (app-style fixed bar for small screens) */}
       <MobileBottomNav

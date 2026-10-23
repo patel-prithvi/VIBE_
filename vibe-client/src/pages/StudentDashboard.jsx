@@ -14,6 +14,7 @@ import { SettingsView } from "../components/settings/SettingsView";
 import { MyMentorRequestsView } from "../components/student/MyMentorRequestsView";
 import { StudentBookmarksView } from "../components/student/StudentBookmarksView";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
+import { FloatingQuickActions } from "../components/shared/FloatingQuickActions";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
@@ -507,6 +508,15 @@ const StudentDashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Floating Quick Actions (Mobile view only) */}
+      {(activeView === "home" || activeView === "posts") && !isCreatePostOpen && (
+        <FloatingQuickActions
+          role="student"
+          onNavigate={handleSectionChange}
+          onOpenCreatePost={() => setIsCreatePostOpen(true)}
+        />
+      )}
 
       {/* Mobile Bottom Navigation Bar (app-style fixed bar for mobile screens) */}
       <MobileBottomNav
