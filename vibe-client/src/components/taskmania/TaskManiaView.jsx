@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Briefcase } from 'lucide-react';
+import { Search, Briefcase, ChevronDown, GripVertical } from 'lucide-react';
 import { TaskCard } from './TaskCard';
 import { InstructionModal } from './InstructionModal';
 import { ApplicationFormModal } from './ApplicationFormModal';
@@ -18,10 +18,19 @@ export const TaskManiaView = ({
   const bookmarkedTaskIds = propBookmarkedTaskIds || internalBookmarkedTaskIds;
   const navigate = useNavigate();
   const toast = useToast();
+
   const [tasks, setTasks] = useState([]);
-  const [selectedTaskForInstructions, setSelectedTaskForInstructions] = useState(null);
+  const [savedOrder, setSavedOrder] = useState([]);
+  const [userSubmissions, setUserSubmissions] = useState([]);
+  const [mentorRequests, setMentorRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Search & Filters State
   const [searchQuery, setSearchQuery] = useState(
     () => sessionStorage.getItem('vibe_taskmania_search') || ''
+  );
+  const [selectedProgress, setSelectedProgress] = useState(
+    () => sessionStorage.getItem('vibe_taskmania_progress') || 'all'
   );
   const [selectedCategory, setSelectedCategory] = useState(
     () => sessionStorage.getItem('vibe_taskmania_category') || 'All'
@@ -29,18 +38,101 @@ export const TaskManiaView = ({
   const [selectedMode, setSelectedMode] = useState(
     () => sessionStorage.getItem('vibe_taskmania_mode') || 'All'
   );
+
+  // Drag and Drop States
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dropTargetTaskId, setDropTargetTaskId] = useState(null);
+
+  // Modal States
+  const [selectedTaskForInstructions, setSelectedTaskForInstructions] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isApplicationOpen, setIsApplicationOpen] = useState(false);
   const [isMentorRequestOpen, setIsMentorRequestOpen] = useState(false);
-  const [userSubmissions, setUserSubmissions] = useState([]);
   const [applyingTaskId, setApplyingTaskId] = useState(null);
-  const [mentorRequests, setMentorRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const categories = ['All', 'Development', 'Design', 'AI/ML', 'Web Development', 'Healthcare'];
   const modes = ['All', 'Remote', 'Onsite', 'Hybrid'];
 
-  
+  const progressOptions = [
+    { value: 'all', label: 'All Tasks' },
+    { value: 'not_applied', label: 'Not Applied' },
+    { value: 'working_on', label: 'Applied / Working On' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'under_review', label: 'Under Review' },
+    { value: 'interview_scheduled', label: 'Interview Scheduled' },
+    { value: 'accepted', label: 'Accepted' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
+
+  // Order sorting utility
+  const sortTasksByOrder = useCallback((taskList, orderIds) => {
+    if (!Array.isArray(taskList)) return [];
+    if (!Array.isArray(orderIds) || orderIds.length === 0) return [...taskList];
+
+    const orderMap = new Map();
+    orderIds.forEach((id, index) => {
+      orderMap.set(String(id), index);
+    });
+
+    return [...taskList].sort((a, b) => {
+      const idA = String(a.id || a._id);
+      const idB = String(b.id || b._id);
+      const hasA = orderMap.has(idA);
+      const hasB = orderMap.has(idB);
+
+      if (hasA && hasB) {
+        return orderMap.get(idA) - orderMap.get(idB);
+      }
+      if (hasA) return -1;
+      if (hasB) return 1;
+      return 0;
+    });
+  }, []);
+
+  // Determine stage progress of student application
+  const getTaskProgressStatus = useCallback((task, submission) => {
+    if (!submission) return 'not_applied';
+
+    const rawStatus = String(submission.status || '').toLowerCase().trim();
+
+    if (rawStatus === 'rejected') {
+      return 'rejected';
+    }
+
+    const hasSubmittedWork = Boolean(
+      submission.repoUrl ||
+      submission.videoUrl ||
+      submission.driveUrl ||
+      submission.projectTitle ||
+      submission.message ||
+      (Array.isArray(submission.attachments) && submission.attachments.length > 0) ||
+      ['submitted', 'reviewed', 'shortlisted', 'interview_scheduled', 'hired'].includes(rawStatus)
+    );
+
+    if (!hasSubmittedWork) {
+      return 'working_on';
+    }
+
+    if (rawStatus === 'hired' || rawStatus === 'selected') {
+      return 'accepted';
+    }
+
+    if (rawStatus === 'interview_scheduled' || Boolean(submission.interviewDate)) {
+      return 'interview_scheduled';
+    }
+
+    if (rawStatus === 'reviewed' || rawStatus === 'shortlisted') {
+      return 'under_review';
+    }
+
+    if (rawStatus === 'accepted') {
+      return 'accepted';
+    }
+
+    return 'submitted';
+  }, []);
+
+  // Bookmark toggle
   const handleToggleTaskBookmark = async (taskId, fullTask = null) => {
     if (propOnToggleTaskBookmark) {
       return propOnToggleTaskBookmark(taskId, fullTask);
@@ -79,22 +171,26 @@ export const TaskManiaView = ({
     }
   }, [propBookmarkedTaskIds]);
 
+  // Fetch tasks and saved order
   const fetchTasks = useCallback(async (isBackground = false) => {
     try {
       if (!isBackground) {
         setLoading(true);
       }
-      const [tasksRes, subsRes, mentorRequestsRes] = await Promise.all([
+      const [tasksRes, subsRes, mentorRequestsRes, orderRes] = await Promise.all([
         api.get('/tasks'),
         api.get('/submissions/me'),
-        api.get('/mentor-requests/my-requests')
+        api.get('/mentor-requests/my-requests'),
+        api.get('/tasks/order').catch(() => ({ data: { data: { taskOrder: [] } } })),
       ]);
 
+      const backendOrder = orderRes?.data?.data?.taskOrder || [];
+      setSavedOrder(backendOrder);
+
       if (tasksRes.data && tasksRes.data.data) {
-        const mappedTasks = tasksRes.data.data.map(task => ({
+        const mappedTasks = tasksRes.data.data.map((task) => ({
           id: task._id,
           title: task.title,
-          // Use real companyName from DB; fall back to creator name if empty
           company: (task.companyName && task.companyName.trim())
             ? task.companyName.trim()
             : (task.createdBy?.name || 'Unknown Company'),
@@ -107,14 +203,15 @@ export const TaskManiaView = ({
           deadline: new Date(task.lastDateToSubmit).toLocaleDateString(),
           deadlineTs: new Date(task.lastDateToSubmit).getTime(),
           tags: task.skillsRequired || [],
-          // Use real perks from DB (stored as comma-separated string)
           perks: (task.perks && task.perks.trim())
-            ? task.perks.split(',').map(p => p.trim()).filter(Boolean)
+            ? task.perks.split(',').map((p) => p.trim()).filter(Boolean)
             : [],
           description: task.description,
-          instructions: task.instructions || []
+          instructions: task.instructions || [],
         }));
-        setTasks(mappedTasks);
+
+        const ordered = sortTasksByOrder(mappedTasks, backendOrder);
+        setTasks(ordered);
       }
 
       if (subsRes.data && Array.isArray(subsRes.data.data)) {
@@ -131,14 +228,14 @@ export const TaskManiaView = ({
         setLoading(false);
       }
     }
-  }, []);
+  }, [sortTasksByOrder]);
 
-  // Initial fetch on mount
+  // Initial fetch
   useEffect(() => {
     fetchTasks(false);
   }, [fetchTasks]);
 
-  // Smart polling every 30s (visibility-aware, refetches on focus)
+  // Smart polling every 30s
   useSmartPolling(() => fetchTasks(true), {
     intervalMs: 30000,
     enabled: true,
@@ -147,17 +244,108 @@ export const TaskManiaView = ({
     pauseWhenHidden: true,
   });
 
-  // Filter tasks
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === 'All' || task.category === selectedCategory;
-    const matchesMode = selectedMode === 'All' || task.mode === selectedMode;
-    
-    return matchesSearch && matchesCategory && matchesMode;
-  });
+  // Filter tasks (preserving the relative saved order)
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const taskId = task.id || task._id;
+      const sub = userSubmissions.find(
+        (s) => String(s.taskId?._id || s.taskId) === String(taskId)
+      );
 
+      const matchesSearch =
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCategory = selectedCategory === 'All' || task.category === selectedCategory;
+      const matchesMode = selectedMode === 'All' || task.mode === selectedMode;
+
+      const progressStatus = getTaskProgressStatus(task, sub);
+      const matchesProgress = selectedProgress === 'all' || progressStatus === selectedProgress;
+
+      return matchesSearch && matchesCategory && matchesMode && matchesProgress;
+    });
+  }, [tasks, userSubmissions, searchQuery, selectedCategory, selectedMode, selectedProgress, getTaskProgressStatus]);
+
+  // Drag and drop reordering logic
+  const reorderTasksInList = useCallback((fromTaskId, toTaskId) => {
+    if (!fromTaskId || !toTaskId || fromTaskId === toTaskId) return;
+
+    setTasks((prevTasks) => {
+      const fromIndex = prevTasks.findIndex(
+        (t) => String(t.id || t._id) === String(fromTaskId)
+      );
+      const toIndex = prevTasks.findIndex(
+        (t) => String(t.id || t._id) === String(toTaskId)
+      );
+
+      if (fromIndex === -1 || toIndex === -1) return prevTasks;
+
+      const updated = Array.from(prevTasks);
+      const [movedItem] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, movedItem);
+
+      const newOrderIds = updated.map((t) => String(t.id || t._id));
+      setSavedOrder(newOrderIds);
+
+      // Persist to backend
+      api.put('/tasks/order', { taskOrder: newOrderIds }).catch((err) => {
+        console.error('Failed to persist task order:', err);
+      });
+
+      return updated;
+    });
+  }, []);
+
+  const handleDragStart = (e, task) => {
+    const tId = String(task.id || task._id);
+    setDraggedTaskId(tId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tId);
+  };
+
+  const handleDragOver = (e, task) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const tId = String(task.id || task._id);
+    if (dropTargetTaskId !== tId) {
+      setDropTargetTaskId(tId);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setDropTargetTaskId(null);
+  };
+
+  const handleDrop = (e, targetTask) => {
+    e.preventDefault();
+    const sourceTaskId = draggedTaskId || e.dataTransfer.getData('text/plain');
+    const targetTaskId = String(targetTask.id || targetTask._id);
+
+    reorderTasksInList(sourceTaskId, targetTaskId);
+    setDraggedTaskId(null);
+    setDropTargetTaskId(null);
+  };
+
+  // Keyboard / Touch button reordering
+  const handleMoveTask = useCallback((task, direction) => {
+    const tId = String(task.id || task._id);
+    const visibleIndex = filteredTasks.findIndex(
+      (t) => String(t.id || t._id) === tId
+    );
+    if (visibleIndex === -1) return;
+
+    const targetVisibleIndex = visibleIndex + direction;
+    if (targetVisibleIndex < 0 || targetVisibleIndex >= filteredTasks.length) return;
+
+    const targetTask = filteredTasks[targetVisibleIndex];
+    const targetTaskId = String(targetTask.id || targetTask._id);
+
+    reorderTasksInList(tId, targetTaskId);
+  }, [filteredTasks, reorderTasksInList]);
+
+  // Action handlers
   const handleOpenInstructions = (task) => {
     setSelectedTaskForInstructions(task);
   };
@@ -208,7 +396,7 @@ export const TaskManiaView = ({
         videoUrl: formData.videoUrl || '',
         driveUrl: formData.googleDriveUrl || '',
         additionalLinks: Array.isArray(formData.additionalLinks) ? formData.additionalLinks : [],
-        message: formData.description || ''
+        message: formData.description || '',
       };
 
       const res = await api.post('/submissions/submit', payload);
@@ -230,46 +418,61 @@ export const TaskManiaView = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header Section */}
+    <div className="space-y-3.5">
+      {/* 1. Header Section - Compact */}
       <motion.div
-        initial={{ opacity: 0, y: -12 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+        className="bg-white rounded-2xl p-3.5 sm:p-4 md:p-5 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center flex-shrink-0">
-            <Briefcase size={22} />
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF] flex items-center justify-center shrink-0">
+            <Briefcase size={18} />
           </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">TaskMania</h2>
-            <p className="text-xs md:text-sm text-[#64748B] font-medium">Solve real industry challenges and get hired</p>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-[#172554] tracking-tight leading-tight">
+              TaskMania
+            </h2>
+            <p className="text-xs text-[#64748B] font-medium truncate">
+              Solve real industry challenges and get hired
+            </p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3 md:gap-4 mt-5">
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
-            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">
-              {tasks.filter(t => !(typeof t.deadlineTs === 'number' && Date.now() > t.deadlineTs)).length}
+
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5 mt-3 sm:mt-3.5">
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5">
+            <p className="text-base sm:text-xl font-black text-[#172554] tracking-tight leading-none">
+              {tasks.filter((t) => !(typeof t.deadlineTs === 'number' && Date.now() > t.deadlineTs)).length}
             </p>
-            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Active Tasks</p>
+            <p className="text-[10px] sm:text-xs text-[#64748B] font-semibold mt-1">
+              Active Tasks
+            </p>
           </div>
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
-            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{userSubmissions.length}</p>
-            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Applied</p>
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5">
+            <p className="text-base sm:text-xl font-black text-[#172554] tracking-tight leading-none">
+              {userSubmissions.length}
+            </p>
+            <p className="text-[10px] sm:text-xs text-[#64748B] font-semibold mt-1">
+              Applied
+            </p>
           </div>
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
-            <p className="text-xl md:text-2xl font-black text-[#172554] tracking-tight">{tasks.filter(t => t.paid).length}</p>
-            <p className="text-[11px] md:text-xs text-[#64748B] font-semibold mt-0.5">Paid Tasks</p>
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5">
+            <p className="text-base sm:text-xl font-black text-[#172554] tracking-tight leading-none">
+              {tasks.filter((t) => t.paid).length}
+            </p>
+            <p className="text-[10px] sm:text-xs text-[#64748B] font-semibold mt-1">
+              Paid Tasks
+            </p>
           </div>
         </div>
       </motion.div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col md:flex-row gap-3.5">
+      {/* 2. Search and Filters - Compact */}
+      <div className="bg-white rounded-2xl p-3 sm:p-4 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col lg:flex-row gap-2.5 items-stretch lg:items-center">
           {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={18} />
+          <div className="flex-1 relative min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
             <input
               type="text"
               placeholder="Search tasks, companies, or technologies..."
@@ -278,57 +481,94 @@ export const TaskManiaView = ({
                 setSearchQuery(e.target.value);
                 sessionStorage.setItem('vibe_taskmania_search', e.target.value);
               }}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs sm:text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all"
             />
           </div>
 
-          {/* Category Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={16} />
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                sessionStorage.setItem('vibe_taskmania_category', e.target.value);
-              }}
-              className="pl-10 pr-8 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[180px]"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+          {/* Filters Row */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            {/* Progress Filter */}
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                aria-label="Filter by progress"
+                value={selectedProgress}
+                onChange={(e) => {
+                  setSelectedProgress(e.target.value);
+                  sessionStorage.setItem('vibe_taskmania_progress', e.target.value);
+                }}
+                className="w-full sm:w-auto pl-3 pr-7 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs sm:text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer"
+              >
+                {progressOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={14} />
+            </div>
 
-          {/* Mode Filter */}
-          <div className="relative">
-            <select
-              value={selectedMode}
-              onChange={(e) => {
-                setSelectedMode(e.target.value);
-                sessionStorage.setItem('vibe_taskmania_mode', e.target.value);
-              }}
-              className="px-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer min-w-[140px]"
-            >
-              {modes.map(mode => (
-                <option key={mode} value={mode}>{mode}</option>
-              ))}
-            </select>
+            {/* Category Filter */}
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                aria-label="Filter by category"
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  sessionStorage.setItem('vibe_taskmania_category', e.target.value);
+                }}
+                className="w-full sm:w-auto pl-3 pr-7 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs sm:text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat === 'All' ? 'All Categories' : cat}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={14} />
+            </div>
+
+            {/* Mode Filter */}
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                aria-label="Filter by location mode"
+                value={selectedMode}
+                onChange={(e) => {
+                  setSelectedMode(e.target.value);
+                  sessionStorage.setItem('vibe_taskmania_mode', e.target.value);
+                }}
+                className="w-full sm:w-auto pl-3 pr-7 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs sm:text-sm font-medium text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] focus:bg-white focus:ring-2 focus:ring-[#6D3DF5]/15 transition-all appearance-none cursor-pointer"
+              >
+                {modes.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode === 'All' ? 'All Modes' : mode}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" size={14} />
+            </div>
           </div>
         </div>
 
-        {/* Results Count */}
-        <div className="mt-3.5 text-xs text-[#64748B]">
-          Showing <span className="font-bold text-[#0F172A]">{filteredTasks.length}</span> of <span className="font-bold text-[#0F172A]">{tasks.length}</span> tasks
+        {/* Results Count and Reordering hint */}
+        <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748B]">
+          <div>
+            Showing <span className="font-bold text-[#0F172A]">{filteredTasks.length}</span> of{" "}
+            <span className="font-bold text-[#0F172A]">{tasks.length}</span> tasks
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <GripVertical size={13} className="text-[#6D3DF5]" />
+            <span>Drag card handles or use arrows to prioritize</span>
+          </div>
         </div>
       </div>
 
-      {/* Tasks Grid */}
+      {/* 3. Tasks Grid with Drag-and-Drop Reordering */}
       {filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {filteredTasks.map((task) => {
-            const taskId = task.id || task._id;
+            const taskId = String(task.id || task._id);
             const sub = userSubmissions.find(
-              (s) => String(s.taskId?._id || s.taskId) === String(taskId)
+              (s) => String(s.taskId?._id || s.taskId) === taskId
             );
             const isAccepted = Boolean(sub && sub.status !== "rejected");
             const isSolutionSubmitted = Boolean(
@@ -344,8 +584,11 @@ export const TaskManiaView = ({
             const isApplying = applyingTaskId === taskId;
 
             const isBookmarked =
-              bookmarkedTaskIds.has(String(taskId)) ||
-              bookmarkedTaskIds.has(taskId);
+              bookmarkedTaskIds.has(taskId) ||
+              bookmarkedTaskIds.has(task.id);
+
+            const isDragging = draggedTaskId === taskId;
+            const isDropTarget = dropTargetTaskId === taskId && draggedTaskId !== taskId;
 
             return (
               <TaskCard
@@ -357,23 +600,51 @@ export const TaskManiaView = ({
                 isSolutionSubmitted={isSolutionSubmitted}
                 isApplying={isApplying}
                 mentorRequest={mentorRequests.find(
-                  (req) => String(req.task?._id || req.task) === String(taskId)
+                  (req) => String(req.task?._id || req.task) === taskId
                 )}
                 onOpenInstructions={handleOpenInstructions}
                 onApplyDirect={handleApplyDirect}
                 onOpenSubmitTask={handleOpenSubmitTask}
                 onOpenMentorRequest={handleOpenMentorRequest}
+                // Drag & Reorder
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
+                isDragging={isDragging}
+                isDropTarget={isDropTarget}
+                onMoveTask={handleMoveTask}
               />
             );
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-12 text-center border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="w-14 h-14 rounded-2xl bg-[#F8FAFC] text-[#94A3B8] border border-[#E1E8F2] flex items-center justify-center mx-auto mb-4">
-            <Search size={26} />
+        <div className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#F8FAFC] text-[#94A3B8] border border-[#E1E8F2] flex items-center justify-center mx-auto mb-3">
+            <Search size={24} />
           </div>
-          <h3 className="text-lg font-bold text-[#172554] mb-1.5">No tasks found</h3>
-          <p className="text-xs text-[#64748B]">Try adjusting your search or filters</p>
+          <h3 className="text-base sm:text-lg font-bold text-[#172554] mb-1">No tasks found</h3>
+          <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+            No challenges match your current search and filter criteria. Try adjusting or clearing your filters.
+          </p>
+          {(searchQuery || selectedProgress !== 'all' || selectedCategory !== 'All' || selectedMode !== 'All') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedProgress('all');
+                setSelectedCategory('All');
+                setSelectedMode('All');
+                sessionStorage.removeItem('vibe_taskmania_search');
+                sessionStorage.removeItem('vibe_taskmania_progress');
+                sessionStorage.removeItem('vibe_taskmania_category');
+                sessionStorage.removeItem('vibe_taskmania_mode');
+              }}
+              className="mt-4 px-4 py-2 text-xs font-semibold text-[#6D3DF5] bg-[#F3EEFF] hover:bg-[#EDE9FE] rounded-xl transition-colors cursor-pointer"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       )}
 
@@ -435,3 +706,5 @@ export const TaskManiaView = ({
     </div>
   );
 };
+
+export default TaskManiaView;

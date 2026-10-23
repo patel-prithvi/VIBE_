@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Building2,
@@ -27,9 +27,18 @@ import {
   Image,
   ShieldCheck,
   Video,
+  X,
+  Github,
+  Youtube,
+  File,
+  Link as LinkIcon,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import Avatar from "../components/shared/Avatar";
+import { useScrollLock } from "../hooks/useScrollLock";
 import { auth } from "../utils/auth";
+import SubmissionModal from "../components/industry/SubmissionModal";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
 import { FacultyTopHeader } from "../components/faculty/FacultyTopHeader";
@@ -39,6 +48,7 @@ import { MentorRequestModal } from "../components/TaskMania/MentorRequestModal";
 export const TaskDetailsPage = () => {
   const { taskId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const currentUser = auth.getCurrentUser();
 
@@ -54,6 +64,282 @@ export const TaskDetailsPage = () => {
   const [isMentorRequestOpen, setIsMentorRequestOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [applicantsList, setApplicantsList] = useState([]);
+  const [showApplicantsDrawer, setShowApplicantsDrawer] = useState(false);
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [interviewFormFor, setInterviewFormFor] = useState(null);
+  const [interviewData, setInterviewData] = useState({
+    date: "",
+    time: "",
+    mode: "Online",
+    link: "",
+  });
+
+  useScrollLock(Boolean(showApplicantsDrawer || selectedApplicant));
+
+  const mapSubmissionToApplicant = (sub, currentTask) => {
+    const studentUser = (sub.createdBy && typeof sub.createdBy === "object") ? sub.createdBy : {};
+    const studentName =
+      studentUser.name ||
+      (studentUser.Profile?.firstName
+        ? `${studentUser.Profile.firstName} ${studentUser.Profile.lastName || ""}`.trim()
+        : "Applicant");
+
+    const rawStatus = String(sub.status || "applied");
+    const statusLower = rawStatus.toLowerCase();
+    const hasWorkSubmitted = Boolean(
+      sub.submissionUrl ||
+      sub.repoUrl ||
+      sub.driveUrl ||
+      sub.videoUrl ||
+      (sub.message && sub.message.trim()) ||
+      ["submitted", "reviewed", "shortlisted", "interview_scheduled", "hired"].includes(statusLower)
+    );
+
+    return {
+      id: sub._id,
+      studentId:
+        studentUser._id ||
+        studentUser.id ||
+        (typeof sub.createdBy === "string" ? sub.createdBy : null),
+      name: studentName,
+      avatar:
+        studentUser.ImageUrl ||
+        studentUser.avatar ||
+        studentUser.Profile?.ImageUrl ||
+        studentUser.Profile?.avatar ||
+        "",
+      college:
+        typeof studentUser.Profile?.InstituteName === "string" &&
+        studentUser.Profile.InstituteName.trim()
+          ? studentUser.Profile.InstituteName.trim()
+          : "Unknown Institute",
+      branch:
+        (typeof studentUser.Profile?.branch === "string" && studentUser.Profile.branch.trim()) ||
+        (typeof studentUser.Profile?.department === "string" && studentUser.Profile.department.trim()) ||
+        (typeof studentUser.branch === "string" && studentUser.branch.trim()) ||
+        (typeof studentUser.department === "string" && studentUser.department.trim()) ||
+        "General",
+      status: sub.status || "applied",
+      rawStatus: rawStatus,
+      hasWorkSubmitted,
+      taskId: currentTask?.id || currentTask?._id || taskId,
+      taskTitle: currentTask?.title || "",
+      taskDeadline: currentTask?.lastDateToSubmit || currentTask?.deadline,
+      email: studentUser.email || sub.email || "",
+      resumeLink: String(
+        sub.submissionUrl || sub.demoUrl || sub.documentation_url || ""
+      ).trim(),
+      attachments: Array.isArray(sub.attachments) ? sub.attachments : [],
+      submittedAt: sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "",
+      submissionDate: sub.createdAt ? new Date(sub.createdAt) : null,
+      interviewDate: sub.interviewDate || "",
+      interviewTime: sub.interviewTime || "",
+      interviewMode: sub.interviewMode || "Online",
+      interviewLink: sub.interviewLink || "",
+      score: sub.score || 0,
+      reviewFeedback: sub.reviewFeedback || "",
+      submission: {
+        description: String(sub.message || "").trim(),
+        githubLink: String(
+          sub.repoUrl || sub.githubUrl || sub.github_url || ""
+        ).trim(),
+        videoLink: String(
+          sub.videoUrl || sub.video_demo_url || ""
+        ).trim(),
+        driveLink: String(
+          sub.driveUrl || sub.googleDriveUrl || sub.drive_url || ""
+        ).trim(),
+        otherLinks: (Array.isArray(sub.additionalLinks)
+          ? sub.additionalLinks
+          : Array.isArray(sub.additional_files)
+          ? sub.additional_files.map((f) => f.url)
+          : []
+        )
+          .filter((l) => typeof l === "string" && l.trim())
+          .map((l) => l.trim()),
+        projectTitle: String(
+          sub.projectTitle || `Submission for ${currentTask?.title || "Task"}`
+        ).trim(),
+      },
+    };
+  };
+
+  const normalizeStatus = (s) => {
+    const val = String(s || "").toLowerCase();
+    switch (val) {
+      case "pending":
+      case "applied":
+        return "APPLIED";
+      case "submitted":
+      case "reviewed":
+        return "SHORTLISTED";
+      case "shortlisted":
+        return "SHORTLISTED";
+      case "interview_scheduled":
+        return "INTERVIEW_SCHEDULED";
+      case "approved":
+      case "hired":
+      case "selected":
+        return "SELECTED";
+      case "rejected":
+        return "REJECTED";
+      default:
+        if (
+          s === "APPLIED" ||
+          s === "SHORTLISTED" ||
+          s === "INTERVIEW_SCHEDULED" ||
+          s === "SELECTED" ||
+          s === "REJECTED"
+        ) {
+          return s;
+        }
+        return "APPLIED";
+    }
+  };
+
+  const statusBadgeClass = (status) => {
+    switch (status) {
+      case "APPLIED":
+        return "bg-slate-100 text-slate-700 border border-slate-200";
+      case "SHORTLISTED":
+        return "bg-amber-100 text-amber-700 border border-amber-200";
+      case "INTERVIEW_SCHEDULED":
+        return "bg-[#F5F1FF] text-[#7C3AED] border border-[#EDE9FE]";
+      case "SELECTED":
+        return "bg-green-100 text-green-700 border border-green-200";
+      case "REJECTED":
+        return "bg-red-100 text-red-700 border border-red-200";
+      default:
+        return "bg-slate-100 text-slate-700 border border-slate-200";
+    }
+  };
+
+  const getApplicantProgress = (applicant) => {
+    const rawStatus = String(applicant.rawStatus || applicant.status || "").toLowerCase();
+
+    if (rawStatus === "rejected") {
+      return {
+        label: "Rejected",
+        shortLabel: "Rejected",
+        badgeClass: "bg-rose-50 text-rose-700 border-rose-200",
+        dotClass: "bg-rose-500",
+      };
+    }
+
+    if (["hired", "approved", "selected"].includes(rawStatus)) {
+      return {
+        label: "Accepted",
+        shortLabel: "Accepted",
+        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        dotClass: "bg-emerald-500",
+      };
+    }
+
+    if (rawStatus === "interview_scheduled") {
+      return {
+        label: "Interview Scheduled",
+        shortLabel: "Interview",
+        badgeClass: "bg-[#F5F1FF] text-[#7C3AED] border-[#EDE9FE]",
+        dotClass: "bg-[#7C3AED]",
+      };
+    }
+
+    if (rawStatus === "shortlisted") {
+      return {
+        label: "Shortlisted",
+        shortLabel: "Shortlisted",
+        badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+        dotClass: "bg-amber-500",
+      };
+    }
+
+    if (rawStatus === "reviewed") {
+      return {
+        label: "Under Review",
+        shortLabel: "Under Review",
+        badgeClass: "bg-purple-50 text-[#6D3DF5] border-purple-200",
+        dotClass: "bg-[#6D3DF5]",
+      };
+    }
+
+    if (applicant.hasWorkSubmitted || rawStatus === "submitted") {
+      return {
+        label: "Work Submitted — Awaiting Review",
+        shortLabel: "Work Submitted",
+        badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
+        dotClass: "bg-blue-500",
+      };
+    }
+
+    return {
+      label: "Applied — Awaiting Submission",
+      shortLabel: "Awaiting Submission",
+      badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+      dotClass: "bg-slate-400",
+    };
+  };
+
+  const handleStatusUpdate = async (applicantId, newStatus, details) => {
+    try {
+      const statusMap = {
+        APPLIED: "applied",
+        SHORTLISTED: "shortlisted",
+        INTERVIEW_SCHEDULED: "interview_scheduled",
+        SELECTED: "hired",
+        REJECTED: "rejected",
+        Approved: "hired",
+        Rejected: "rejected",
+        Pending: "applied",
+      };
+      const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
+      const payload = { status: backendStatus, ...(details || {}) };
+      await api.put(`/submissions/${applicantId}`, payload);
+      toast.success("Status updated successfully");
+
+      setApplicantsList((prev) =>
+        prev.map((a) =>
+          a.id === applicantId
+            ? { ...a, status: newStatus, rawStatus: backendStatus, ...(details || {}) }
+            : a
+        )
+      );
+
+      if (selectedApplicant && selectedApplicant.id === applicantId) {
+        setSelectedApplicant((prev) =>
+          prev
+            ? { ...prev, status: newStatus, rawStatus: backendStatus, ...(details || {}) }
+            : null
+        );
+      }
+    } catch (error) {
+      console.error("Error updating applicant status:", error);
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleScheduleSave = (appId) => {
+    if (!interviewData.date || !interviewData.time || !interviewData.mode) {
+      toast.error("Please fill interview date, time and mode.");
+      return;
+    }
+    handleStatusUpdate(appId, "INTERVIEW_SCHEDULED", {
+      interviewDate: interviewData.date,
+      interviewTime: interviewData.time,
+      interviewMode: interviewData.mode,
+      interviewLink: interviewData.link,
+    });
+    setInterviewFormFor(null);
+    setInterviewData({ date: "", time: "", mode: "Online", link: "" });
+  };
+
+  const handleApplicantClick = (applicant) => {
+    if (applicant.hasWorkSubmitted) {
+      setSelectedApplicant(applicant);
+    } else {
+      setShowApplicantsDrawer(true);
+    }
+  };
 
   const rawRole = (currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
   const isStudent = rawRole === "student";
@@ -95,6 +381,14 @@ export const TaskDetailsPage = () => {
             isMaterialsUnlocked: Boolean(raw.isMaterialsUnlocked),
           };
           setTask(mapped);
+
+          const creatorId = String(raw.createdBy?._id || raw.createdBy || "");
+          const validSubs = (raw.submissions || []).filter((sub) => {
+            const submitterId = String(sub.createdBy?._id || sub.createdBy || "");
+            return submitterId !== creatorId;
+          });
+          const mappedApplicants = validSubs.map((sub) => mapSubmissionToApplicant(sub, mapped));
+          setApplicantsList(mappedApplicants);
         } else {
           setError("Task not found or has been removed.");
         }
@@ -234,7 +528,8 @@ export const TaskDetailsPage = () => {
     hasAcceptedTask ||
     task?.isMaterialsUnlocked ||
     currentUser?.isAdmin ||
-    currentUser?.accountType === "admin"
+    currentUser?.accountType === "admin" ||
+    isFaculty
   );
   const isSolutionSubmitted = Boolean(
     existingSubmission?.repoUrl ||
@@ -345,8 +640,14 @@ export const TaskDetailsPage = () => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => {
+              if (location.state?.fromTab) {
+                if (isFaculty) localStorage.setItem("vibe_faculty_tab", location.state.fromTab);
+                else if (isIndustry) localStorage.setItem("vibe_industry_tab", location.state.fromTab);
+              }
               if (window.history.length > 1) {
                 navigate(-1);
+              } else if (location.state?.from) {
+                navigate(location.state.from);
               } else {
                 navigate(getDashboardHome());
               }
@@ -388,7 +689,12 @@ export const TaskDetailsPage = () => {
               {error || "The task you requested could not be found or has been removed."}
             </p>
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (location.state?.fromTab && isIndustry) {
+                  localStorage.setItem("vibe_industry_tab", location.state.fromTab);
+                }
+                navigate(-1);
+              }}
               className="px-5 py-2.5 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
             >
               Return to Previous Page
@@ -769,7 +1075,39 @@ export const TaskDetailsPage = () => {
             <div className="space-y-6">
               {/* Actions Card */}
               <div className="bg-white rounded-3xl p-6 border border-[#E1E8F2] shadow-xs space-y-4 sticky top-24">
-                <h3 className="font-bold text-sm text-[#0F172A]">Actions</h3>
+                {!isTaskCreator && (
+                  <h3 className="font-bold text-sm text-[#0F172A]">Actions</h3>
+                )}
+
+                {/* Faculty Mentor specific action box */}
+                {isFaculty && (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-[#F3EEFF] border border-[#E9E1FF]">
+                      <div className="flex items-center gap-2 text-[#6D3DF5] mb-1">
+                        <Award size={16} />
+                        <span className="text-xs font-bold uppercase tracking-wider">Faculty Mentor View</span>
+                      </div>
+                      <p className="text-[11px] text-[#64748B]">
+                        You are reviewing this challenge as a faculty mentor.
+                      </p>
+                    </div>
+
+                    {task.materials && task.materials.length > 0 && (
+                      <button
+                        onClick={handleDownloadMaterialsZip}
+                        disabled={downloadingZip}
+                        className="w-full py-2.5 px-3 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                      >
+                        {downloadingZip ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Download size={14} />
+                        )}
+                        <span>Download Materials (.zip)</span>
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Student specific action buttons */}
                 {isStudent && (
@@ -971,19 +1309,92 @@ export const TaskDetailsPage = () => {
                   </div>
                 )}
 
-                {/* Creator Industry specific button */}
+                {/* Creator Industry Applicants Section */}
                 {isTaskCreator && (
-                  <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
-                    <p className="text-xs font-bold text-[#0F172A]">You posted this challenge</p>
-                    <p className="text-[11px] text-[#64748B]">
-                      Manage submissions, applicants, and candidate hiring in your Industry dashboard.
-                    </p>
-                    <button
-                      onClick={() => navigate("/dashboard/industry")}
-                      className="w-full mt-2 py-2 px-3 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      Go to Industry Dashboard
-                    </button>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-[#F1F5F9]">
+                      <div className="flex items-center gap-2">
+                        <Users size={16} className="text-[#6D3DF5]" />
+                        <h3 className="font-bold text-sm text-[#0F172A]">Applicants</h3>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#EDE9FE] text-[#5B2FD6] border border-[#E9E1FF]">
+                        {applicantsList.length}
+                      </span>
+                    </div>
+
+                    {applicantsList.length === 0 ? (
+                      <div className="p-5 rounded-2xl bg-[#F8FAFC] border border-dashed border-[#E2E8F0] text-center space-y-1.5">
+                        <div className="w-9 h-9 rounded-full bg-[#EDE9FE] text-[#6D3DF5] flex items-center justify-center mx-auto mb-1">
+                          <Users size={16} />
+                        </div>
+                        <p className="text-xs font-bold text-[#0F172A]">No applicants yet</p>
+                        <p className="text-[11px] text-[#64748B] leading-relaxed">
+                          Students who apply to this challenge will appear here.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                          {applicantsList.map((applicant) => {
+                            const progress = getApplicantProgress(applicant);
+                            return (
+                              <div
+                                key={applicant.id}
+                                onClick={() => handleApplicantClick(applicant)}
+                                className="p-2.5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F3EEFF]/40 hover:border-[#C4B5FD] transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                                title={`Click to view details for ${applicant.name}`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <Avatar
+                                    name={applicant.name}
+                                    src={applicant.avatar}
+                                    className="w-9 h-9 rounded-xl flex-shrink-0 object-cover ring-2 ring-white group-hover:ring-[#6D3DF5]/30 transition-all"
+                                    initialsClassName="text-xs font-bold text-white"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-[#0F172A] truncate group-hover:text-[#6D3DF5] transition-colors">
+                                      {applicant.name}
+                                    </p>
+                                    <p className="text-[10px] text-[#64748B] truncate">
+                                      {applicant.branch && applicant.branch !== "General"
+                                        ? applicant.branch
+                                        : applicant.college}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${progress.badgeClass}`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${progress.dotClass}`} />
+                                    <span>{progress.shortLabel || progress.label}</span>
+                                  </span>
+                                  <ChevronRight
+                                    size={13}
+                                    className="text-slate-400 group-hover:text-[#6D3DF5] transition-colors"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowApplicantsDrawer(true)}
+                          className="w-full mt-2 py-2.5 px-3 rounded-xl bg-[#6D3DF5] hover:bg-[#5B2FD6] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Users size={14} />
+                          <span>
+                            {applicantsList.length > 5
+                              ? `View All ${applicantsList.length} Applicants`
+                              : "View All Applicants"}
+                          </span>
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1075,6 +1486,352 @@ export const TaskDetailsPage = () => {
             }
           }}
           task={task}
+        />
+      )}
+
+      {/* Applicants Drawer */}
+      {showApplicantsDrawer && task && (
+        <div className="fixed inset-0 z-50 flex items-stretch bg-slate-900/40 backdrop-blur-sm touch-none">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="ml-auto h-full w-full max-w-5xl bg-white rounded-l-3xl shadow-2xl border-l border-[#EDE9FE] flex flex-col overscroll-contain animate-in slide-in-from-right duration-200"
+          >
+            <div className="p-6 border-b border-[#EDE9FE] flex items-start justify-between">
+              <div>
+                <span className="inline-block px-3 py-1 bg-[#EDE9FE] text-[#5B2FD6] rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+                  Applicants
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 leading-tight">
+                  {task.title}
+                </h3>
+                <p className="text-slate-500 text-sm font-medium">
+                  {applicantsList.length} total applicant{applicantsList.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowApplicantsDrawer(false);
+                  setInterviewFormFor(null);
+                }}
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-auto overscroll-contain">
+              {applicantsList.length === 0 ? (
+                <div className="py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Users size={32} className="text-slate-400 mx-auto mb-2" />
+                  <h4 className="text-sm font-bold text-slate-700">No applicants yet</h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    When students apply or submit solutions, they will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="w-full overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
+                  <table className="min-w-full bg-white">
+                    <thead>
+                      <tr className="text-left text-slate-500 text-xs uppercase tracking-widest font-black bg-slate-50">
+                        <th className="px-4 py-3">Student Name</th>
+                        <th className="px-4 py-3">Email</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Submitted Assets</th>
+                        <th className="px-4 py-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {applicantsList.map((a) => {
+                        const status = normalizeStatus(a.status);
+                        const sid = a.studentId || a.userId || a.createdBy;
+                        return (
+                          <tr key={a.id} className="border-t border-slate-100 align-top">
+                            <td className="px-4 py-4">
+                              <div
+                                onClick={() => {
+                                  if (sid) navigate(`/profile/${sid}`);
+                                }}
+                                className={`flex items-center gap-3 ${
+                                  sid ? "cursor-pointer group/app" : ""
+                                }`}
+                              >
+                                <Avatar
+                                  name={a.name}
+                                  src={a.avatar}
+                                  className="w-10 h-10 rounded-full flex-shrink-0 object-cover ring-2 ring-[#F3EEFF] group-hover/app:ring-[#6D3DF5]/30 transition-all"
+                                  initialsClassName="text-xs font-bold text-white"
+                                />
+                                <div>
+                                  <div className="text-sm font-bold text-slate-900 group-hover/app:text-[#6D3DF5] transition-colors">
+                                    {a.name}
+                                  </div>
+                                  <div className="text-xs text-slate-500 font-medium">
+                                    {a.college}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="text-sm text-slate-700">{a.email || "—"}</div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${statusBadgeClass(
+                                  status
+                                )}`}
+                              >
+                                {status.replace("_", " ")}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex flex-wrap gap-2">
+                                {a.submission?.githubLink && (
+                                  <a
+                                    href={a.submission.githubLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="GitHub Repository"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-700 transition-colors"
+                                  >
+                                    <Github size={13} /> Repo
+                                  </a>
+                                )}
+                                {a.submission?.videoLink && (
+                                  <a
+                                    href={a.submission.videoLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Video Demo"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                  >
+                                    <Youtube size={13} /> Video
+                                  </a>
+                                )}
+                                {a.submission?.driveLink && (
+                                  <a
+                                    href={a.submission.driveLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Google Drive"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                  >
+                                    <File size={13} /> Drive
+                                  </a>
+                                )}
+                                {a.submission?.otherLinks?.filter(Boolean).map((link, i) => (
+                                  <a
+                                    key={i}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={link}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#EDE9FE] text-[#5B2FD6] hover:bg-[#E9E1FF] border border-[#E9E1FF] transition-colors"
+                                  >
+                                    <LinkIcon size={13} /> Link
+                                  </a>
+                                ))}
+                                {!a.submission?.githubLink &&
+                                  !a.submission?.videoLink &&
+                                  !a.submission?.driveLink && (
+                                    <span className="text-xs text-slate-400 italic">No assets yet</span>
+                                  )}
+                              </div>
+                              {a.submission?.projectTitle && (
+                                <div
+                                  className="mt-1.5 text-xs text-slate-500 font-medium truncate max-w-[200px]"
+                                  title={a.submission.projectTitle}
+                                >
+                                  📄 {a.submission.projectTitle}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="mb-2">
+                                <button
+                                  onClick={() => setSelectedApplicant(a)}
+                                  className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-[#F3EEFF] hover:border-[#C4B5FD] hover:text-[#5B2FD6] transition-all flex items-center gap-2 cursor-pointer"
+                                >
+                                  <FileText size={14} /> View Submission
+                                </button>
+                              </div>
+
+                              {status === "APPLIED" && (
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => handleStatusUpdate(a.id, "SHORTLISTED")}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] shadow-sm cursor-pointer"
+                                  >
+                                    Shortlist
+                                  </button>
+                                  <button
+                                    onClick={() => handleStatusUpdate(a.id, "REJECTED")}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-red-600 border border-red-200 hover:bg-red-50 cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+
+                              {status === "SHORTLISTED" && (
+                                <div className="space-y-3">
+                                  <button
+                                    onClick={() =>
+                                      setInterviewFormFor(
+                                        interviewFormFor === a.id ? null : a.id
+                                      )
+                                    }
+                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-sm cursor-pointer"
+                                  >
+                                    Schedule Interview
+                                  </button>
+
+                                  {interviewFormFor === a.id && (
+                                    <div className="mt-3 p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="text-xs font-bold text-slate-500">
+                                            Interview Date
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={interviewData.date}
+                                            onChange={(e) =>
+                                              setInterviewData((d) => ({
+                                                ...d,
+                                                date: e.target.value,
+                                              }))
+                                            }
+                                            className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-xs font-bold text-slate-500">
+                                            Interview Time
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={interviewData.time}
+                                            onChange={(e) =>
+                                              setInterviewData((d) => ({
+                                                ...d,
+                                                time: e.target.value,
+                                              }))
+                                            }
+                                            className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="text-xs font-bold text-slate-500">
+                                            Mode
+                                          </label>
+                                          <select
+                                            value={interviewData.mode}
+                                            onChange={(e) =>
+                                              setInterviewData((d) => ({
+                                                ...d,
+                                                mode: e.target.value,
+                                              }))
+                                            }
+                                            className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                                          >
+                                            <option>Online</option>
+                                            <option>Offline</option>
+                                          </select>
+                                        </div>
+                                        <div>
+                                          <label className="text-xs font-bold text-slate-500">
+                                            Meeting Link
+                                          </label>
+                                          <input
+                                            type="text"
+                                            placeholder="https://meet.example.com/..."
+                                            value={interviewData.link}
+                                            onChange={(e) =>
+                                              setInterviewData((d) => ({
+                                                ...d,
+                                                link: e.target.value,
+                                              }))
+                                            }
+                                            className="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleScheduleSave(a.id)}
+                                          className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-sm cursor-pointer"
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setInterviewFormFor(null);
+                                            setInterviewData({
+                                              date: "",
+                                              time: "",
+                                              mode: "Online",
+                                              link: "",
+                                            });
+                                          }}
+                                          className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {status === "INTERVIEW_SCHEDULED" && (
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => handleStatusUpdate(a.id, "SELECTED")}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm cursor-pointer"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={() => handleStatusUpdate(a.id, "REJECTED")}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-white text-red-600 border border-red-200 hover:bg-red-50 cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+
+                              {(status === "SELECTED" || status === "REJECTED") && (
+                                <div
+                                  className={`inline-flex px-3 py-2 rounded-xl text-xs font-bold ${statusBadgeClass(
+                                    status
+                                  )}`}
+                                >
+                                  {status === "SELECTED" ? "Selected" : "Rejected"}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submission Modal */}
+      {selectedApplicant && (
+        <SubmissionModal
+          applicant={selectedApplicant}
+          onClose={() => setSelectedApplicant(null)}
+          onStatusUpdate={handleStatusUpdate}
         />
       )}
     </div>

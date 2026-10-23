@@ -141,7 +141,7 @@ export const StudentRightPanel = ({ onNavigate, onOpenCreatePost }) => {
           </button>
           <span
             onClick={() => setIsQuickActionsOpen(true)}
-            className="text-xs font-bold uppercase tracking-wider text-[#64748B] hover:text-[#6D3DF5] cursor-pointer transition-colors select-none"
+            className="hidden sm:inline-block text-xs font-bold uppercase tracking-wider text-[#64748B] hover:text-[#6D3DF5] cursor-pointer transition-colors select-none"
           >
             Quick Actions
           </span>

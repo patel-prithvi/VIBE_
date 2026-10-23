@@ -44,6 +44,10 @@ const profileSchema=new mongoose.Schema({
         type:String,
         default:"",
     },
+    website:{
+        type:String,
+        default:"",
+    },
     skills: [
         {
             name: {

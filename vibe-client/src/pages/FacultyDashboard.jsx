@@ -12,6 +12,7 @@ import { MentorRequestsView } from "../components/faculty/MentorRequestsView";
 import { SkillVerificationReviewsView } from "../components/faculty/SkillVerificationReviewsView";
 import { CreatePostModal } from "../components/posts/CreatePostModal";
 import { MobileBottomNav } from "../components/shared/MobileBottomNav";
+import { FloatingQuickActions } from "../components/shared/FloatingQuickActions";
 import { auth } from "../utils/auth";
 import api from "../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -25,7 +26,18 @@ const FacultyDashboard = () => {
 
   // Default view is "home" which represents the 3-column feed dashboard
   const [activeView, setActiveView] = useState(() => {
-    if (queryView && ["home", "mentorship", "requests", "skill-verifications", "profile", "bookmarks"].includes(queryView)) {
+    if (
+      queryView &&
+      [
+        "home",
+        "mentorship",
+        "requests",
+        "skill-verifications",
+        "profile",
+        "bookmarks",
+        "settings",
+      ].includes(queryView)
+    ) {
       return queryView === "requests" ? "mentorship" : queryView;
     }
     return localStorage.getItem("vibe_faculty_tab") || "home";
@@ -35,7 +47,15 @@ const FacultyDashboard = () => {
     if (queryView) {
       if (queryView === "requests" || queryView === "mentorship") {
         setActiveView("mentorship");
-      } else if (["home", "skill-verifications", "profile", "bookmarks"].includes(queryView)) {
+      } else if (
+        [
+          "home",
+          "skill-verifications",
+          "profile",
+          "bookmarks",
+          "settings",
+        ].includes(queryView)
+      ) {
         setActiveView(queryView);
       }
     }
@@ -404,6 +424,7 @@ const FacultyDashboard = () => {
                 error={postsError}
                 onRetry={fetchPostsAndBookmarks}
                 searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
             </div>
 
@@ -473,12 +494,22 @@ const FacultyDashboard = () => {
                   error={postsError}
                   onRetry={fetchPostsAndBookmarks}
                   searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
                 />
               )}
             </div>
           </div>
         )}
       </main>
+
+      {/* Floating Quick Actions (Mobile view only) */}
+      {(activeView === "home" || activeView === "posts") && !isCreatePostOpen && (
+        <FloatingQuickActions
+          role="faculty"
+          onNavigate={handleSectionChange}
+          onOpenCreatePost={() => setIsCreatePostOpen(true)}
+        />
+      )}
 
       {/* Mobile Bottom Navigation Bar (app-style fixed bar for small screens) */}
       <MobileBottomNav

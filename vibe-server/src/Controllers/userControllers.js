@@ -35,7 +35,8 @@ const sendOtp = asyncHandler(async (req, res) => {
     industryType,
     establishmentYear,
     location,
-    internshipType
+    internshipType,
+    website
   } = req.body;
 
   if (
@@ -73,7 +74,8 @@ const sendOtp = asyncHandler(async (req, res) => {
       IndustryType: industryType,
       location,
       internshipType,
-      establishmentYear
+      establishmentYear,
+      website: website ? website.trim() : ""
   });
 
   // Generate 6-digit OTP
@@ -459,7 +461,8 @@ const updateUser = asyncHandler(async (req, res) => {
     establishmentYear, 
     location, 
     internshipType,
-    skills 
+    website,
+    skills
   } = req.body;
 
   const user = await User.findById(req.params.id);
@@ -489,6 +492,9 @@ const updateUser = asyncHandler(async (req, res) => {
   if (location) profileUpdate.location = location;
   if (internshipType) profileUpdate.internshipType = internshipType;
   if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
+  if (website !== undefined) {
+    profileUpdate.website = website ? website.trim() : "";
+  }
 
   if (skills !== undefined) {
     let parsedSkills = skills;

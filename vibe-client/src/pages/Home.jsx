@@ -204,8 +204,13 @@ const TestimonialCard = ({
   verified = true,
   rating = 5,
   tag,
+  isDuplicate = false,
 }) => (
-  <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex flex-col justify-between h-full group">
+  <div
+    aria-hidden={isDuplicate ? "true" : undefined}
+    tabIndex={isDuplicate ? -1 : undefined}
+    className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-[0_4px_20px_rgba(17,27,94,0.04)] hover:shadow-[0_12px_32px_rgba(117,64,245,0.08)] hover:border-[#7540F5]/40 transition-all duration-300 flex flex-col justify-between h-full select-none group"
+  >
     <div>
       {/* Top Stars & Badge */}
       <div className="flex items-center justify-between mb-4">
@@ -231,7 +236,7 @@ const TestimonialCard = ({
     <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
       <img
         src={avatar}
-        alt={name}
+        alt={isDuplicate ? "" : name}
         className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs group-hover:scale-105 transition-transform"
       />
       <div className="min-w-0">
@@ -241,7 +246,7 @@ const TestimonialCard = ({
             <ShieldCheck
               size={14}
               className="text-[#16A34A] flex-shrink-0"
-              title="Verified VIBE Member"
+              title={isDuplicate ? undefined : "Verified VIBE Member"}
             />
           )}
         </div>
@@ -1078,36 +1083,86 @@ const Home = () => {
       {/* ======================================================== */}
       {/* 5. "OUR COMMUNITY IS OUR SUPERPOWER" WALL OF LOVE       */}
       {/* ======================================================== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
+      <section className="py-16 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
+              Our community is our superpower
+            </h2>
+
+            <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
+              Real stories from students who found certified opportunities and mentors who shaped future careers.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Continuous Horizontal Testimonial Carousel */}
+        <div
+          className="relative w-full overflow-hidden mt-12 group/testimonials"
+          role="region"
+          aria-label="Community Testimonials"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-[42px] font-black tracking-tight text-[#111B5E] leading-tight">
-            Our community is our superpower
-          </h2>
+          {/* Subtle Left & Right Edge Gradient Masks for Smooth Ingress / Egress */}
+          <div
+            className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-28 md:w-36 bg-gradient-to-r from-white via-white/80 to-transparent z-10"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-28 md:w-36 bg-gradient-to-l from-white via-white/80 to-transparent z-10"
+            aria-hidden="true"
+          />
 
-          <p className="mt-3.5 text-base sm:text-lg md:text-xl text-[#5A6482] max-w-2xl mx-auto font-normal leading-relaxed">
-            Real stories from students who found certified opportunities and mentors who shaped future careers.
-          </p>
+          {/* Infinite Marquee Track (Double Sub-Track for Exact Mathematical Seamless Looping) */}
+          <div className="animate-vibe-testimonial-marquee py-4 flex items-stretch">
+            {/* Primary Track Set */}
+            <div className="flex items-stretch gap-6 shrink-0 pr-6">
+              {testimonials.map((t, idx) => (
+                <div
+                  key={`primary-${idx}`}
+                  className="w-[300px] sm:w-[360px] lg:w-[410px] shrink-0 text-left flex flex-col"
+                >
+                  <TestimonialCard
+                    name={t.name}
+                    role={t.role}
+                    institution={t.institution}
+                    avatar={t.avatar}
+                    quote={t.quote}
+                    tag={t.tag}
+                    isDuplicate={false}
+                  />
+                </div>
+              ))}
+            </div>
 
-          {/* Masonry Grid of Testimonials */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-            {testimonials.map((t, idx) => (
-              <TestimonialCard
-                key={idx}
-                name={t.name}
-                role={t.role}
-                institution={t.institution}
-                avatar={t.avatar}
-                quote={t.quote}
-                tag={t.tag}
-              />
-            ))}
+            {/* Cloned Track Set (Marked aria-hidden="true" for Accessible Screen Reader Navigation) */}
+            <div
+              className="flex items-stretch gap-6 shrink-0 pr-6"
+              aria-hidden="true"
+            >
+              {testimonials.map((t, idx) => (
+                <div
+                  key={`clone-${idx}`}
+                  className="w-[300px] sm:w-[360px] lg:w-[410px] shrink-0 text-left flex flex-col"
+                >
+                  <TestimonialCard
+                    name={t.name}
+                    role={t.role}
+                    institution={t.institution}
+                    avatar={t.avatar}
+                    quote={t.quote}
+                    tag={t.tag}
+                    isDuplicate={true}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* ======================================================== */}
