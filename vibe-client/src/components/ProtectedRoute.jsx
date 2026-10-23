@@ -11,7 +11,19 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && currentUser && !allowedRoles.includes(currentUser.role)) {
+  const roleMapping = {
+    'student': 'student',
+    'faculty': 'faculty',
+    'industry expert': 'industry',
+    'industry': 'industry',
+    'company': 'industry',
+  };
+  const effectiveRole =
+    currentUser?.role ||
+    roleMapping[currentUser?.accountType] ||
+    currentUser?.accountType;
+
+  if (allowedRoles && effectiveRole && !allowedRoles.includes(effectiveRole)) {
     // Redirect to home if user role is not allowed
     return <Navigate to="/" replace />;
   }
