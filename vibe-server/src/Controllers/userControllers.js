@@ -461,7 +461,8 @@ const updateUser = asyncHandler(async (req, res) => {
     establishmentYear, 
     location, 
     internshipType,
-    website
+    website,
+    skills
   } = req.body;
 
   const user = await User.findById(req.params.id);
@@ -494,6 +495,20 @@ const updateUser = asyncHandler(async (req, res) => {
     if (establishmentYear) profileUpdate.establishmentYear = establishmentYear;
     if (website !== undefined) {
       profileUpdate.website = website ? website.trim() : "";
+    }
+
+    if (skills !== undefined) {
+      let parsedSkills = skills;
+      if (typeof parsedSkills === "string") {
+        try {
+          parsedSkills = JSON.parse(parsedSkills);
+        } catch {
+          parsedSkills = [];
+        }
+      }
+      if (Array.isArray(parsedSkills)) {
+        profileUpdate.skills = parsedSkills;
+      }
     }
 
     await Profile.findByIdAndUpdate(user.Profile, profileUpdate, { returnDocument: "after" });

@@ -47,7 +47,33 @@ const profileSchema=new mongoose.Schema({
     website:{
         type:String,
         default:"",
-    }
+    },
+    skills: [
+        {
+            name: {
+                type: String,
+                required: true,
+                trim: true,
+            },
+            category: {
+                type: String,
+                enum: ["Technical", "Tools", "Soft Skills"],
+                default: "Technical",
+            },
+            level: {
+                type: String,
+                default: "Intermediate",
+            },
+            score: {
+                type: Number,
+                default: 85,
+            },
+            verified: {
+                type: Boolean,
+                default: false,
+            },
+        },
+    ],
 });
 
 const Profile = mongoose.model("Profile", profileSchema);
