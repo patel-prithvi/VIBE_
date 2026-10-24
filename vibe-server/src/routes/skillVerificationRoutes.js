@@ -5,6 +5,7 @@ import {
   submitSkillTask,
   getStudentActiveTasks,
   getMentorReviewQueue,
+  declineSkillTaskAssignment,
   evaluateSkillTask,
 } from "../Controllers/skillVerificationController.js";
 
@@ -15,8 +16,9 @@ router.post("/request", verifyJWT, requestSkillTask);
 router.post("/submit/:attemptId", verifyJWT, submitSkillTask);
 router.get("/student/active", verifyJWT, getStudentActiveTasks);
 
-// Mentor routes (Double-Blind)
+// Mentor routes (Faculty Only & Double-Blind)
 router.get("/mentor/queue", verifyJWT, getMentorReviewQueue);
+router.post("/mentor/decline/:attemptId", verifyJWT, declineSkillTaskAssignment);
 router.post("/mentor/evaluate/:attemptId", verifyJWT, evaluateSkillTask);
 
 export default router;

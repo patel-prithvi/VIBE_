@@ -8,14 +8,19 @@ import { Notification } from "../models/Notification.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import mongoose from "mongoose";
 
-// Helper: Ensure mentor workload record exists
+// Helper: Ensure mentor workload record exists and is synced
 const getOrCreateMentorWorkload = async (mentorId) => {
   let workload = await MentorWorkload.findOne({ mentorId });
   if (!workload) {
+    const activeCount = await SkillVerificationAttempt.countDocuments({
+      assignedMentorId: mentorId,
+      status: "under_review",
+    });
     workload = await MentorWorkload.create({
       mentorId,
-      activePendingReviews: 0,
+      activePendingReviews: activeCount,
       totalCompletedReviews: 0,
       isAvailable: true,
     });
@@ -70,35 +75,72 @@ const selectTaskForStudent = async (studentId, skillName, difficulty) => {
   return eligibleTasks[randomIndex];
 };
 
-// Helper: General Balanced Distribution Mentor Assignment
-const assignMentorToSubmission = async (attemptId, studentId, skillName) => {
-  // 1. Find all eligible mentors (accountType faculty or industry expert, excluding student)
-  const mentors = await User.find({
-    accountType: { $in: ["faculty", "industry expert"] },
+// Helper: Fair Load-Balanced Faculty Assignment
+const assignFacultyToSubmission = async (
+  attemptId,
+  studentId,
+  skillName,
+  excludedFacultyIds = [],
+  isReassignment = false
+) => {
+  // 1. Find all eligible faculty members (strictly accountType: "faculty", excluding student and excluded faculty)
+  const query = {
+    accountType: "faculty",
     _id: { $ne: studentId },
-  }).select("_id name email accountType");
+  };
 
-  if (!mentors || mentors.length === 0) {
-    console.warn("⚠️ No eligible mentors found in system for auto-assignment.");
+  if (excludedFacultyIds && excludedFacultyIds.length > 0) {
+    const objectIds = excludedFacultyIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    query._id = { $ne: studentId, $nin: objectIds };
+  }
+
+  const facultyList = await User.find(query).select("_id name email accountType isVerified");
+
+  if (!facultyList || facultyList.length === 0) {
+    if (!isReassignment) {
+      console.log(
+        `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" reason=NO_ELIGIBLE_FACULTY`
+      );
+    }
+    await SkillVerificationAttempt.findByIdAndUpdate(attemptId, {
+      assignedMentorId: null,
+      assignedAt: null,
+      reviewDeadline: null,
+      status: "submitted",
+    });
     return null;
   }
 
-  // 2. Retrieve or initialize workload for each mentor
-  const mentorWorkloads = await Promise.all(
-    mentors.map(async (m) => {
-      const workload = await getOrCreateMentorWorkload(m._id);
+  // 2. Retrieve actual pending review count for each candidate to guarantee accurate load calculation
+  const candidatesWithLoad = await Promise.all(
+    facultyList.map(async (facultyMember) => {
+      // Count actual pending reviews awaiting evaluation
+      const pendingCount = await SkillVerificationAttempt.countDocuments({
+        assignedMentorId: facultyMember._id,
+        status: "under_review",
+        _id: { $ne: attemptId },
+      });
+
+      const workload = await getOrCreateMentorWorkload(facultyMember._id);
+      if (workload.activePendingReviews !== pendingCount) {
+        workload.activePendingReviews = pendingCount;
+        await workload.save();
+      }
+
       return {
-        mentor: m,
+        faculty: facultyMember,
         workload,
-        load: workload.activePendingReviews || 0,
+        load: pendingCount,
         isAvailable: workload.isAvailable !== false,
       };
     })
   );
 
-  // Filter available mentors
-  const availableMentors = mentorWorkloads.filter((m) => m.isAvailable);
-  const candidates = availableMentors.length > 0 ? availableMentors : mentorWorkloads;
+  // Filter available faculty if any are explicitly marked available
+  const availableCandidates = candidatesWithLoad.filter((c) => c.isAvailable);
+  const candidates = availableCandidates.length > 0 ? availableCandidates : candidatesWithLoad;
 
   // 3. Find minimum active review count
   let minLoad = Infinity;
@@ -108,35 +150,39 @@ const assignMentorToSubmission = async (attemptId, studentId, skillName) => {
     }
   }
 
-  // 4. Gather all mentors tied for minimum load (balanced distribution pool)
+  // 4. Gather all faculty tied for minimum load (balanced distribution pool)
   const minLoadPool = candidates.filter((item) => item.load === minLoad);
 
-  // 5. Randomly select from the min-load pool
+  // 5. Randomly select from the min-load pool for fair tie-breaking
   const chosenIndex = Math.floor(Math.random() * minLoadPool.length);
-  const selectedMentor = minLoadPool[chosenIndex];
+  const selected = minLoadPool[chosenIndex];
+  const selectedFaculty = selected.faculty;
+  const newWorkload = selected.load + 1;
 
-  // 6. Atomically increment mentor's active workload
-  await MentorWorkload.findOneAndUpdate(
-    { mentorId: selectedMentor.mentor._id },
-    {
-      $inc: { activePendingReviews: 1 },
-      $set: { lastAssignedAt: new Date() },
-    },
-    { upsert: true }
-  );
-
-  // 7. Update attempt with mentor assignment and 72-hour SLA deadline
+  // 6. Atomically update attempt with faculty assignment and 72-hour SLA deadline
   const reviewDeadline = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
   await SkillVerificationAttempt.findByIdAndUpdate(attemptId, {
-    assignedMentorId: selectedMentor.mentor._id,
+    assignedMentorId: selectedFaculty._id,
     assignedAt: new Date(),
     reviewDeadline,
     status: "under_review",
   });
 
-  // 8. Double-blind notification to assigned mentor (DO NOT disclose student name)
+  // 7. Update faculty's workload record
+  await MentorWorkload.findOneAndUpdate(
+    { mentorId: selectedFaculty._id },
+    {
+      $set: {
+        activePendingReviews: newWorkload,
+        lastAssignedAt: new Date(),
+      },
+    },
+    { upsert: true }
+  );
+
+  // 8. Double-blind notification to assigned faculty member (DO NOT disclose student name)
   await Notification.create({
-    recipient: selectedMentor.mentor._id,
+    recipient: selectedFaculty._id,
     sender: null, // Double blind
     type: "submission_received",
     title: "New Skill Verification Assignment",
@@ -145,7 +191,19 @@ const assignMentorToSubmission = async (attemptId, studentId, skillName) => {
     meta: { attemptId },
   });
 
-  return selectedMentor.mentor._id;
+  // 9. Structured terminal log for initial assignment (reassignment is logged by caller)
+  if (!isReassignment) {
+    const reason = minLoadPool.length > 1 ? "LOWEST_WORKLOAD_TIE_BREAK" : "LOWEST_WORKLOAD";
+    const facultyEmail = selectedFaculty.email || "NOT_AVAILABLE";
+    console.log(
+      `[SKILL_VERIFICATION] event=ASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" facultyId=${selectedFaculty._id} facultyName="${selectedFaculty.name}" facultyEmail="${facultyEmail}" pendingWorkload=${newWorkload} reason=${reason}`
+    );
+  }
+
+  return {
+    faculty: selectedFaculty,
+    workload: newWorkload,
+  };
 };
 
 // ==========================================
@@ -302,8 +360,8 @@ export const submitSkillTask = asyncHandler(async (req, res) => {
   attempt.status = "submitted";
   await attempt.save();
 
-  // Assign to mentor via General Balanced Distribution
-  const assignedMentorId = await assignMentorToSubmission(
+  // Assign to faculty mentor via Fair Load-Balanced Distribution
+  const assignmentResult = await assignFacultyToSubmission(
     attempt._id,
     studentId,
     attempt.skillName
@@ -315,9 +373,12 @@ export const submitSkillTask = asyncHandler(async (req, res) => {
       {
         attemptId: attempt._id,
         skillName: attempt.skillName,
-        status: assignedMentorId ? "under_review" : "submitted",
+        status: assignmentResult ? "under_review" : "submitted",
         submittedAt: attempt.submissionData.submittedAt,
-        message: "Deliverable submitted. Routed for double-blind mentor evaluation.",
+        assignedFacultyId: assignmentResult ? assignmentResult.faculty._id : null,
+        message: assignmentResult
+          ? "Deliverable submitted. Routed to faculty mentor for double-blind evaluation."
+          : "Deliverable submitted. Pending faculty assignment.",
       },
       "Deliverable submitted successfully"
     )
@@ -367,13 +428,14 @@ export const getStudentActiveTasks = asyncHandler(async (req, res) => {
 });
 
 // ==========================================
-// 4. Mentor: Get Assigned Review Queue (Double Blind)
+// 4. Mentor: Get Assigned Review Queue (Faculty Only & Double Blind)
 // ==========================================
 export const getMentorReviewQueue = asyncHandler(async (req, res) => {
   const mentorId = req.user._id;
 
-  if (!["faculty", "industry expert"].includes(req.user.accountType)) {
-    throw new ApiError(403, "Access restricted to faculty and industry mentors");
+  // STRICT AUTHORIZATION: Only faculty accounts can access this queue
+  if (req.user.accountType !== "faculty") {
+    throw new ApiError(403, "Access restricted to faculty mentors only");
   }
 
   const pendingAttempts = await SkillVerificationAttempt.find({
@@ -419,12 +481,134 @@ export const getMentorReviewQueue = asyncHandler(async (req, res) => {
 });
 
 // ==========================================
-// 5. Mentor: Evaluate Task (Pass Mark >= 70%)
+// 5. Mentor: Decline / Refuse an Assignment
+// ==========================================
+export const declineSkillTaskAssignment = asyncHandler(async (req, res) => {
+  const facultyId = req.user._id;
+  const { attemptId } = req.params;
+  const { reason = "" } = req.body;
+
+  // STRICT AUTHORIZATION: Only faculty can decline assignments
+  if (req.user.accountType !== "faculty") {
+    throw new ApiError(403, "Access restricted to faculty mentors only");
+  }
+
+  const attempt = await SkillVerificationAttempt.findById(attemptId);
+  if (!attempt) {
+    throw new ApiError(404, "Verification attempt not found");
+  }
+
+  // Security Verification: A faculty member cannot decline another faculty member's request
+  if (!attempt.assignedMentorId || attempt.assignedMentorId.toString() !== facultyId.toString()) {
+    throw new ApiError(403, "Unauthorized: You are not the currently assigned faculty mentor for this request");
+  }
+
+  if (attempt.status !== "under_review") {
+    throw new ApiError(400, `Cannot decline request because it is in '${attempt.status}' status`);
+  }
+
+  const previousFacultyId = facultyId;
+  const previousFacultyName = req.user.name || "Faculty Mentor";
+  const previousFacultyEmail = req.user.email || "NOT_AVAILABLE";
+  const declineReason = reason ? reason.trim() : "Declined by faculty mentor";
+
+  // 1. Record decline in attempt history
+  if (!Array.isArray(attempt.declinedFaculty)) {
+    attempt.declinedFaculty = [];
+  }
+  attempt.declinedFaculty.push({
+    facultyId,
+    declinedAt: new Date(),
+    reason: declineReason,
+  });
+
+  // 2. Decrement former mentor's workload
+  await MentorWorkload.findOneAndUpdate(
+    { mentorId: facultyId },
+    { $inc: { activePendingReviews: -1 } }
+  );
+  await MentorWorkload.findOneAndUpdate(
+    { mentorId: facultyId, activePendingReviews: { $lt: 0 } },
+    { $set: { activePendingReviews: 0 } }
+  );
+
+  // 3. Clear current assignment
+  attempt.assignedMentorId = null;
+  attempt.assignedAt = null;
+  attempt.reviewDeadline = null;
+  attempt.status = "submitted";
+  await attempt.save();
+
+  // Log decline event
+  console.log(
+    `[SKILL_VERIFICATION] event=DECLINED requestId=${attempt._id} previousFacultyId=${previousFacultyId} previousFacultyName="${previousFacultyName}" previousFacultyEmail="${previousFacultyEmail}" reason="${declineReason}"`
+  );
+
+  // 4. Gather excluded faculty: all faculty who have declined this attempt
+  const excludedFacultyIds = attempt.declinedFaculty.map((d) => d.facultyId.toString());
+
+  // 5. Automatically reassign to another eligible faculty member
+  const reassignmentResult = await assignFacultyToSubmission(
+    attempt._id,
+    attempt.studentId,
+    attempt.skillName,
+    excludedFacultyIds,
+    true // isReassignment flag
+  );
+
+  if (reassignmentResult) {
+    const newFaculty = reassignmentResult.faculty;
+    const newFacultyEmail = newFaculty.email || "NOT_AVAILABLE";
+    console.log(
+      `[SKILL_VERIFICATION] event=REASSIGNED requestId=${attempt._id} previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" newFacultyId=${newFaculty._id} newFacultyName="${newFaculty.name}" newFacultyEmail="${newFacultyEmail}" pendingWorkload=${reassignmentResult.workload} reason=LOAD_BALANCED`
+    );
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          attemptId: attempt._id,
+          reassigned: true,
+          status: "under_review",
+          message: "Assignment declined. Request reassigned to another available faculty mentor.",
+        },
+        "Assignment declined and reassigned successfully"
+      )
+    );
+  } else {
+    // No other eligible faculty available
+    console.log(
+      `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attempt._id} previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" reason=NO_ELIGIBLE_FACULTY`
+    );
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          attemptId: attempt._id,
+          reassigned: false,
+          status: "submitted",
+          message: "Assignment declined. No other eligible faculty mentors are available at this time.",
+        },
+        "Assignment declined; request is currently unassigned"
+      )
+    );
+  }
+});
+
+// ==========================================
+// 6. Mentor: Evaluate Task (Pass Mark >= 70%)
 // ==========================================
 export const evaluateSkillTask = asyncHandler(async (req, res) => {
   const mentorId = req.user._id;
+  const facultyEmail = req.user.email || "NOT_AVAILABLE";
   const { attemptId } = req.params;
   const { score, pros = [], cons = [], feedbackComments = "" } = req.body;
+
+  // STRICT AUTHORIZATION: Only faculty can evaluate
+  if (req.user.accountType !== "faculty") {
+    throw new ApiError(403, "Access restricted to faculty mentors only");
+  }
 
   if (score === undefined || score === null || isNaN(score)) {
     throw new ApiError(400, "A numerical score (0 to 100) is required");
@@ -441,8 +625,8 @@ export const evaluateSkillTask = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Verification attempt not found");
   }
 
-  // Security Verification check: Only assigned mentor can evaluate
-  if (attempt.assignedMentorId?.toString() !== mentorId.toString()) {
+  // Security Verification check: Only assigned faculty mentor can evaluate
+  if (!attempt.assignedMentorId || attempt.assignedMentorId.toString() !== mentorId.toString()) {
     throw new ApiError(403, "Unauthorized: You are not the assigned mentor for this submission");
   }
 
@@ -485,6 +669,10 @@ export const evaluateSkillTask = asyncHandler(async (req, res) => {
         totalCompletedReviews: 1,
       },
     }
+  );
+  await MentorWorkload.findOneAndUpdate(
+    { mentorId, activePendingReviews: { $lt: 0 } },
+    { $set: { activePendingReviews: 0 } }
   );
 
   // If approved: Update student's Profile with verified: true and score
@@ -535,6 +723,10 @@ export const evaluateSkillTask = asyncHandler(async (req, res) => {
       score: numericScore,
     },
   });
+
+  console.log(
+    `[SKILL_VERIFICATION] event=EVALUATED requestId=${attempt._id} facultyId=${mentorId} facultyEmail="${facultyEmail}" decision=${decision.toUpperCase()} score=${numericScore}`
+  );
 
   return res.status(200).json(
     new ApiResponse(
