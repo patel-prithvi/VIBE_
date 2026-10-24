@@ -16,6 +16,8 @@ import {
   ShieldAlert,
   UserCheck,
   CheckCircle,
+  UserX,
+  AlertCircle,
 } from "lucide-react";
 import api from "../../services/api";
 import { useToast } from "../Toast";
@@ -44,6 +46,12 @@ export const SkillVerificationReviewsView = () => {
   const [loading, setLoading] = useState(true);
   const [activeWorkload, setActiveWorkload] = useState(0);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+
+  // Decline Assignment State
+  const [decliningSubmission, setDecliningSubmission] = useState(null);
+  const [declineReasonCategory, setDeclineReasonCategory] = useState("Workload / Time constraints");
+  const [declineReasonNotes, setDeclineReasonNotes] = useState("");
+  const [declining, setDeclining] = useState(false);
 
   // Review Form State
   const [score, setScore] = useState(85);
@@ -82,6 +90,48 @@ export const SkillVerificationReviewsView = () => {
     setNewProInput("");
     setNewConInput("");
     setFeedbackComments("");
+  };
+
+  const handleOpenDeclineModal = (item) => {
+    setDecliningSubmission(item);
+    setDeclineReasonCategory("Workload / Time constraints");
+    setDeclineReasonNotes("");
+  };
+
+  const handleConfirmDecline = async (e) => {
+    e.preventDefault();
+    if (!decliningSubmission) return;
+
+    const fullReason = declineReasonNotes.trim()
+      ? `${declineReasonCategory}: ${declineReasonNotes.trim()}`
+      : declineReasonCategory;
+
+    try {
+      setDeclining(true);
+      const res = await api.post(
+        `/skill-verification/mentor/decline/${decliningSubmission.attemptId}`,
+        { reason: fullReason }
+      );
+
+      if (res.data?.success) {
+        const isReassigned = res.data.data?.reassigned;
+        toast.success(
+          isReassigned
+            ? "Assignment declined. Deliverable reassigned to another available faculty mentor."
+            : "Assignment declined. Request placed in unassigned queue."
+        );
+        // Immediate local state update to remove declined item
+        setQueue((prev) => prev.filter((q) => q.attemptId !== decliningSubmission.attemptId));
+        setActiveWorkload((prev) => Math.max(0, prev - 1));
+        setDecliningSubmission(null);
+        fetchQueue();
+      }
+    } catch (err) {
+      console.error("Decline error:", err);
+      toast.error(err.response?.data?.message || "Failed to decline assignment");
+    } finally {
+      setDeclining(false);
+    }
   };
 
   const handleAddPro = (text) => {
@@ -254,20 +304,138 @@ export const SkillVerificationReviewsView = () => {
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between border-t border-[#F1F5F9]">
+              <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-[#F1F5F9]">
                 <span className="text-[11px] text-[#94A3B8] flex items-center gap-1">
                   <Clock size={12} /> Double-blind review
                 </span>
-                <button
-                  type="button"
-                  onClick={() => handleOpenReviewModal(item)}
-                  className="px-4 py-2 rounded-xl bg-[#6D3DF5] text-white text-xs font-bold hover:shadow-md hover:shadow-[#6D3DF5]/20 transition-all cursor-pointer"
-                >
-                  Evaluate Deliverable
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDeclineModal(item)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    title="Decline this review assignment and reassign to another faculty mentor"
+                  >
+                    <UserX size={13} />
+                    <span>Decline</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenReviewModal(item)}
+                    className="px-4 py-2 rounded-xl bg-[#6D3DF5] text-white text-xs font-bold hover:shadow-md hover:shadow-[#6D3DF5]/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Evaluate Deliverable</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Decline Confirmation Modal */}
+      {decliningSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden my-8"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#F1F5F9] bg-[#FFF5F5]">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-rose-100 text-rose-600">
+                  <UserX size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#0F172A]">
+                    Decline Review Assignment
+                  </h3>
+                  <p className="text-xs text-[#64748B]">
+                    {decliningSubmission.candidateCode} • {decliningSubmission.skillName} ({decliningSubmission.difficulty})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDecliningSubmission(null)}
+                className="p-2 text-[#94A3B8] hover:text-[#0F172A] rounded-xl hover:bg-black/5 transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmDecline} className="p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <AlertCircle size={14} />
+                  Important Note on Declining:
+                </p>
+                <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                  Declining releases this task from your queue and automatically reassigns it to another eligible faculty mentor.
+                  It <strong>does not reject</strong> the student's skill or penalize the candidate.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#0F172A] block">
+                  Reason for Declining:
+                </label>
+                <select
+                  value={declineReasonCategory}
+                  onChange={(e) => setDeclineReasonCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-xs text-[#0F172A] bg-white focus:outline-none focus:border-[#6D3DF5] cursor-pointer"
+                >
+                  <option value="Workload / Time constraints">High current workload / Schedule constraints</option>
+                  <option value="Out of primary domain expertise">Out of primary domain expertise</option>
+                  <option value="Unforeseen unavailability / On leave">Unforeseen unavailability / On leave</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[#64748B] flex items-center justify-between">
+                  <span>Additional Notes</span>
+                  <span className="text-[10px] text-[#94A3B8]">Optional</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={declineReasonNotes}
+                  onChange={(e) => setDeclineReasonNotes(e.target.value)}
+                  placeholder="Provide context for the assignment transfer..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-xs text-[#0F172A] focus:outline-none focus:border-[#6D3DF5] resize-none"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-[#F1F5F9]">
+                <button
+                  type="button"
+                  disabled={declining}
+                  onClick={() => setDecliningSubmission(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#64748B] hover:bg-[#F1F5F9] cursor-pointer disabled:opacity-50"
+                >
+                  Keep Assignment
+                </button>
+                <button
+                  type="submit"
+                  disabled={declining}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 cursor-pointer disabled:opacity-60"
+                >
+                  {declining ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Reassigning Task...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserX size={13} />
+                      <span>Confirm Decline & Reassign</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
         </div>
       )}
 
@@ -366,8 +534,8 @@ export const SkillVerificationReviewsView = () => {
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
                         score >= 70
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
+                           ? "bg-emerald-100 text-emerald-800"
+                           : "bg-amber-100 text-amber-800"
                       }`}
                     >
                       {score >= 70 ? "PASS (Verified)" : "REJECT (Needs Revision)"}

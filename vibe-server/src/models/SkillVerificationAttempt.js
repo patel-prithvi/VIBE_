@@ -62,6 +62,23 @@ const skillVerificationAttemptSchema = new mongoose.Schema(
       ref: "SkillVerificationReview",
       default: null,
     },
+    declinedFaculty: [
+      {
+        facultyId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        declinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        reason: {
+          type: String,
+          default: "",
+        },
+      },
+    ],
     expiresAt: {
       type: Date,
       required: true,
