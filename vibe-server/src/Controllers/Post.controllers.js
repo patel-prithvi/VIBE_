@@ -331,6 +331,10 @@ export const deletePost = asyncHandler(async (req, res) => {
 
 export const updatePost = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid post ID");
+  }
+
   const { title, content, category, tags, existingAttachments } = req.body;
   const userId = req.user._id.toString();
 
@@ -491,11 +495,17 @@ export const updateVibe = asyncHandler(async (req, res) => {
   const { postId, reaction = "vibe" } = req.body;
   const userId = req.user._id.toString();
 
+  if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
+    throw new ApiError(400, "Invalid or missing post ID");
+  }
+
   const post = await Post.findById(postId);
   if (!post) throw new ApiError(404, "Post not found");
 
   if (!post.vibes) {
     post.vibes = new Map();
+  } else if (!(post.vibes instanceof Map)) {
+    post.vibes = new Map(Object.entries(post.vibes));
   }
 
   const validReactions = ["vibe", "celebrate", "support", "love", "insightful", "funny"];
@@ -508,7 +518,8 @@ export const updateVibe = asyncHandler(async (req, res) => {
     // If the existing reaction matches selected, toggle it off
     const isSame =
       existingReaction === selectedReaction ||
-      (existingReaction === true && selectedReaction === "vibe");
+      (existingReaction === true && selectedReaction === "vibe") ||
+      (existingReaction === "true" && selectedReaction === "vibe");
 
     if (isSame) {
       post.vibes.delete(userId);
@@ -522,6 +533,7 @@ export const updateVibe = asyncHandler(async (req, res) => {
     removed = false;
   }
 
+  post.markModified("vibes");
   await post.save();
 
   // If reaction added (not removed) and not author's own post, send notification
@@ -561,7 +573,7 @@ export const updateVibe = asyncHandler(async (req, res) => {
     funny: 0,
   };
   for (const [, r] of post.vibes.entries()) {
-    const rType = r === true ? "vibe" : r;
+    const rType = r === true || r === "true" ? "vibe" : r;
     if (breakdown[rType] !== undefined) {
       breakdown[rType]++;
     } else {
@@ -583,6 +595,144 @@ export const updateVibe = asyncHandler(async (req, res) => {
         remove: removed,
       },
       removed ? "Reaction removed" : "Reaction updated"
+    )
+  );
+});
+
+
+// Get reactions details for a post
+export const getPostReactions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { type = "all", page = 1, limit = 50 } = req.query;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid post ID");
+  }
+
+  const post = await Post.findById(id);
+  if (!post) {
+    throw new ApiError(404, "Post not found");
+  }
+
+  // Normalize vibes Map/Object
+  const vibesMap = post.vibes instanceof Map
+    ? post.vibes
+    : new Map(Object.entries(post.vibes || {}));
+
+  const validReactions = ["vibe", "celebrate", "support", "love", "insightful", "funny"];
+  const reactionEmojis = {
+    vibe: "🤘",
+    celebrate: "🎉",
+    support: "🤝",
+    love: "❤️",
+    insightful: "💡",
+    funny: "😂",
+  };
+  const reactionLabels = {
+    vibe: "Vibe",
+    celebrate: "Celebrate",
+    support: "Support",
+    love: "Love",
+    insightful: "Insightful",
+    funny: "Funny",
+  };
+
+  const userIds = [];
+  const userReactionTypeMap = new Map();
+
+  for (const [userIdStr, rawVal] of vibesMap.entries()) {
+    if (mongoose.Types.ObjectId.isValid(userIdStr)) {
+      userIds.push(new mongoose.Types.ObjectId(userIdStr));
+      let reactionType = rawVal === true || rawVal === "true" ? "vibe" : rawVal;
+      if (!validReactions.includes(reactionType)) {
+        reactionType = "vibe";
+      }
+      userReactionTypeMap.set(userIdStr, reactionType);
+    }
+  }
+
+  // Fetch users with only safe public fields
+  const users = await User.find({ _id: { $in: userIds } })
+    .select("name ImageUrl avatar accountType role Profile")
+    .populate("Profile", "degree branch position InstituteName IndustryType");
+
+  const userDocMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+  // Build full list of reactions
+  const allReactions = [];
+  const breakdown = {
+    all: 0,
+    vibe: 0,
+    celebrate: 0,
+    support: 0,
+    love: 0,
+    insightful: 0,
+    funny: 0,
+  };
+
+  for (const [userIdStr, reactionType] of userReactionTypeMap.entries()) {
+    const user = userDocMap.get(userIdStr);
+    if (!user) continue; // Gracefully handle deleted/removed users
+
+    breakdown.all++;
+    if (breakdown[reactionType] !== undefined) {
+      breakdown[reactionType]++;
+    } else {
+      breakdown.vibe++;
+    }
+
+    const rawRole = (user.accountType || user.role || "student").toLowerCase();
+    let formattedRole = "Student";
+    if (rawRole === "faculty") formattedRole = "Faculty";
+    else if (rawRole.includes("industry") || rawRole.includes("company")) formattedRole = "Industry";
+
+    let profileSubtitle = "";
+    if (formattedRole === "Student") {
+      profileSubtitle = user.Profile?.branch
+        ? `${user.Profile.degree || "B.Tech"} • ${user.Profile.branch}`
+        : "Student";
+    } else if (formattedRole === "Faculty") {
+      profileSubtitle = user.Profile?.position || user.Profile?.branch || "Faculty Mentor";
+    } else if (formattedRole === "Industry") {
+      profileSubtitle = user.Profile?.position || user.Profile?.IndustryType || "Industry Expert";
+    }
+
+    allReactions.push({
+      userId: user._id,
+      name: user.name || "VIBE Member",
+      imageUrl: user.ImageUrl || user.avatar || "",
+      role: formattedRole,
+      accountType: user.accountType || "student",
+      profileSubtitle,
+      reaction: reactionType,
+      reactionLabel: reactionLabels[reactionType] || "Vibe",
+      reactionEmoji: reactionEmojis[reactionType] || "🤘",
+    });
+  }
+
+  // Filter by reaction type if specified
+  let filteredReactions = allReactions;
+  if (type && type !== "all" && validReactions.includes(type)) {
+    filteredReactions = allReactions.filter((r) => r.reaction === type);
+  }
+
+  // Pagination support
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 50));
+  const startIndex = (pageNum - 1) * limitNum;
+  const paginatedReactions = filteredReactions.slice(startIndex, startIndex + limitNum);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        reactions: paginatedReactions,
+        total: filteredReactions.length,
+        breakdown,
+        hasMore: startIndex + limitNum < filteredReactions.length,
+        page: pageNum,
+      },
+      "Reactions retrieved successfully"
     )
   );
 });

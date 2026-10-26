@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,6 +13,8 @@ import {
   X,
   Maximize2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Repeat,
   Edit3,
   Trash2,
@@ -24,6 +26,7 @@ import Avatar from "../shared/Avatar";
 import { useToast } from "../Toast";
 import { auth } from "../../utils/auth";
 import api from "../../services/api";
+import ReactionsModal from "./ReactionsModal";
 
 // 6 LinkedIn-Style Reaction Types
 export const REACTION_TYPES = [
@@ -314,6 +317,7 @@ export const PostCard = ({
   );
 
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isReactionsModalOpen, setIsReactionsModalOpen] = useState(false);
   const reactionHoverTimer = useRef(null);
   const reactionPickerRef = useRef(null);
 
@@ -403,11 +407,22 @@ export const PostCard = ({
     setCurrentUserReaction(nextReaction);
     setVibesState(nextVibes);
 
+    const activePostId = post._id || post.id || targetPost?._id || targetPost?.id;
+
     try {
-      await api.put("/posts/vibe", {
-        postId: post.id || post._id,
+      const res = await api.put("/posts/vibe", {
+        postId: activePostId,
         reaction: reactionId,
       });
+
+      if (res?.data?.data) {
+        if (res.data.data.vibes) {
+          setVibesState(res.data.data.vibes);
+        }
+        if (res.data.data.userReaction !== undefined) {
+          setCurrentUserReaction(res.data.data.userReaction);
+        }
+      }
     } catch (err) {
       console.error("Error updating reaction:", err);
       // Revert on error
@@ -452,6 +467,145 @@ export const PostCard = ({
 
   // Image Lightbox state
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // Multi-photo carousel state (independent per post card)
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [carouselAspectRatios, setCarouselAspectRatios] = useState({});
+  const carouselRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(600);
+  const touchStartXRef = useRef(null);
+  const touchStartYRef = useRef(null);
+
+  // Measure carousel container width for responsive slide calculations
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      if (el.offsetWidth > 0) {
+        setContainerWidth(el.offsetWidth);
+      }
+    };
+
+    updateWidth();
+
+    let resizeObserver;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.contentRect && entry.contentRect.width > 0) {
+            setContainerWidth(Math.round(entry.contentRect.width));
+          }
+        }
+      });
+      resizeObserver.observe(el);
+    }
+
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
+
+  const handleImageLoad = (idx, e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      const ratio = naturalWidth / naturalHeight;
+      setCarouselAspectRatios((prev) => {
+        if (prev[idx] === ratio) return prev;
+        return { ...prev, [idx]: ratio };
+      });
+    }
+  };
+
+  // Extract and normalize valid image attachments
+  const validAttachments = (
+    Array.isArray(postData.attachments) ? postData.attachments : []
+  )
+    .map((att) => (typeof att === "string" ? att : att?.url))
+    .filter(Boolean);
+  const totalPhotos = validAttachments.length;
+
+  // Safely clamp carousel index if media list changes
+  useEffect(() => {
+    if (currentPhotoIndex >= totalPhotos) {
+      setCurrentPhotoIndex(Math.max(0, totalPhotos - 1));
+    }
+  }, [totalPhotos]);
+
+  // Touch handlers for mobile swipe navigation
+  const handleCarouselTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleCarouselTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const diffX = touchStartXRef.current - e.changedTouches[0].clientX;
+    const diffY = touchStartYRef.current - e.changedTouches[0].clientY;
+    // Require dominant horizontal swipe > 40px
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0 && currentPhotoIndex < totalPhotos - 1) {
+        setCurrentPhotoIndex((prev) => prev + 1);
+      } else if (diffX < 0 && currentPhotoIndex > 0) {
+        setCurrentPhotoIndex((prev) => prev - 1);
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
+  // Multi-photo carousel neighbor calculations
+  const hasPrev = currentPhotoIndex > 0;
+  const hasNext = currentPhotoIndex < totalPhotos - 1;
+  const prevPhotoUrl = hasPrev ? validAttachments[currentPhotoIndex - 1] : null;
+  const nextPhotoUrl = hasNext ? validAttachments[currentPhotoIndex + 1] : null;
+  const currentPhotoUrl = validAttachments[currentPhotoIndex];
+  const isMobile = (containerWidth > 0 ? containerWidth : 600) < 540;
+
+  const carouselHeight = useMemo(() => {
+    const ratio = carouselAspectRatios[currentPhotoIndex];
+    if (!ratio) {
+      return isMobile ? 380 : 490;
+    }
+    if (ratio < 0.85) {
+      // Portrait document / poster
+      return isMobile ? 440 : 540;
+    }
+    if (ratio <= 1.25) {
+      // Square or near-square
+      return isMobile ? 380 : 460;
+    }
+    // Landscape
+    return isMobile ? 300 : 380;
+  }, [carouselAspectRatios, currentPhotoIndex, isMobile]);
+
+  // Keyboard navigation for full-size lightbox viewer
+  useEffect(() => {
+    if (!selectedImage) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setSelectedImage(null);
+      } else if (e.key === "ArrowLeft" && totalPhotos > 1) {
+        setCurrentPhotoIndex((prev) => {
+          const next = Math.max(0, prev - 1);
+          if (validAttachments[next]) setSelectedImage(validAttachments[next]);
+          return next;
+        });
+      } else if (e.key === "ArrowRight" && totalPhotos > 1) {
+        setCurrentPhotoIndex((prev) => {
+          const next = Math.min(totalPhotos - 1, prev + 1);
+          if (validAttachments[next]) setSelectedImage(validAttachments[next]);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedImage, totalPhotos, validAttachments]);
 
   // Bookmark state with fallback for views that don't pass onToggleBookmark
   const [bookmarkedState, setBookmarkedState] = useState(() => {
@@ -932,48 +1086,201 @@ export const PostCard = ({
         )}
       </div>
 
-      {/* Attachments - Aligned with content width, non-cropped contain for single notes/cheat sheet */}
-      {Array.isArray(postData.attachments) && postData.attachments.length > 0 && (
-        <div
-          className={`mt-3.5 w-full rounded-xl overflow-hidden border border-[#E2E8F0] bg-[#F8FAFC] box-border ${
-            postData.attachments.length === 1
-              ? "grid grid-cols-1"
-              : "grid grid-cols-1 sm:grid-cols-2 gap-2 p-1"
-          }`}
-        >
-          {postData.attachments.map((att, i) => {
-            const url = typeof att === "string" ? att : att?.url;
-            if (!url) return null;
-            return (
+      {/* Attachments Section: Single Photo or Instagram-Style Multi-Photo Carousel */}
+      {totalPhotos === 1 && (
+        <div className="mt-3.5 w-full flex flex-col items-center">
+          <div className="relative inline-flex flex-col items-center max-w-full rounded-2xl overflow-hidden border border-[#E2E8F0] bg-white shadow-2xs group cursor-zoom-in transition-all duration-300">
+            <div
+              onClick={() => setSelectedImage(validAttachments[0])}
+              className="relative flex items-center justify-center max-w-full overflow-hidden"
+              title="Click to view full image"
+            >
+              <img
+                src={validAttachments[0]}
+                alt={
+                  postData.title
+                    ? `${postData.title} attachment 1`
+                    : "Post attachment 1"
+                }
+                style={{ maxHeight: "min(70vh, 780px)" }}
+                className="w-auto h-auto max-w-full object-contain block mx-auto transition-transform duration-200 group-hover:scale-[1.01]"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none flex items-end justify-end p-2.5">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-md backdrop-blur-xs flex items-center gap-1 shadow-sm">
+                  <Maximize2 size={12} />
+                  <span>View full</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {totalPhotos > 1 && (
+        <div className="mt-3.5 w-full flex flex-col items-center select-none">
+          {/* Gallery Viewport */}
+          <div
+            ref={carouselRef}
+            style={{ height: carouselHeight }}
+            onTouchStart={handleCarouselTouchStart}
+            onTouchEnd={handleCarouselTouchEnd}
+            className="relative w-full rounded-2xl overflow-hidden bg-slate-100/70 border border-[#E2E8F0] p-2 transition-[height] duration-300 ease-out flex items-center gap-2 sm:gap-3"
+          >
+            {/* Previous Photo Side Preview (Rendered ONLY when previous photo exists) */}
+            {hasPrev && (
               <div
-                key={i}
-                onClick={() => setSelectedImage(url)}
-                className="relative overflow-hidden flex items-center justify-center bg-[#F8FAFC] cursor-zoom-in group max-h-[520px]"
-                title="Click to view full image"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentPhotoIndex((prev) => Math.max(0, prev - 1));
+                }}
+                className={`h-full relative rounded-xl overflow-hidden bg-slate-200/60 cursor-pointer group/preview flex items-center justify-center border border-slate-300/40 shrink-0 transition-all duration-200 ${
+                  hasNext
+                    ? "w-[14%] sm:w-[18%] md:w-[20%]"
+                    : "w-[22%] sm:w-[26%] md:w-[28%]"
+                }`}
+                title={`Go to previous photo (${currentPhotoIndex})`}
               >
                 <img
-                  src={url}
+                  src={prevPhotoUrl}
                   alt={
                     postData.title
-                      ? `${postData.title} attachment ${i + 1}`
-                      : `Post attachment ${i + 1}`
+                      ? `${postData.title} photo ${currentPhotoIndex}`
+                      : `Photo ${currentPhotoIndex}`
                   }
-                  className={`w-full max-w-full ${
-                    postData.attachments.length === 1
-                      ? "max-h-[520px] object-contain mx-auto"
-                      : "max-h-72 object-cover"
-                  } transition-transform duration-200 group-hover:scale-[1.01]`}
+                  className="w-full h-full object-cover block opacity-70 group-hover/preview:opacity-90 transition-opacity duration-200"
                   loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none flex items-end justify-end p-2.5">
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-md backdrop-blur-xs flex items-center gap-1 shadow-sm">
-                    <Maximize2 size={12} />
-                    <span>View full</span>
-                  </span>
-                </div>
+                <div className="absolute inset-0 bg-black/15 group-hover/preview:bg-black/5 transition-colors" />
+
+                {/* Left Navigation Arrow (Inside left preview area) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPhotoIndex((prev) => Math.max(0, prev - 1));
+                  }}
+                  className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-lg backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer border border-white/20"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft size={20} className="stroke-[2.5] -ml-0.5 text-white" />
+                </button>
               </div>
-            );
-          })}
+            )}
+
+            {/* Active Photo (Always rendered; flex-1 naturally fills all remaining width) */}
+            <div
+              onClick={() => setSelectedImage(currentPhotoUrl)}
+              className="h-full flex-1 min-w-0 relative rounded-xl overflow-hidden bg-white border border-slate-200/90 shadow-sm cursor-zoom-in group/active flex items-center justify-center transition-all duration-200"
+              title="Click to view full photo"
+            >
+              {/* Photo Counter Overlay (Top-Right of active photo) */}
+              <div className="absolute top-3 right-3 z-20 pointer-events-none">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white bg-black/65 backdrop-blur-md shadow-sm border border-white/20 tracking-wider">
+                  {currentPhotoIndex + 1}/{totalPhotos}
+                </span>
+              </div>
+
+              {/* Active Photo: 100% visible with object-contain */}
+              <img
+                key={currentPhotoIndex}
+                src={currentPhotoUrl}
+                alt={
+                  postData.title
+                    ? `${postData.title} photo ${currentPhotoIndex + 1}`
+                    : `Post photo ${currentPhotoIndex + 1}`
+                }
+                onLoad={(e) => handleImageLoad(currentPhotoIndex, e)}
+                className="w-full h-full object-contain block mx-auto select-none transition-transform duration-200 group-hover/active:scale-[1.01]"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+
+              {/* Hover "View full" pill (Bottom-Right of active slide) */}
+              <div className="absolute bottom-3 right-3 z-10 pointer-events-none opacity-0 group-hover/active:opacity-100 transition-opacity">
+                <span className="bg-black/70 text-white text-[11px] font-medium px-2 py-1 rounded-md backdrop-blur-xs flex items-center gap-1.5 shadow-md">
+                  <Maximize2 size={12} />
+                  <span>View full</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Next Photo Side Preview (Rendered ONLY when next photo exists) */}
+            {hasNext && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentPhotoIndex((prev) => Math.min(totalPhotos - 1, prev + 1));
+                }}
+                className={`h-full relative rounded-xl overflow-hidden bg-slate-200/60 cursor-pointer group/preview flex items-center justify-center border border-slate-300/40 shrink-0 transition-all duration-200 ${
+                  hasPrev
+                    ? "w-[14%] sm:w-[18%] md:w-[20%]"
+                    : "w-[22%] sm:w-[26%] md:w-[28%]"
+                }`}
+                title={`Go to next photo (${currentPhotoIndex + 2})`}
+              >
+                <img
+                  src={nextPhotoUrl}
+                  alt={
+                    postData.title
+                      ? `${postData.title} photo ${currentPhotoIndex + 2}`
+                      : `Photo ${currentPhotoIndex + 2}`
+                  }
+                  className="w-full h-full object-cover block opacity-70 group-hover/preview:opacity-90 transition-opacity duration-200"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/15 group-hover/preview:bg-black/5 transition-colors" />
+
+                {/* Right Navigation Arrow (Inside right preview area) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPhotoIndex((prev) => Math.min(totalPhotos - 1, prev + 1));
+                  }}
+                  className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-black/80 text-white shadow-lg backdrop-blur-md flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer border border-white/20"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight size={20} className="stroke-[2.5] -mr-0.5 text-white" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Photo Position Indicator Dots (Below the carousel, centered) */}
+          <div className="flex items-center justify-center gap-1.5 pt-2.5 pb-0.5 w-full select-none">
+            {validAttachments.map((_, idx) => {
+              const isActive = idx === currentPhotoIndex;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPhotoIndex(idx);
+                  }}
+                  className={`transition-all duration-200 cursor-pointer rounded-full ${
+                    isActive
+                      ? "w-2.5 h-2.5 bg-[#6D3DF5] ring-2 ring-[#6D3DF5]/30"
+                      : "w-2 h-2 bg-slate-300 hover:bg-slate-400"
+                  }`}
+                  aria-label={`Go to photo ${idx + 1}`}
+                  aria-current={isActive ? "true" : undefined}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -982,7 +1289,13 @@ export const PostCard = ({
         <div className="mt-3.5 flex items-center justify-between text-xs text-[#64748B] pt-2 border-t border-[#F8FAFC]">
           {/* Reaction icons breakdown */}
           {totalReactions > 0 ? (
-            <div className="flex items-center gap-1.5 group/reactsummary relative cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setIsReactionsModalOpen(true)}
+              className="flex items-center gap-1.5 group/reactsummary relative cursor-pointer text-left hover:opacity-90 transition-opacity"
+              title="View who reacted"
+              aria-label={`${totalReactions} reactions. Click to view who reacted.`}
+            >
               <div className="flex items-center -space-x-1">
                 {topReactions.slice(0, 3).map((rType) => {
                   const rConf = REACTION_TYPES.find((r) => r.id === rType);
@@ -997,7 +1310,7 @@ export const PostCard = ({
                   );
                 })}
               </div>
-              <span className="font-semibold text-[#475569] hover:underline">
+              <span className="font-semibold text-[#475569] group-hover/reactsummary:underline group-hover/reactsummary:text-[#6D3DF5] transition-colors">
                 {totalReactions}
               </span>
 
@@ -1013,7 +1326,7 @@ export const PostCard = ({
                   );
                 })}
               </div>
-            </div>
+            </button>
           ) : (
             <div />
           )}
@@ -1283,26 +1596,76 @@ export const PostCard = ({
       <AnimatePresence>
         {selectedImage && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-150"
             onClick={() => setSelectedImage(null)}
           >
             <div
-              className="relative max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2 flex flex-col items-center"
+              className="relative max-w-5xl max-h-[90vh] bg-slate-950 rounded-2xl overflow-hidden shadow-2xl p-2 flex flex-col items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
                 aria-label="Close image preview"
               >
                 <X size={18} />
               </button>
+
+              {/* Counter in Lightbox for multi-photo */}
+              {totalPhotos > 1 && (
+                <div className="absolute top-4 left-4 z-30 pointer-events-none">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold text-white bg-black/60 backdrop-blur-md shadow-md border border-white/10">
+                    {currentPhotoIndex + 1} / {totalPhotos}
+                  </span>
+                </div>
+              )}
+
+              {/* Full-Size Image */}
               <img
                 src={selectedImage}
                 alt="Full size attachment"
-                className="max-w-full max-h-[82vh] object-contain rounded-xl"
+                className="max-w-full max-h-[82vh] object-contain rounded-xl select-none"
               />
+
+              {/* Lightbox Previous Navigation Arrow */}
+              {totalPhotos > 1 && currentPhotoIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const prevIdx = Math.max(0, currentPhotoIndex - 1);
+                    setCurrentPhotoIndex(prevIdx);
+                    if (validAttachments[prevIdx]) {
+                      setSelectedImage(validAttachments[prevIdx]);
+                    }
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-xs flex items-center justify-center transition-all cursor-pointer border border-white/20"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft size={22} className="stroke-[2.5] -ml-0.5" />
+                </button>
+              )}
+
+              {/* Lightbox Next Navigation Arrow */}
+              {totalPhotos > 1 && currentPhotoIndex < totalPhotos - 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const nextIdx = Math.min(totalPhotos - 1, currentPhotoIndex + 1);
+                    setCurrentPhotoIndex(nextIdx);
+                    if (validAttachments[nextIdx]) {
+                      setSelectedImage(validAttachments[nextIdx]);
+                    }
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white shadow-lg backdrop-blur-xs flex items-center justify-center transition-all cursor-pointer border border-white/20"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight size={22} className="stroke-[2.5] -mr-0.5" />
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1697,6 +2060,14 @@ export const PostCard = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Reactions Details Modal */}
+      <ReactionsModal
+        isOpen={isReactionsModalOpen}
+        onClose={() => setIsReactionsModalOpen(false)}
+        postId={post._id || post.id || targetPost?._id || targetPost?.id}
+        refreshTrigger={vibesState}
+      />
     </motion.div>
   );
 };
