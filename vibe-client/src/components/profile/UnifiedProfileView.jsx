@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -28,6 +28,12 @@ import {
   EyeOff,
   FileText,
   Zap,
+  Code2,
+  Wrench,
+  Sparkles,
+  ShieldCheck,
+  RotateCcw,
+  Camera,
 } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import { auth } from "../../utils/auth";
@@ -63,6 +69,205 @@ export const UnifiedProfileView = ({
   const isIndustry = rawRole === "industry" || rawRole === "industry expert" || rawRole === "company";
   const isFaculty = !isIndustry && rawRole === "faculty";
   const isStudent = !isIndustry && !isFaculty;
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const toast = useToast();
+
+  const handleQuickAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please select a JPEG, PNG, or WebP image");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Image file size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await api.put(`/users/${currentUserId}/avatar`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.data) {
+        const updatedUser = res.data.data.user || {
+          ...effectiveUser,
+          ImageUrl: res.data.data.imageUrl,
+        };
+
+        auth.setUserSession(updatedUser);
+        setProfileData(updatedUser);
+        if (onProfileUpdate) {
+          onProfileUpdate(updatedUser);
+        }
+        toast.success("Profile picture updated successfully!");
+      }
+    } catch (err) {
+      console.error("Quick avatar upload error:", err);
+      toast.error(err.response?.data?.message || "Failed to upload profile picture");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  // Profile state to ensure freshest skills and verification statuses
+  const [profileData, setProfileData] = useState(user);
+
+  useEffect(() => {
+    setProfileData(user);
+  }, [user]);
+
+  // Fetch complete profile with verified skills if viewing a profile
+  useEffect(() => {
+    const uid = user?._id || user?.id;
+    if (!uid) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await api.get(`/users/${uid}`);
+        if (mounted && res.data && res.data.data) {
+          setProfileData(res.data.data);
+        }
+      } catch (e) {
+        // Fallback to user prop
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user?._id, user?.id]);
+
+  const effectiveUser = profileData || user;
+
+  // Extract student skills from CV Analysis / Skills Matrix
+  const studentSkills = useMemo(() => {
+    const rawSkills =
+      Array.isArray(effectiveUser?.Profile?.skills) && effectiveUser.Profile.skills.length > 0
+        ? effectiveUser.Profile.skills
+        : Array.isArray(effectiveUser?.skills) && effectiveUser.skills.length > 0
+        ? effectiveUser.skills
+        : [];
+    return rawSkills;
+  }, [effectiveUser]);
+
+  // Group skills by category with standard categories first
+  const categoryGroups = useMemo(() => {
+    if (!studentSkills || studentSkills.length === 0) return [];
+
+    const standardCategories = ["Technical", "Tools", "Soft Skills"];
+    const map = new Map();
+    for (const cat of standardCategories) {
+      map.set(cat, []);
+    }
+
+    for (const skill of studentSkills) {
+      const cat = skill.category || "Technical";
+      if (!map.has(cat)) {
+        map.set(cat, []);
+      }
+      map.get(cat).push(skill);
+    }
+
+    const groups = [];
+    for (const [category, items] of map.entries()) {
+      if (items.length > 0) {
+        groups.push({ category, items });
+      }
+    }
+    return groups;
+  }, [studentSkills]);
+
+  const getCategoryIcon = (category) => {
+    const cat = String(category || "").toLowerCase();
+    if (cat.includes("tech")) {
+      return <Code2 size={15} className="text-[#6D3DF5]" />;
+    }
+    if (cat.includes("tool")) {
+      return <Wrench size={15} className="text-[#6D3DF5]" />;
+    }
+    if (cat.includes("soft")) {
+      return <Users size={15} className="text-[#6D3DF5]" />;
+    }
+    return <Sparkles size={15} className="text-[#6D3DF5]" />;
+  };
+
+  const getLevelBadgeStyle = (level) => {
+    const lvl = String(level || "").toLowerCase().trim();
+    if (lvl === "advanced") {
+      return "bg-purple-50 text-purple-700 border-[#E9E1FF]";
+    }
+    if (lvl === "beginner") {
+      return "bg-teal-50 text-teal-700 border-teal-200";
+    }
+    return "bg-blue-50 text-blue-700 border-blue-200"; // Intermediate / default
+  };
+
+  const renderSkillVerificationBadge = (skill) => {
+    const status = String(
+      skill.verificationStatus ||
+      (skill.verified ? "verified" : "not_verified")
+    ).toLowerCase();
+
+    if (status === "verified" || skill.verified === true) {
+      const scoreVal = typeof skill.score === "number" && skill.score > 0 ? skill.score : null;
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold shrink-0 shadow-2xs"
+          title={scoreVal ? `Verified Faculty Assessment (${scoreVal}%)` : "Verified Credential"}
+        >
+          <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
+          <span>Verified{scoreVal ? ` • ${scoreVal}%` : ""}</span>
+        </span>
+      );
+    }
+
+    if (status === "under_review" || status === "submitted" || status === "assigned") {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold shrink-0"
+          title="Verification task is under review or in progress"
+        >
+          <Clock size={12} className="text-amber-600 shrink-0" />
+          <span>Under Review</span>
+        </span>
+      );
+    }
+
+    if (status === "rejected") {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold shrink-0"
+          title="Verification assessment score was below benchmark (< 70%). Needs revision."
+        >
+          <RotateCcw size={12} className="text-rose-600 shrink-0" />
+          <span>Needs Revision</span>
+        </span>
+      );
+    }
+
+    // Default safe fallback: Not Verified
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-medium shrink-0"
+        title="Skill not yet verified"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+        <span>Not Verified</span>
+      </span>
+    );
+  };
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState("details");
@@ -329,14 +534,37 @@ export const UnifiedProfileView = ({
         <div className="flex flex-col md:flex-row items-center gap-5 w-full md:w-auto">
           {/* Avatar Container with Purple Theme */}
           <div className="relative group flex-shrink-0">
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#6D3DF5] p-0.5 shadow-sm">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#6D3DF5] p-0.5 shadow-sm overflow-hidden relative flex items-center justify-center">
               <Avatar
-                name={user?.name || "User"}
-                src={user?.ImageUrl || user?.avatar}
+                name={effectiveUser?.name || "User"}
+                src={effectiveUser?.ImageUrl || effectiveUser?.avatar || effectiveUser?.profilePicture}
                 variant="purple"
-                className="w-full h-full rounded-[14px]"
+                className="w-full h-full rounded-[14px] object-cover"
                 initialsClassName="text-xl md:text-2xl text-white font-bold"
               />
+              {/* If owner, allow quick photo change */}
+              {isOwner && (
+                <label
+                  title="Change profile picture"
+                  className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-white rounded-[14px]"
+                >
+                  {uploadingAvatar ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Camera size={18} />
+                      <span className="text-[9px] font-bold mt-1 uppercase tracking-wider">Change</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleQuickAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
           </div>
 
@@ -344,7 +572,7 @@ export const UnifiedProfileView = ({
           <div className="text-center md:text-left space-y-1.5 w-full">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <h2 className="text-xl md:text-2xl font-bold text-[#172554] tracking-tight">
-                {user?.name || "VIBE Member"}
+                {effectiveUser?.name || "VIBE Member"}
               </h2>
 
               {/* Role Badge */}
@@ -633,24 +861,38 @@ export const UnifiedProfileView = ({
                   </div>
                 </div>
 
-                {/* Card B: Contact & Specialization */}
+                {/* Card B: Contact Details */}
                 <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-4">
                   <h3 className="font-bold text-sm uppercase tracking-wider text-[#64748B] flex items-center gap-2 pb-2 border-b border-[#F1F5F9]">
-                    <Zap size={16} className="text-[#6D3DF5]" />
-                    <span>{isIndustry ? "Focus & Contacts" : "Expertise & Details"}</span>
+                    {isStudent ? (
+                      <>
+                        <Mail size={16} className="text-[#6D3DF5]" />
+                        <span>Contact Details</span>
+                      </>
+                    ) : isIndustry ? (
+                      <>
+                        <Zap size={16} className="text-[#6D3DF5]" />
+                        <span>Focus & Contacts</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={16} className="text-[#6D3DF5]" />
+                        <span>Expertise & Details</span>
+                      </>
+                    )}
                   </h3>
 
                   <div className="space-y-4 text-sm">
-                    {/* Domains / Skills Pills */}
-                    {(user?.Profile?.ExpertiseDomains || user?.Profile?.skills) && (
+                    {/* Domains / Skills Pills (for Faculty & Industry only; Student skills moved to dedicated section) */}
+                    {!isStudent && (effectiveUser?.Profile?.ExpertiseDomains || effectiveUser?.Profile?.skills) && (
                       <div>
                         <span className="text-xs text-[#94A3B8] font-bold block uppercase tracking-wider mb-2">
-                          {isFaculty ? "Areas of Guidance" : isIndustry ? "Tech Stack / Skills" : "Skills & Domains"}
+                          {isFaculty ? "Areas of Guidance" : "Tech Stack / Skills"}
                         </span>
                         <div className="flex flex-wrap gap-1.5">
-                          {(Array.isArray(user.Profile.ExpertiseDomains)
-                            ? user.Profile.ExpertiseDomains
-                            : String(user.Profile.ExpertiseDomains || "")
+                          {(Array.isArray(effectiveUser?.Profile?.ExpertiseDomains)
+                            ? effectiveUser.Profile.ExpertiseDomains
+                            : String(effectiveUser?.Profile?.ExpertiseDomains || "")
                                 .split(",")
                                 .map((s) => s.trim())
                                 .filter(Boolean)
@@ -672,32 +914,118 @@ export const UnifiedProfileView = ({
                         <div className="p-1.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[#6D3DF5]">
                           <Mail size={14} />
                         </div>
-                        <span className="font-semibold truncate">{user?.email || "Registered VIBE Email"}</span>
+                        <span className="font-semibold truncate">{effectiveUser?.email || "Registered VIBE Email"}</span>
                       </div>
 
                       {/* Phone number visible ONLY to owner */}
-                      {isOwner && user?.mobileNo && (
+                      {isOwner && effectiveUser?.mobileNo && (
                         <div className="flex items-center gap-2.5 text-xs text-[#475569]">
                           <div className="p-1.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[#6D3DF5]">
                             <Phone size={14} />
                           </div>
-                          <span className="font-semibold">{user.mobileNo}</span>
+                          <span className="font-semibold">{effectiveUser.mobileNo}</span>
                           <span className="text-[10px] text-[#94A3B8] italic">(Private to you)</span>
                         </div>
                       )}
 
-                      {isOwner && user?.dob && (
+                      {/* Date of birth visible ONLY to owner */}
+                      {isOwner && effectiveUser?.dob && (
                         <div className="flex items-center gap-2.5 text-xs text-[#475569]">
                           <div className="p-1.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[#6D3DF5]">
                             <Calendar size={14} />
                           </div>
-                          <span className="font-semibold">{new Date(user.dob).toLocaleDateString()}</span>
+                          <span className="font-semibold">{new Date(effectiveUser.dob).toLocaleDateString()}</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Dedicated Student Skills Matrix Card */}
+              {isStudent && (
+                <div className="bg-white rounded-2xl p-5 md:p-6 border border-[#E1E8F2] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6">
+                  {/* Card Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-[#F1F5F9]">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#6D3DF5]" />
+                      <h3 className="font-bold text-sm uppercase tracking-wider text-[#64748B]">
+                        Skills
+                      </h3>
+                      {studentSkills.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#F2ECFF] text-[#6D3DF5] border border-[#E9E1FF]">
+                          {studentSkills.length} {studentSkills.length === 1 ? "Skill" : "Skills"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Skills Grid by Category / Empty State */}
+                  {studentSkills.length === 0 ? (
+                    <div className="py-10 text-center flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-[#F2ECFF] text-[#6D3DF5] flex items-center justify-center mb-3">
+                        <Sparkles size={22} />
+                      </div>
+                      <h4 className="font-bold text-sm text-[#0F172A]">No skills added yet</h4>
+                      <p className="text-xs text-[#64748B] mt-1 max-w-sm">
+                        This student has not added any skills to their profile yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {categoryGroups.map(({ category, items }) => (
+                        <div key={category} className="space-y-3">
+                          {/* Category Header */}
+                          <div className="flex items-center gap-2">
+                            {getCategoryIcon(category)}
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-[#475569]">
+                              {category}
+                            </h4>
+                            <span className="text-[11px] font-semibold text-[#94A3B8]">
+                              ({items.length})
+                            </span>
+                          </div>
+
+                          {/* Skill Cards Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {items.map((skill, idx) => (
+                              <div
+                                key={skill._id || `${skill.name}-${idx}`}
+                                className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#D1D5DB] hover:bg-white hover:shadow-xs transition-all flex flex-col justify-between gap-3"
+                              >
+                                {/* Top: Skill Name + Verification Badge */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <span
+                                    className="font-bold text-xs sm:text-sm text-[#0F172A] truncate block flex-1"
+                                    title={skill.name}
+                                  >
+                                    {skill.name}
+                                  </span>
+                                  {renderSkillVerificationBadge(skill)}
+                                </div>
+
+                                {/* Bottom: Category Pill + Proficiency Level Pill */}
+                                <div className="flex items-center flex-wrap gap-1.5 pt-2 border-t border-[#F1F5F9] text-[11px]">
+                                  <span className="px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                    {skill.category || category}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-md font-semibold border ${getLevelBadgeStyle(
+                                      skill.level
+                                    )}`}
+                                  >
+                                    {skill.level || "Intermediate"}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
         )}
 

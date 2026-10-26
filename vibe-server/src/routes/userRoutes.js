@@ -15,9 +15,12 @@ import {
   verifyEmailChange,
   resendEmailChangeOtp,
   cancelEmailChange,
+  uploadUserAvatar,
+  removeUserAvatar,
 } from "../Controllers/userControllers.js";
 
 import { verifyJWT } from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/multerMiddleware.js";
 
 const router = express.Router();
 
@@ -41,6 +44,10 @@ router.post("/cancel-email-change", verifyJWT, cancelEmailChange);
 router.post("/verify-token", verifyJWT, (req, res) => {
   res.status(200).json({ message: "Token is valid", user: req.user });
 });
+
+// Avatar upload / remove
+router.put("/:id/avatar", verifyJWT, upload.single("avatar"), uploadUserAvatar);
+router.delete("/:id/avatar", verifyJWT, removeUserAvatar);
 
 // User-specific actions (keep these last to avoid route conflicts)
 router.get("/:id", verifyJWT, getUserById);

@@ -5,7 +5,7 @@ const Avatar = ({
   src = '', 
   className = '', 
   initialsClassName = '',
-  variant = 'default', // 'default' | 'faculty' | 'navy'
+  variant = 'default', // 'default' | 'faculty' | 'navy' | 'purple'
 }) => {
   const [imageError, setImageError] = useState(false);
 
@@ -20,19 +20,26 @@ const Avatar = ({
     return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
   };
 
-  const hasImage =
+  const isMockPlaceholder =
+    typeof src === 'string' &&
+    (src.includes('picsum.photos') ||
+     src.includes('via.placeholder.com') ||
+     src.includes('ui-avatars.com'));
+
+  const hasImage = Boolean(
     src &&
-    !src.includes('picsum.photos') &&
-    !src.includes('placeholder') &&
-    !src.includes('ui-avatars.com') &&
-    !imageError;
+    typeof src === 'string' &&
+    src.trim().length > 0 &&
+    !isMockPlaceholder &&
+    !imageError
+  );
 
   if (hasImage) {
     return (
       <img
         src={src}
-        alt={name}
-        className={`${className} object-cover`}
+        alt={name || "Avatar"}
+        className={`${className} object-cover block`}
         onError={() => setImageError(true)}
       />
     );
@@ -45,7 +52,7 @@ const Avatar = ({
       : 'bg-[#6D3DF5] text-white';
 
   return (
-    <div className={`${className} flex items-center justify-center ${bgStyles} overflow-hidden shadow-xs`}>
+    <div className={`${className} flex items-center justify-center ${bgStyles} overflow-hidden shadow-xs select-none`}>
       <span className={`font-bold tracking-tight text-white ${initialsClassName}`}>
         {getInitials(name)}
       </span>

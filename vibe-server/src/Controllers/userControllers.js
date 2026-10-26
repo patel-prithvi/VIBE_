@@ -1,5 +1,8 @@
 import { User } from "../models/Users.js";
 import Profile from "../models/Profile.js";
+import SkillVerificationAttempt from "../models/SkillVerificationAttempt.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import fs from "fs";
 import { sendZohoEmail } from "../services/zohoMail.js";
 // import { sendGmail } from "../services/gmail.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -36,7 +39,8 @@ const sendOtp = asyncHandler(async (req, res) => {
     establishmentYear,
     location,
     internshipType,
-    website
+    website,
+    skills
   } = req.body;
 
   if (
@@ -63,6 +67,38 @@ const sendOtp = asyncHandler(async (req, res) => {
   let type = accountType;
   if (accountType === 'industry') type = 'industry expert';
 
+  // Parse & normalize skills (for faculty/student registration)
+  let formattedSkills = [];
+  if (skills !== undefined) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === "string") {
+      try {
+        parsedSkills = JSON.parse(parsedSkills);
+      } catch {
+        parsedSkills = parsedSkills.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+    }
+    if (Array.isArray(parsedSkills)) {
+      const seen = new Set();
+      parsedSkills.forEach((s) => {
+        const rawName = typeof s === "string" ? s.trim() : (s?.name ? s.name.trim() : "");
+        if (rawName) {
+          const lower = rawName.toLowerCase();
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            formattedSkills.push({
+              name: rawName,
+              category: (typeof s === "object" && s?.category) ? s.category : "Technical",
+              level: (typeof s === "object" && s?.level) ? s.level : "Expert",
+              score: (typeof s === "object" && typeof s?.score === "number") ? s.score : 90,
+              verified: true,
+            });
+          }
+        }
+      });
+    }
+  }
+
   const profile = await Profile.create({
       InstituteName: institutionName,
       degree,
@@ -75,7 +111,8 @@ const sendOtp = asyncHandler(async (req, res) => {
       location,
       internshipType,
       establishmentYear,
-      website: website ? website.trim() : ""
+      website: website ? website.trim() : "",
+      skills: formattedSkills
   });
 
   // Generate 6-digit OTP
@@ -419,6 +456,75 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
+
+const enrichStudentSkills = async (userObj) => {
+  if (!userObj || userObj.accountType !== "student") return userObj;
+
+  try {
+    const attempts = await SkillVerificationAttempt.find({
+      studentId: userObj._id,
+    }).sort({ createdAt: -1 });
+
+    const attemptMap = new Map();
+    for (const att of attempts) {
+      const key = (att.skillName || "").toLowerCase().trim();
+      if (!attemptMap.has(key)) {
+        attemptMap.set(key, att);
+      } else {
+        const existing = attemptMap.get(key);
+        if (att.status === "approved") {
+          attemptMap.set(key, att);
+        } else if (
+          ["assigned", "submitted", "under_review"].includes(att.status) &&
+          !["approved", "assigned", "submitted", "under_review"].includes(existing.status)
+        ) {
+          attemptMap.set(key, att);
+        }
+      }
+    }
+
+    const enrichSkill = (skill) => {
+      const skillObj = typeof skill.toObject === "function" ? skill.toObject() : { ...skill };
+      const key = (skillObj.name || "").toLowerCase().trim();
+      const att = attemptMap.get(key);
+
+      let verificationStatus = "not_verified";
+      let score = typeof skillObj.score === "number" ? skillObj.score : 0;
+
+      if (skillObj.verified === true || att?.status === "approved") {
+        verificationStatus = "verified";
+        if (typeof skillObj.score === "number" && skillObj.score > 0) {
+          score = skillObj.score;
+        }
+      } else if (att && ["assigned", "submitted", "under_review"].includes(att.status)) {
+        verificationStatus = "under_review";
+      } else if (att && att.status === "rejected") {
+        verificationStatus = "rejected";
+      } else {
+        verificationStatus = "not_verified";
+      }
+
+      return {
+        ...skillObj,
+        score,
+        verificationStatus,
+      };
+    };
+
+    if (userObj.Profile && Array.isArray(userObj.Profile.skills)) {
+      userObj.Profile.skills = userObj.Profile.skills.map(enrichSkill);
+    }
+
+    if (Array.isArray(userObj.skills) && userObj.skills.length > 0) {
+      userObj.skills = userObj.skills.map(enrichSkill);
+    }
+  } catch (error) {
+    console.error("Error enriching student skills:", error);
+  }
+
+  return userObj;
+};
+
 //Get User by ID
 const getUserById = asyncHandler(async (req, res) => {
   const isOwner = req.user?._id?.toString() === req.params.id.toString();
@@ -436,7 +542,10 @@ const getUserById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  res.status(200).json(new ApiResponse(200, user, "User found"));
+  const userObj = user.toObject();
+  const enrichedUser = await enrichStudentSkills(userObj);
+
+  res.status(200).json(new ApiResponse(200, enrichedUser, "User found"));
 });
 
 //Update User
@@ -462,7 +571,7 @@ const updateUser = asyncHandler(async (req, res) => {
     location, 
     internshipType,
     website,
-    skills
+    skills,
   } = req.body;
 
   const user = await User.findById(req.params.id);
@@ -476,6 +585,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (finalName) user.name = finalName;
   if (mobileNo) user.mobileNo = mobileNo;
   if (dob) user.dob = dob;
+  if (req.body.ImageUrl !== undefined) user.ImageUrl = req.body.ImageUrl;
   
   await user.save({ validateBeforeSave: false });
 
@@ -502,15 +612,33 @@ const updateUser = asyncHandler(async (req, res) => {
       try {
         parsedSkills = JSON.parse(parsedSkills);
       } catch {
-        parsedSkills = [];
+        parsedSkills = parsedSkills.split(",").map((s) => s.trim()).filter(Boolean);
       }
     }
     if (Array.isArray(parsedSkills)) {
-      profileUpdate.skills = parsedSkills;
+      const seen = new Set();
+      const sanitized = [];
+      parsedSkills.forEach((s) => {
+        const rawName = typeof s === "string" ? s.trim() : (s?.name ? s.name.trim() : "");
+        if (rawName) {
+          const lower = rawName.toLowerCase();
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            sanitized.push({
+              name: rawName,
+              category: (typeof s === "object" && s?.category) ? s.category : "Technical",
+              level: (typeof s === "object" && s?.level) ? s.level : "Expert",
+              score: (typeof s === "object" && typeof s?.score === "number") ? s.score : 90,
+              verified: true,
+            });
+          }
+        }
+      });
+      profileUpdate.skills = sanitized;
+      user.skills = sanitized;
     }
   }
 
-  // Update or create Profile document
   if (user.Profile) {
     await Profile.findByIdAndUpdate(user.Profile, profileUpdate, { returnDocument: "after" });
   } else if (Object.keys(profileUpdate).length > 0) {
@@ -564,7 +692,10 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  res.status(200).json(new ApiResponse(200, user, "User found"));
+  const userObj = user.toObject();
+  const enrichedUser = await enrichStudentSkills(userObj);
+
+  res.status(200).json(new ApiResponse(200, enrichedUser, "User found"));
 });
 
 
@@ -773,6 +904,124 @@ const resendEmailChangeOtp = asyncHandler(async (req, res) => {
   );
 });
 
+
+// Upload / Update Profile Picture (Avatar)
+const uploadUserAvatar = asyncHandler(async (req, res) => {
+  const userId = req.params.id || req.user?._id;
+
+  // Enforce ownership: users can only update their own profile picture
+  if (req.user._id.toString() !== userId.toString()) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw new ApiError(403, "You can only update your own profile picture");
+  }
+
+  if (!req.file) {
+    throw new ApiError(400, "Please select an image file to upload");
+  }
+
+  // Validate mime type
+  const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+  if (!allowedMimeTypes.includes(req.file.mimetype)) {
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw new ApiError(400, "Only JPEG, PNG, and WebP image formats are allowed");
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024;
+  if (req.file.size > maxSize) {
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw new ApiError(400, "Image size exceeds 5MB limit");
+  }
+
+  const uploadResult = await uploadOnCloudinary(req.file.path, {
+    folder: "vibe_avatars",
+  });
+
+  if (!uploadResult || !uploadResult.secure_url) {
+    throw new ApiError(500, "Failed to upload image to storage service");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.ImageUrl && user.ImageUrl.includes("cloudinary.com") && user.ImageUrl.includes("vibe_avatars")) {
+    try {
+      await deleteFromCloudinary(user.ImageUrl);
+    } catch (e) {
+      // Ignore deletion failure of previous avatar
+    }
+  }
+
+  user.ImageUrl = uploadResult.secure_url;
+  await user.save({ validateBeforeSave: false });
+
+  const updatedUser = await User.findById(userId)
+    .select("-password -refreshToken")
+    .populate("Profile");
+
+  const userObj = updatedUser.toObject();
+  const enrichedUser = await enrichStudentSkills(userObj);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: enrichedUser,
+        imageUrl: uploadResult.secure_url,
+      },
+      "Profile picture updated successfully"
+    )
+  );
+});
+
+// Remove Profile Picture (Avatar)
+const removeUserAvatar = asyncHandler(async (req, res) => {
+  const userId = req.params.id || req.user?._id;
+  if (req.user._id.toString() !== userId.toString()) {
+    throw new ApiError(403, "You can only update your own profile picture");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.ImageUrl && user.ImageUrl.includes("cloudinary.com") && user.ImageUrl.includes("vibe_avatars")) {
+    try {
+      await deleteFromCloudinary(user.ImageUrl);
+    } catch (e) {}
+  }
+
+  user.ImageUrl = "";
+  await user.save({ validateBeforeSave: false });
+
+  const updatedUser = await User.findById(userId)
+    .select("-password -refreshToken")
+    .populate("Profile");
+
+  const userObj = updatedUser.toObject();
+  const enrichedUser = await enrichStudentSkills(userObj);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: enrichedUser,
+        imageUrl: "",
+      },
+      "Profile picture removed successfully"
+    )
+  );
+});
+
 // Cancel Email Change Request (Authenticated)
 const cancelEmailChange = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -791,4 +1040,4 @@ const cancelEmailChange = asyncHandler(async (req, res) => {
   );
 });
 
-export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, verifyResetOtp, resetPassword, changePassword, requestEmailChange, verifyEmailChange, resendEmailChangeOtp, cancelEmailChange };
+export { registerUser, loginUser, updateUser, getUserById, logoutUser, getCurrentUser, sendOtp, forgotPassword, verifyResetOtp, resetPassword, changePassword, requestEmailChange, verifyEmailChange, resendEmailChangeOtp, cancelEmailChange, uploadUserAvatar, removeUserAvatar };
