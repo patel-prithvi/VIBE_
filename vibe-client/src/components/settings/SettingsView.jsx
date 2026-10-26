@@ -18,10 +18,16 @@ import {
   ShieldCheck,
   Send,
   ChevronDown,
+  Plus,
+  X,
+  Award,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import { auth } from "../../utils/auth";
 import api from "../../services/api";
 import { useToast } from "../Toast";
+import Avatar from "../shared/Avatar";
 
 export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = null }) => {
   const toast = useToast();
@@ -48,6 +54,91 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
     }));
   };
 
+  // Profile picture upload state & handlers
+  const [avatarPreview, setAvatarPreview] = useState(currentUser?.ImageUrl || "");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  useEffect(() => {
+    setAvatarPreview(currentUser?.ImageUrl || "");
+  }, [currentUser?.ImageUrl]);
+
+  const handleAvatarFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please select a JPEG, PNG, or WebP image");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Image file size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await api.put(`/users/${currentUser._id}/avatar`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data?.data) {
+        const updatedUser = res.data.data.user || {
+          ...currentUser,
+          ImageUrl: res.data.data.imageUrl,
+        };
+
+        auth.setUserSession(updatedUser);
+        setAvatarPreview(res.data.data.imageUrl);
+        if (onProfileUpdate) {
+          onProfileUpdate(updatedUser);
+        }
+        toast.success("Profile picture updated successfully!");
+      }
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      toast.error(err.response?.data?.message || "Failed to upload profile picture");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!currentUser?.ImageUrl && !avatarPreview) return;
+
+    try {
+      setUploadingAvatar(true);
+      const res = await api.delete(`/users/${currentUser._id}/avatar`);
+
+      if (res.data?.data) {
+        const updatedUser = res.data.data.user || {
+          ...currentUser,
+          ImageUrl: "",
+        };
+
+        auth.setUserSession(updatedUser);
+        setAvatarPreview("");
+        if (onProfileUpdate) {
+          onProfileUpdate(updatedUser);
+        }
+        toast.success("Profile picture removed");
+      }
+    } catch (err) {
+      console.error("Avatar remove error:", err);
+      toast.error(err.response?.data?.message || "Failed to remove profile picture");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   // --------------------------------------------------------------------------
   // SECTION A: Profile Update State, Change Detection & Handlers
   // --------------------------------------------------------------------------
@@ -65,6 +156,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
     department: "",
     expertise: "",
     experience: "",
+    skills: [],
     // Industry fields
     companyName: "",
     tagline: "",
@@ -78,6 +170,7 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
 
   const [initialProfileData, setInitialProfileData] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [facultySkillInput, setFacultySkillInput] = useState("");
 
   // Initialize profile form with existing values from the backend user record
   useEffect(() => {
@@ -524,6 +617,64 @@ export const SettingsView = ({ user, onProfileUpdate, onBack, initialSection = n
               className="overflow-hidden"
             >
               <div className="p-5 md:p-6 pt-5 space-y-6">
+                {/* Profile Picture Upload Section */}
+                <div className="flex flex-col sm:flex-row items-center gap-5 p-4 sm:p-5 rounded-2xl bg-[#FAF9FF] border border-[#E9E1FF]">
+                  {/* Avatar preview */}
+                  <div className="relative group shrink-0">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#6D3DF5] p-0.5 shadow-sm overflow-hidden flex items-center justify-center">
+                      <Avatar
+                        name={currentUser?.name || "User"}
+                        src={avatarPreview || currentUser?.ImageUrl || currentUser?.avatar}
+                        variant="purple"
+                        className="w-full h-full rounded-[14px] object-cover"
+                        initialsClassName="text-xl sm:text-2xl text-white font-bold"
+                      />
+                    </div>
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center text-white">
+                        <Loader2 size={24} className="animate-spin" />
+                        <span className="text-[10px] font-bold mt-1">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload controls */}
+                  <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0F172A]">Profile Picture</h3>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Upload a photo in JPEG, PNG, or WebP format (max 5MB).
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-1">
+                      <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#6D3DF5] text-white hover:bg-[#5B2FD6] text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-60">
+                        <Camera size={14} />
+                        <span>{uploadingAvatar ? "Uploading..." : (currentUser?.ImageUrl || avatarPreview) ? "Change Picture" : "Upload Picture"}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleAvatarFileSelect}
+                          disabled={uploadingAvatar}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {Boolean(currentUser?.ImageUrl || avatarPreview) && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          disabled={uploadingAvatar}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E2E8F0] text-[#64748B] hover:text-red-600 hover:border-red-200 text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   {/* STUDENT FORM FIELDS */}
                   {isStudent && (

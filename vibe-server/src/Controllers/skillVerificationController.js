@@ -9,6 +9,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
+import { normalizeSkill } from "../utils/recommendationEngine.js";
 
 // Helper: Ensure mentor workload record exists and is synced
 const getOrCreateMentorWorkload = async (mentorId) => {
@@ -75,6 +76,29 @@ const selectTaskForStudent = async (studentId, skillName, difficulty) => {
   return eligibleTasks[randomIndex];
 };
 
+// Helper: Find matching registered skill for a faculty member
+const getFacultySkillMatch = (facultyMember, requestedSkill) => {
+  const normRequested = normalizeSkill(requestedSkill);
+  if (!normRequested) return null;
+
+  const rawSkills = [];
+  if (Array.isArray(facultyMember.Profile?.skills)) {
+    rawSkills.push(...facultyMember.Profile.skills);
+  }
+  if (Array.isArray(facultyMember.skills)) {
+    rawSkills.push(...facultyMember.skills);
+  }
+
+  for (const s of rawSkills) {
+    const skillName = typeof s === "string" ? s : s?.name;
+    if (!skillName || typeof skillName !== "string") continue;
+    if (normalizeSkill(skillName) === normRequested) {
+      return skillName.trim();
+    }
+  }
+  return null;
+};
+
 // Helper: Fair Load-Balanced Faculty Assignment
 const assignFacultyToSubmission = async (
   attemptId,
@@ -96,12 +120,19 @@ const assignFacultyToSubmission = async (
     query._id = { $ne: studentId, $nin: objectIds };
   }
 
-  const facultyList = await User.find(query).select("_id name email accountType isVerified");
+  const facultyList = await User.find(query)
+    .select("_id name email accountType isVerified Profile skills")
+    .populate("Profile");
 
-  if (!facultyList || facultyList.length === 0) {
+  // Filter ONLY faculty whose registered skills match the skill being verified
+  const eligibleFacultyCandidates = (facultyList || []).filter((facultyMember) => {
+    return getFacultySkillMatch(facultyMember, skillName) !== null;
+  });
+
+  if (!eligibleFacultyCandidates || eligibleFacultyCandidates.length === 0) {
     if (!isReassignment) {
       console.log(
-        `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" reason=NO_ELIGIBLE_FACULTY`
+        `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" reason=NO_ELIGIBLE_FACULTY_WITH_REQUIRED_SKILL`
       );
     }
     await SkillVerificationAttempt.findByIdAndUpdate(attemptId, {
@@ -113,9 +144,9 @@ const assignFacultyToSubmission = async (
     return null;
   }
 
-  // 2. Retrieve actual pending review count for each candidate to guarantee accurate load calculation
+  // 2. Retrieve actual pending review count for each eligible candidate to guarantee accurate load calculation
   const candidatesWithLoad = await Promise.all(
-    facultyList.map(async (facultyMember) => {
+    eligibleFacultyCandidates.map(async (facultyMember) => {
       // Count actual pending reviews awaiting evaluation
       const pendingCount = await SkillVerificationAttempt.countDocuments({
         assignedMentorId: facultyMember._id,
@@ -134,6 +165,7 @@ const assignFacultyToSubmission = async (
         workload,
         load: pendingCount,
         isAvailable: workload.isAvailable !== false,
+        matchedSkill: getFacultySkillMatch(facultyMember, skillName),
       };
     })
   );
@@ -142,7 +174,7 @@ const assignFacultyToSubmission = async (
   const availableCandidates = candidatesWithLoad.filter((c) => c.isAvailable);
   const candidates = availableCandidates.length > 0 ? availableCandidates : candidatesWithLoad;
 
-  // 3. Find minimum active review count
+  // 3. Find minimum active review count among skill-matched faculty
   let minLoad = Infinity;
   for (const item of candidates) {
     if (item.load < minLoad) {
@@ -150,13 +182,14 @@ const assignFacultyToSubmission = async (
     }
   }
 
-  // 4. Gather all faculty tied for minimum load (balanced distribution pool)
+  // 4. Gather all skill-matched faculty tied for minimum load (balanced distribution pool)
   const minLoadPool = candidates.filter((item) => item.load === minLoad);
 
-  // 5. Randomly select from the min-load pool for fair tie-breaking
+  // 5. Fair tie-breaking
   const chosenIndex = Math.floor(Math.random() * minLoadPool.length);
   const selected = minLoadPool[chosenIndex];
   const selectedFaculty = selected.faculty;
+  const matchedSkill = selected.matchedSkill || skillName;
   const newWorkload = selected.load + 1;
 
   // 6. Atomically update attempt with faculty assignment and 72-hour SLA deadline
@@ -193,15 +226,16 @@ const assignFacultyToSubmission = async (
 
   // 9. Structured terminal log for initial assignment (reassignment is logged by caller)
   if (!isReassignment) {
-    const reason = minLoadPool.length > 1 ? "LOWEST_WORKLOAD_TIE_BREAK" : "LOWEST_WORKLOAD";
+    const reason = minLoadPool.length > 1 ? "SKILL_MATCH_LOWEST_WORKLOAD_TIE_BREAK" : "SKILL_MATCH_LOWEST_WORKLOAD";
     const facultyEmail = selectedFaculty.email || "NOT_AVAILABLE";
     console.log(
-      `[SKILL_VERIFICATION] event=ASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" facultyId=${selectedFaculty._id} facultyName="${selectedFaculty.name}" facultyEmail="${facultyEmail}" pendingWorkload=${newWorkload} reason=${reason}`
+      `[SKILL_VERIFICATION] event=ASSIGNED requestId=${attemptId} studentId=${studentId} skill="${skillName}" facultyId=${selectedFaculty._id} facultyName="${selectedFaculty.name}" facultyEmail="${facultyEmail}" matchedSkill="${matchedSkill}" pendingWorkload=${newWorkload} reason=${reason}`
     );
   }
 
   return {
     faculty: selectedFaculty,
+    matchedSkill,
     workload: newWorkload,
   };
 };
@@ -559,8 +593,9 @@ export const declineSkillTaskAssignment = asyncHandler(async (req, res) => {
   if (reassignmentResult) {
     const newFaculty = reassignmentResult.faculty;
     const newFacultyEmail = newFaculty.email || "NOT_AVAILABLE";
+    const matchedSkill = reassignmentResult.matchedSkill || attempt.skillName;
     console.log(
-      `[SKILL_VERIFICATION] event=REASSIGNED requestId=${attempt._id} previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" newFacultyId=${newFaculty._id} newFacultyName="${newFaculty.name}" newFacultyEmail="${newFacultyEmail}" pendingWorkload=${reassignmentResult.workload} reason=LOAD_BALANCED`
+      `[SKILL_VERIFICATION] event=REASSIGNED requestId=${attempt._id} skill="${attempt.skillName}" previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" newFacultyId=${newFaculty._id} newFacultyName="${newFaculty.name}" newFacultyEmail="${newFacultyEmail}" matchedSkill="${matchedSkill}" pendingWorkload=${reassignmentResult.workload} reason=SKILL_MATCH_LOAD_BALANCED`
     );
 
     return res.status(200).json(
@@ -576,9 +611,9 @@ export const declineSkillTaskAssignment = asyncHandler(async (req, res) => {
       )
     );
   } else {
-    // No other eligible faculty available
+    // No other eligible faculty with matching skill available
     console.log(
-      `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attempt._id} previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" reason=NO_ELIGIBLE_FACULTY`
+      `[SKILL_VERIFICATION] event=UNASSIGNED requestId=${attempt._id} skill="${attempt.skillName}" previousFacultyId=${previousFacultyId} previousFacultyEmail="${previousFacultyEmail}" reason=NO_ELIGIBLE_FACULTY_WITH_REQUIRED_SKILL`
     );
 
     return res.status(200).json(

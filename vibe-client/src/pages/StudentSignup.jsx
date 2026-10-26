@@ -23,6 +23,8 @@ import {
   CheckCircle2,
   MessageSquare,
   ChevronDown,
+  Plus,
+  X,
 } from 'lucide-react';
 import Button from '../components/Button';
 import {
@@ -70,6 +72,7 @@ const Signup = () => {
     position: '',
     experience: '',
     expertise: '',
+    skills: [],
     // Industry Specific
     companyName: '',
     industryType: '',
@@ -79,6 +82,25 @@ const Signup = () => {
     website: '',
     otp: ''
   });
+
+  const [skillInputValue, setSkillInputValue] = useState('');
+
+  const handleAddFacultySkill = (skillToAdd) => {
+    const skill = (skillToAdd || skillInputValue).trim();
+    if (!skill) return;
+    const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+    if (currentSkills.some(s => s.toLowerCase() === skill.toLowerCase())) {
+      toast.error(`"${skill}" is already added.`);
+      return;
+    }
+    updateFormData({ skills: [...currentSkills, skill] });
+    setSkillInputValue('');
+  };
+
+  const handleRemoveFacultySkill = (skillToRemove) => {
+    const currentSkills = Array.isArray(formData.skills) ? formData.skills : [];
+    updateFormData({ skills: currentSkills.filter(s => s !== skillToRemove) });
+  };
 
   const updateFormData = (fields) => {
     setFormData(prev => ({ ...prev, ...fields }));
@@ -132,6 +154,8 @@ const Signup = () => {
       if (!formData.position.trim()) newErrors.position = 'Position is required';
       if (!formData.experience) newErrors.experience = 'Experience is required';
       if (!formData.expertise.trim()) newErrors.expertise = 'Expertise is required';
+      if (!formData.skills || formData.skills.length === 0) newErrors.skills = 'Please add at least one skill';
+      if (formData.skills && formData.skills.length > 0 && newErrors.skills) delete newErrors.skills;
     } else if (role === 'industry') {
       if (!formData.establishmentYear) newErrors.establishmentYear = 'Establishment year is required';
       if (!formData.location.trim()) newErrors.location = 'Location is required';
@@ -233,7 +257,9 @@ const Signup = () => {
       return formData.collegeName.trim() &&
         formData.position.trim() &&
         formData.experience &&
-        formData.expertise.trim();
+        formData.expertise.trim() &&
+        Array.isArray(formData.skills) &&
+        formData.skills.length > 0;
     }
     if (role === 'industry') {
       const hasRequired = formData.establishmentYear &&
@@ -359,6 +385,7 @@ const Signup = () => {
       position: formData.position,
       experience: formData.experience,
       expertise: formData.expertise,
+      skills: formData.skills || [],
       
       // Industry specific
       companyName: formData.companyName,
@@ -903,6 +930,7 @@ const Signup = () => {
                               position: formData.position,
                               experience: formData.experience,
                               expertise: formData.expertise,
+                              skills: formData.skills || [],
 
                               // Industry specific
                               companyName: formData.companyName,

@@ -50,6 +50,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:"",
     },
+    skills: [
+      {
+        name: {
+          type: String,
+          trim: true,
+        },
+        category: {
+          type: String,
+          default: "Technical",
+        },
+        level: {
+          type: String,
+          default: "Intermediate",
+        },
+        verified: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
     Profile:{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Profile",
