@@ -40,6 +40,7 @@ import {
 import { useToast } from "../Toast";
 import Avatar from "../shared/Avatar";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { isTaskExpired } from "../../utils/taskRelevance";
 import SubmissionModal from "./SubmissionModal";
 
 export const MyTasks = ({
@@ -837,6 +838,7 @@ export const MyTasks = ({
           year: "numeric",
         });
       })(),
+      lastDateToSubmit: formData.deadline,
       status: "Active",
       applicantsCount: editingId
         ? tasks.find((t) => t.id === editingId)?.applicantsCount || 0
@@ -882,6 +884,10 @@ export const MyTasks = ({
         skill.toLowerCase().includes(searchQuery.toLowerCase()),
       ),
   );
+
+  const activeFilteredTasks = filteredTasks.filter((t) => !isTaskExpired(t));
+  const expiredFilteredTasks = filteredTasks.filter((t) => isTaskExpired(t));
+  const orderedFilteredTasks = [...activeFilteredTasks, ...expiredFilteredTasks];
 
   // ----------------------------------------------------------------------------------
   // VIEW: Instruction Preview Modal (Student Perspective)
@@ -1139,119 +1145,160 @@ export const MyTasks = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredTasks.length > 0 ? (
-          filteredTasks.map((task) => (
-            <div
-              key={task.id}
-              className="bg-white rounded-[2rem] p-5 shadow-md border border-slate-100 hover:border-[#8B5CF6] hover:shadow-xl hover:shadow-[#6D3DF5]/10 hover:scale-[1.02] hover:ring-4 hover:ring-[#6D3DF5]/20 transition-all duration-300 flex flex-col h-full group relative overflow-hidden"
-            >
-              {/* Top Row: Badges & Edit */}
-              <div className="flex justify-between items-start mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F3EEFF] text-[#6D3DF5] border border-[#EDE9FE]">
-                  {getCategoryIcon(task.category)}
-                  <span className="text-xs font-bold uppercase tracking-wider">
-                    {task.category}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEditClick(task)}
-                      className="p-1.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-[#F3EEFF] rounded-lg transition-colors"
-                      title="Edit Task"
+        {orderedFilteredTasks.length > 0 ? (
+          orderedFilteredTasks.map((task) => {
+            const isClosed = isTaskExpired(task);
+            return (
+              <div
+                key={task.id}
+                className={`rounded-[2rem] p-5 shadow-md border transition-all duration-300 flex flex-col h-full group relative overflow-hidden ${
+                  isClosed
+                    ? "bg-slate-50/70 border-slate-200/90 shadow-2xs hover:border-slate-300 opacity-85"
+                    : "bg-white border-slate-100 hover:border-[#8B5CF6] hover:shadow-xl hover:shadow-[#6D3DF5]/10 hover:scale-[1.02] hover:ring-4 hover:ring-[#6D3DF5]/20"
+                }`}
+              >
+                {/* Top Row: Badges & Edit */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
+                      isClosed
+                        ? "bg-slate-100 text-slate-600 border-slate-200"
+                        : "bg-[#F3EEFF] text-[#6D3DF5] border-[#EDE9FE]"
+                    }`}>
+                      {getCategoryIcon(task.category)}
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        {task.category}
+                      </span>
+                    </div>
+                    {isClosed && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200">
+                        <Clock size={12} className="text-rose-600" />
+                        <span>Deadline Passed</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditClick(task)}
+                        className="p-1.5 text-slate-400 hover:text-[#6D3DF5] hover:bg-[#F3EEFF] rounded-lg transition-colors cursor-pointer"
+                        title="Edit Task / Extend Deadline"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border ${
+                        isClosed
+                          ? "bg-slate-100 text-slate-600 border-slate-200"
+                          : "bg-blue-50 text-blue-600 border-blue-100"
+                      }`}>
+                        <Globe size={12} />
+                        <span className="text-xs font-bold">{task.type}</span>
+                      </div>
+                    </div>
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                        isClosed
+                          ? "bg-slate-100 text-slate-500 border-slate-200"
+                          : task.payment === "Paid"
+                          ? "bg-green-50 text-green-600 border-green-100"
+                          : "bg-slate-50 text-slate-500 border-slate-200"
+                      }`}
                     >
-                      <Pencil size={14} />
-                    </button>
-                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                      <Globe size={12} />
-                      <span className="text-xs font-bold">{task.type}</span>
+                      {task.payment}
                     </div>
                   </div>
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      task.payment === "Paid"
-                        ? "bg-green-50 text-green-600 border-green-100"
-                        : "bg-slate-50 text-slate-500 border-slate-200"
-                    }`}
-                  >
-                    {task.payment}
+                </div>
+
+                {/* Title (Company Name Removed) */}
+                <div className="mb-3 h-[3.5rem]">
+                  <h3 className={`text-xl font-bold leading-tight mb-2 transition-colors line-clamp-2 ${
+                    isClosed
+                      ? "text-slate-800"
+                      : "text-slate-900 group-hover:text-[#6D3DF5]"
+                  }`}>
+                    {task.title}
+                  </h3>
+                </div>
+
+                {/* Role Info */}
+                <div className="flex items-center gap-3 mb-3">
+                  <Briefcase size={16} className={isClosed ? "text-slate-500 shrink-0" : "text-[#6D3DF5] shrink-0"} />
+                  <span className="text-sm font-bold text-slate-800 truncate">
+                    Role: {task.role}
+                  </span>
+                </div>
+
+                {/* Skills */}
+                <div className="mb-3 h-[2.5rem] overflow-hidden">
+                  <div className="flex flex-wrap gap-2">
+                    {task.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 shadow-sm"
+                      >
+                        {skill}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Title (Company Name Removed) */}
-              <div className="mb-3 h-[3.5rem]">
-                <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-[#6D3DF5] transition-colors line-clamp-2">
-                  {task.title}
-                </h3>
-              </div>
+                {/* Perks (Enhanced UI) */}
+                <div className="mb-3 flex-1">
+                  <div className={`flex items-start gap-2 p-3 bg-gradient-to-br border rounded-xl ${
+                    isClosed
+                      ? "from-slate-100/70 to-transparent border-slate-200/80"
+                      : "from-[#F3EEFF] to-transparent border-[#EDE9FE]"
+                  }`}>
+                    <div className={`p-1.5 rounded-lg shadow-sm shrink-0 ${
+                      isClosed ? "bg-slate-200 text-slate-600" : "bg-white text-[#6D3DF5]"
+                    }`}>
+                      <Award size={14} />
+                    </div>
+                    <div>
+                      <span className={`text-sm font-bold block mb-0.5 ${
+                        isClosed ? "text-slate-700" : "text-[#5B2FD6]"
+                      }`}>
+                        Perks & Benefits
+                      </span>
+                      <p className="text-sm text-slate-600 leading-snug line-clamp-2">
+                        {Array.isArray(task.perks) ? task.perks.join(", ") : task.perks}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Role Info */}
-              <div className="flex items-center gap-3 mb-3">
-                <Briefcase size={16} className="text-[#6D3DF5] shrink-0" />
-                <span className="text-sm font-bold text-slate-800 truncate">
-                  Role: {task.role}
-                </span>
-              </div>
+                {/* Footer: Date & Buttons */}
+                <div className="mt-auto pt-4 border-t border-slate-100">
+                  <div className={`flex items-center gap-2 text-sm font-bold mb-3 ${
+                    isClosed ? "text-rose-600" : "text-[#8B5CF6]"
+                  }`}>
+                    <Calendar size={14} className={isClosed ? "text-rose-600" : ""} />{" "}
+                    <span className={isClosed ? "text-rose-600 font-semibold" : "text-slate-500"}>
+                      {isClosed ? "Deadline Passed: " : ""}Due {task.deadline}
+                    </span>
+                  </div>
 
-              {/* Skills */}
-              <div className="mb-3 h-[2.5rem] overflow-hidden">
-                <div className="flex flex-wrap gap-2">
-                  {task.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 shadow-sm"
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPreviewInstructions(task)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-[#E9E1FF] text-[#6D3DF5] font-bold text-sm hover:bg-[#F3EEFF] transition-colors cursor-pointer"
                     >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Perks (Enhanced UI) */}
-              <div className="mb-3 flex-1">
-                <div className="flex items-start gap-2 p-3 bg-gradient-to-br from-[#F3EEFF] to-transparent border border-[#EDE9FE] rounded-xl">
-                  <div className="p-1.5 bg-white rounded-lg text-[#6D3DF5] shadow-sm shrink-0">
-                    <Award size={14} />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-[#5B2FD6] block mb-0.5">
-                      Perks & Benefits
-                    </span>
-                    <p className="text-sm text-slate-600 leading-snug line-clamp-2">
-                      {Array.isArray(task.perks) ? task.perks.join(", ") : task.perks}
-                    </p>
+                      <FileText size={16} /> Instructions
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTask(task);
+                        setShowApplicantsDrawer(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#6D3DF5] text-white font-bold text-sm hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      Applicants <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* Footer: Date & Buttons */}
-              <div className="mt-auto pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-[#8B5CF6] text-sm font-bold mb-3">
-                  <Calendar size={14} />{" "}
-                  <span className="text-slate-500">Due {task.deadline}</span>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setPreviewInstructions(task)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-[#E9E1FF] text-[#6D3DF5] font-bold text-sm hover:bg-[#F3EEFF] transition-colors"
-                  >
-                    <FileText size={16} /> Instructions
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveTask(task);
-                      setShowApplicantsDrawer(true);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#6D3DF5] text-white font-bold text-sm hover:bg-[#5B2FD6] shadow-lg shadow-[#6D3DF5]/20 transition-all active:scale-[0.98]"
-                  >
-                    Applicants <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="col-span-full py-20 text-center flex flex-col items-center justify-center opacity-70 animate-in fade-in zoom-in-95 duration-300">
             <div className="w-20 h-20 bg-[#F3EEFF] rounded-full flex items-center justify-center mb-4">

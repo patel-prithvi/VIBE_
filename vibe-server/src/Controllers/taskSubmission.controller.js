@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { sendZohoEmail } from "../services/zohoMail.js";
 import { notify } from "../services/notify.js";
 import { User } from "../models/Users.js";
+import { isTaskExpired } from "../utils/taskExpiry.js";
 
 // Get all tasks
 export const getAllTasks = asyncHandler(async (req, res) => {
@@ -60,6 +61,14 @@ export const createSubmission = asyncHandler(async (req, res) => {
   const task = await TaskMania.findById(taskId);
   if (!task) {
     throw new ApiError(404, "Task not found");
+  }
+
+  // Enforce server-side deadline restriction for new submissions
+  if (isTaskExpired(task)) {
+    throw new ApiError(
+      400,
+      "This task's submission deadline has passed. New applications and submissions are closed."
+    );
   }
 
   let submission = await TaskSubmission.findOne({ taskId, createdBy: req.user.id });
@@ -288,6 +297,14 @@ export const applyForTask = asyncHandler(async (req, res) => {
   const task = await TaskMania.findById(taskId);
   if (!task) {
     throw new ApiError(404, "Task not found");
+  }
+
+  // Enforce server-side deadline restriction for new submissions
+  if (isTaskExpired(task)) {
+    throw new ApiError(
+      400,
+      "This task's submission deadline has passed. New applications and submissions are closed."
+    );
   }
 
   const existing = await TaskSubmission.findOne({ taskId, createdBy: req.user.id });

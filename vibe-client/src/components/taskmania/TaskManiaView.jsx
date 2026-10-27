@@ -9,7 +9,12 @@ import { MentorRequestModal } from './MentorRequestModal';
 import api from '../../services/api';
 import { useToast } from '../Toast';
 import { useSmartPolling } from '../../hooks/useSmartPolling';
-import { orderTasksWithFallback, sortTasksByRelevance } from '../../utils/taskRelevance';
+import {
+  orderTasksWithFallback,
+  sortTasksByRelevance,
+  getTaskDeadlineTs,
+  isTaskExpired,
+} from '../../utils/taskRelevance';
 
 export const TaskManiaView = ({
   bookmarkedTaskIds: propBookmarkedTaskIds,
@@ -195,7 +200,9 @@ export const TaskManiaView = ({
           mode: task.location || 'Remote',
           paid: task.packageRange !== 'Unpaid',
           deadline: new Date(task.lastDateToSubmit).toLocaleDateString(),
-          deadlineTs: new Date(task.lastDateToSubmit).getTime(),
+          deadlineTs: getTaskDeadlineTs(task),
+          isExpired: isTaskExpired(task),
+          lastDateToSubmit: task.lastDateToSubmit,
           tags: task.skillsRequired || [],
           perks: (task.perks && task.perks.trim())
             ? task.perks.split(',').map((p) => p.trim()).filter(Boolean)
@@ -279,6 +286,13 @@ export const TaskManiaView = ({
 
       if (fromIndex === -1 || toIndex === -1) return prevTasks;
 
+      const fromTask = prevTasks[fromIndex];
+      const toTask = prevTasks[toIndex];
+      if (isTaskExpired(fromTask) !== isTaskExpired(toTask)) {
+        // Prevent moving active tasks into expired section or vice versa
+        return prevTasks;
+      }
+
       const updated = Array.from(prevTasks);
       const [movedItem] = updated.splice(fromIndex, 1);
       updated.splice(toIndex, 0, movedItem);
@@ -351,6 +365,11 @@ export const TaskManiaView = ({
   const handleApplyDirect = async (task) => {
     const tId = task.id || task._id;
     if (!tId) return;
+
+    if (isTaskExpired(task)) {
+      toast.error("This task's submission deadline has passed. New applications and submissions are closed.");
+      return;
+    }
 
     try {
       setApplyingTaskId(tId);
@@ -440,7 +459,7 @@ export const TaskManiaView = ({
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5 mt-3 sm:mt-3.5">
           <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5">
             <p className="text-base sm:text-xl font-black text-[#172554] tracking-tight leading-none">
-              {tasks.filter((t) => !(typeof t.deadlineTs === 'number' && Date.now() > t.deadlineTs)).length}
+              {tasks.filter((t) => !isTaskExpired(t)).length}
             </p>
             <p className="text-[10px] sm:text-xs text-[#64748B] font-semibold mt-1">
               Active Tasks

@@ -65,7 +65,8 @@ export const MobileBottomNav = ({
       {/* Fixed Bottom Navigation Bar (Mobile only, hidden on md and up) */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-[#E2E8F0] shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] select-none"
+        style={{ backgroundColor: "#FFFFFF", opacity: 1 }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF] border-t border-[#E2E8F0] shadow-[0_-4px_20px_rgba(15,23,42,0.06)] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] select-none"
       >
         <div className="grid grid-cols-5 items-center justify-around h-16 px-1.5 max-w-lg mx-auto">
           {/* Tab 1: Home */}
@@ -73,13 +74,17 @@ export const MobileBottomNav = ({
             type="button"
             onClick={() => handleTabClick(role === "industry" ? "overview" : "home")}
             aria-label="Home Feed"
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
               isHomeActive
                 ? "text-[#6D3DF5] font-bold"
-                : "text-[#64748B] hover:text-[#0F172A]"
+                : "text-[#64748B] hover:text-[#0F172A] font-medium"
             }`}
           >
-            <Home size={20} strokeWidth={isHomeActive ? 2.5 : 2} />
+            <Home
+              size={20}
+              strokeWidth={isHomeActive ? 2.5 : 2}
+              className={isHomeActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+            />
             <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
               Home
             </span>
@@ -91,13 +96,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("tasks")}
               aria-label="My Tasks"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isTasksActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <Briefcase size={20} strokeWidth={isTasksActive ? 2.5 : 2} />
+              <Briefcase
+                size={20}
+                strokeWidth={isTasksActive ? 2.5 : 2}
+                className={isTasksActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 My Tasks
               </span>
@@ -107,13 +116,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("mentorship")}
               aria-label="Mentorship"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isMentorshipActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <Users size={20} strokeWidth={isMentorshipActive ? 2.5 : 2} />
+              <Users
+                size={20}
+                strokeWidth={isMentorshipActive ? 2.5 : 2}
+                className={isMentorshipActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 {role === "faculty" ? "Requests" : "Mentors"}
               </span>
@@ -126,13 +139,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("community")}
               aria-label="Community"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isCommunityActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <Users size={20} strokeWidth={isCommunityActive ? 2.5 : 2} />
+              <Users
+                size={20}
+                strokeWidth={isCommunityActive ? 2.5 : 2}
+                className={isCommunityActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 Community
               </span>
@@ -142,13 +159,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("cv-analysis")}
               aria-label="CV Analysis"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isCvActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <FileText size={20} strokeWidth={isCvActive ? 2.5 : 2} />
+              <FileText
+                size={20}
+                strokeWidth={isCvActive ? 2.5 : 2}
+                className={isCvActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 Virtual CV
               </span>
@@ -158,13 +179,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("bookmarks")}
               aria-label="Bookmarks"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isBookmarksActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <Bookmark size={20} strokeWidth={isBookmarksActive ? 2.5 : 2} />
+              <Bookmark
+                size={20}
+                strokeWidth={isBookmarksActive ? 2.5 : 2}
+                className={isBookmarksActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 Bookmarks
               </span>
@@ -177,13 +202,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("profile")}
               aria-label="My Profile"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isProfileActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <User size={20} strokeWidth={isProfileActive ? 2.5 : 2} />
+              <User
+                size={20}
+                strokeWidth={isProfileActive ? 2.5 : 2}
+                className={isProfileActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 Profile
               </span>
@@ -193,13 +222,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("taskmania")}
               aria-label="TaskMania"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isTaskManiaActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <Briefcase size={20} strokeWidth={isTaskManiaActive ? 2.5 : 2} />
+              <Briefcase
+                size={20}
+                strokeWidth={isTaskManiaActive ? 2.5 : 2}
+                className={isTaskManiaActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 TaskMania
               </span>
@@ -209,13 +242,17 @@ export const MobileBottomNav = ({
               type="button"
               onClick={() => handleTabClick("profile")}
               aria-label="My Profile"
-              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
                 isProfileActive
                   ? "text-[#6D3DF5] font-bold"
-                  : "text-[#64748B] hover:text-[#0F172A]"
+                  : "text-[#64748B] hover:text-[#0F172A] font-medium"
               }`}
             >
-              <User size={20} strokeWidth={isProfileActive ? 2.5 : 2} />
+              <User
+                size={20}
+                strokeWidth={isProfileActive ? 2.5 : 2}
+                className={isProfileActive ? "text-[#6D3DF5]" : "text-[#64748B]"}
+              />
               <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
                 Profile
               </span>
@@ -228,15 +265,16 @@ export const MobileBottomNav = ({
             onClick={() => setIsMoreOpen(!isMoreOpen)}
             aria-label={isMoreOpen ? "Close menu" : "Open more options"}
             aria-expanded={isMoreOpen}
-            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors cursor-pointer select-none ${
               isMoreActive || isMoreOpen
                 ? "text-[#6D3DF5] font-bold"
-                : "text-[#64748B] hover:text-[#0F172A]"
+                : "text-[#64748B] hover:text-[#0F172A] font-medium"
             }`}
           >
             <MoreHorizontal
               size={20}
               strokeWidth={isMoreActive || isMoreOpen ? 2.5 : 2}
+              className={isMoreActive || isMoreOpen ? "text-[#6D3DF5]" : "text-[#64748B]"}
             />
             <span className="text-[10px] mt-1 tracking-tight truncate max-w-[58px]">
               More
@@ -256,7 +294,12 @@ export const MobileBottomNav = ({
           />
 
           {/* Drawer Sheet */}
-          <div role="dialog" aria-modal="true" className="relative bg-white rounded-t-3xl border-t border-[#E2E8F0] shadow-2xl p-5 z-10 pb-[max(2rem,env(safe-area-inset-bottom,16px))] space-y-4 animate-in slide-in-from-bottom duration-200 overscroll-contain">
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{ backgroundColor: "#FFFFFF", opacity: 1 }}
+            className="relative bg-white rounded-t-3xl border-t border-[#E2E8F0] shadow-2xl p-5 z-10 pb-[max(2rem,env(safe-area-inset-bottom,16px))] space-y-4 animate-in slide-in-from-bottom duration-200 overscroll-contain"
+          >
             {/* Grab Handle */}
             <div className="w-12 h-1.5 bg-[#E2E8F0] rounded-full mx-auto" />
 

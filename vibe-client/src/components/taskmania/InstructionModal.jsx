@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { isTaskExpired } from "../../utils/taskRelevance";
 
 export const InstructionModal = ({
   isOpen,
@@ -54,7 +55,7 @@ export const InstructionModal = ({
 
   const instructionsList = getInstructionsList();
   const hasMaterials = Array.isArray(task.materials) && task.materials.length > 0;
-  const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
+  const isClosed = isTaskExpired(task);
 
   return (
     <AnimatePresence>
@@ -123,6 +124,18 @@ export const InstructionModal = ({
 
           {/* Body Content */}
           <div className="p-6 md:p-8 overflow-y-auto space-y-6">
+            {/* Deadline Passed Notice */}
+            {isClosed && (
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 leading-relaxed">
+                <Clock size={18} className="text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-xs uppercase tracking-wider text-rose-900">Deadline Passed</p>
+                  <p className="text-xs text-rose-700 mt-0.5 font-medium">
+                    This task's submission deadline has passed. New applications and submissions are closed.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Overview Section */}
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] mb-2.5">
@@ -212,9 +225,9 @@ export const InstructionModal = ({
               {isClosed ? (
                 <button
                   disabled
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200 cursor-not-allowed"
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold border cursor-not-allowed ${isSolutionSubmitted ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}
                 >
-                  Submissions Closed
+                  {isSolutionSubmitted ? "Solution Submitted" : isAccepted ? "Submission Closed" : "Application Closed"}
                 </button>
               ) : isSolutionSubmitted ? (
                 <button

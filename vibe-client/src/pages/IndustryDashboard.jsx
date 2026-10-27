@@ -12,6 +12,7 @@ import { SettingsView } from '../components/settings/SettingsView';
 import { StudentBookmarksView } from '../components/student/StudentBookmarksView';
 import { MobileBottomNav } from '../components/shared/MobileBottomNav';
 import { auth } from '../utils/auth';
+import { isTaskExpired } from '../utils/taskRelevance';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
 
@@ -123,11 +124,8 @@ const IndustryDashboard = () => {
 
   const processTasksAndApplicants = (taskList) => {
     const mappedTasks = (taskList || []).map((task) => {
-      const deadlineDate = new Date(task.lastDateToSubmit);
-      const isPast =
-        !isNaN(deadlineDate.getTime()) &&
-        deadlineDate.setHours(23, 59, 59, 999) < Date.now();
-      const taskStatus = isPast ? "Closed" : "Active";
+      const isExpired = isTaskExpired(task);
+      const taskStatus = isExpired ? "Closed" : "Active";
 
       const creatorId = String(task.createdBy?._id || task.createdBy || "");
       const validSubmissions = (task.submissions || []).filter((sub) => {
@@ -167,6 +165,8 @@ const IndustryDashboard = () => {
           year: "numeric",
         }),
         deadlineRaw: task.lastDateToSubmit,
+        lastDateToSubmit: task.lastDateToSubmit,
+        isExpired: isExpired,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         status: taskStatus,
@@ -277,7 +277,11 @@ const IndustryDashboard = () => {
         });
     });
 
-    return { mappedTasks, allApplicants };
+    const activeTasks = mappedTasks.filter((t) => !t.isExpired);
+    const expiredTasks = mappedTasks.filter((t) => t.isExpired);
+    const sortedMappedTasks = [...activeTasks, ...expiredTasks];
+
+    return { mappedTasks: sortedMappedTasks, allApplicants };
   };
 
   const fetchData = useCallback(async () => {
