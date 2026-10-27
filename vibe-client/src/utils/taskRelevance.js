@@ -158,10 +158,45 @@ export const normalizeSkill = (raw) => {
 };
 
 /**
+ * Normalizes and extracts task deadline timestamp in milliseconds.
+ * If date-only string or stored as midnight UTC, preserves full day until 23:59:59.999.
+ */
+export const getTaskDeadlineTs = (task) => {
+  if (!task) return Infinity;
+  const rawDate = task.lastDateToSubmit || task.deadlineRaw || task.deadline;
+  if (!rawDate) return Infinity;
+
+  const d = new Date(rawDate);
+  if (isNaN(d.getTime())) return Infinity;
+
+  const isMidnight =
+    (typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate.trim())) ||
+    (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0);
+
+  if (isMidnight) {
+    const endOfDay = new Date(d);
+    endOfDay.setHours(23, 59, 59, 999);
+    return endOfDay.getTime();
+  }
+
+  return d.getTime();
+};
+
+/**
+ * Checks whether a task's deadline has passed.
+ */
+export const isTaskExpired = (task) => {
+  const ts = getTaskDeadlineTs(task);
+  if (ts === Infinity) return false;
+  return Date.now() > ts;
+};
+
+/**
  * Deterministically sorts a task list in a single continuous feed:
- * 1. Strong matches (score DESC)
- * 2. Partial matches (score DESC)
- * 3. All remaining eligible tasks (zero score)
+ * 1. Active tasks appear first, expired tasks appear last.
+ * 2. Strong matches (score DESC)
+ * 3. Partial matches (score DESC)
+ * 4. All remaining eligible tasks (zero score)
  * 
  * Ties resolved by:
  * - Matched skills count DESC
@@ -171,9 +206,13 @@ export const normalizeSkill = (raw) => {
 export const sortTasksByRelevance = (taskList) => {
   if (!Array.isArray(taskList)) return [];
 
-  const now = Date.now();
-
   return [...taskList].sort((a, b) => {
+    // 0. Active, non-expired tasks must always appear before expired tasks
+    const isAExpired = isTaskExpired(a);
+    const isBExpired = isTaskExpired(b);
+    if (!isAExpired && isBExpired) return -1;
+    if (isAExpired && !isBExpired) return 1;
+
     const scoreA = typeof a.matchScore === "number" ? a.matchScore : 0;
     const scoreB = typeof b.matchScore === "number" ? b.matchScore : 0;
 
@@ -189,26 +228,12 @@ export const sortTasksByRelevance = (taskList) => {
       return countB - countA;
     }
 
-    // 3. Upcoming deadline for active tasks
-    const tsA = typeof a.deadlineTs === "number"
-      ? a.deadlineTs
-      : a.lastDateToSubmit
-      ? new Date(a.lastDateToSubmit).getTime()
-      : Infinity;
-    const tsB = typeof b.deadlineTs === "number"
-      ? b.deadlineTs
-      : b.lastDateToSubmit
-      ? new Date(b.lastDateToSubmit).getTime()
-      : Infinity;
+    // 3. Upcoming deadline for tasks
+    const tsA = getTaskDeadlineTs(a);
+    const tsB = getTaskDeadlineTs(b);
 
-    const isAActive = tsA >= now;
-    const isBActive = tsB >= now;
-
-    if (isAActive && !isBActive) return -1;
-    if (!isAActive && isBActive) return 1;
-
-    if (isAActive && isBActive && tsA !== tsB) {
-      return tsA - tsB; // Sooner active deadline ranks higher
+    if (tsA !== tsB) {
+      return tsA - tsB; // Sooner deadline ranks higher
     }
 
     // 4. Stable ID tie-breaker
@@ -220,49 +245,62 @@ export const sortTasksByRelevance = (taskList) => {
 
 /**
  * Combines student's manually saved order with skill-based recommendation:
- * - If manualOrderIds is provided and non-empty:
- *   - Explicitly prioritized tasks maintain their exact order.
- *   - Any new or unranked tasks are sorted by skill relevance and placed seamlessly after.
- * - If manualOrderIds is empty or null:
- *   - All tasks are sorted purely by skill relevance.
+ * Strict rule:
+ * 1. Active, non-expired tasks appear first.
+ * 2. Expired tasks appear after all active tasks.
+ * 3. Within each group, student's saved manual order is strictly preserved.
+ * 4. Any unranked tasks are sorted by skill relevance and placed seamlessly after.
  */
 export const orderTasksWithFallback = (taskList, manualOrderIds = []) => {
   if (!Array.isArray(taskList)) return [];
 
-  if (!Array.isArray(manualOrderIds) || manualOrderIds.length === 0) {
-    return sortTasksByRelevance(taskList);
-  }
+  // Partition into active and expired groups
+  const activeTasks = taskList.filter((t) => !isTaskExpired(t));
+  const expiredTasks = taskList.filter((t) => isTaskExpired(t));
 
-  const orderMap = new Map();
-  manualOrderIds.forEach((id, idx) => {
-    orderMap.set(String(id), idx);
-  });
-
-  const explicitlyOrdered = [];
-  const unranked = [];
-
-  taskList.forEach((task) => {
-    const taskId = String(task.id || task._id);
-    if (orderMap.has(taskId)) {
-      explicitlyOrdered.push(task);
-    } else {
-      unranked.push(task);
+  const sortGroup = (group) => {
+    if (!Array.isArray(group) || group.length === 0) return [];
+    if (!Array.isArray(manualOrderIds) || manualOrderIds.length === 0) {
+      return sortTasksByRelevance(group);
     }
-  });
 
-  explicitlyOrdered.sort((a, b) => {
-    const idA = String(a.id || a._id);
-    const idB = String(b.id || b._id);
-    return orderMap.get(idA) - orderMap.get(idB);
-  });
+    const orderMap = new Map();
+    manualOrderIds.forEach((id, idx) => {
+      orderMap.set(String(id), idx);
+    });
 
-  const sortedUnranked = sortTasksByRelevance(unranked);
+    const explicitlyOrdered = [];
+    const unranked = [];
 
-  return [...explicitlyOrdered, ...sortedUnranked];
+    group.forEach((task) => {
+      const taskId = String(task.id || task._id);
+      if (orderMap.has(taskId)) {
+        explicitlyOrdered.push(task);
+      } else {
+        unranked.push(task);
+      }
+    });
+
+    explicitlyOrdered.sort((a, b) => {
+      const idA = String(a.id || a._id);
+      const idB = String(b.id || b._id);
+      return orderMap.get(idA) - orderMap.get(idB);
+    });
+
+    const sortedUnranked = sortTasksByRelevance(unranked);
+    return [...explicitlyOrdered, ...sortedUnranked];
+  };
+
+  const orderedActive = sortGroup(activeTasks);
+  const orderedExpired = sortGroup(expiredTasks);
+
+  return [...orderedActive, ...orderedExpired];
 };
 
 export default {
   normalizeSkill,
+  getTaskDeadlineTs,
+  isTaskExpired,
   sortTasksByRelevance,
   orderTasksWithFallback,
 };

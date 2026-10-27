@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Loader2, Github, AlertTriangle, Youtube, HardDrive, Link as LinkIcon, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../Toast';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { isTaskExpired } from '../../utils/taskRelevance';
 
 export const ApplicationFormModal = ({
   isOpen,
@@ -113,8 +114,8 @@ export const ApplicationFormModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!task) return;
-    if (typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs) {
-      toast.error("This task is closed. The deadline has passed.");
+    if (isTaskExpired(task)) {
+      toast.error("This task's submission deadline has passed. New applications and submissions are closed.");
       return;
     }
 

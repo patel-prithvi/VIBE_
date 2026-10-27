@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { CATEGORY_ICONS } from "../constants";
 import { auth } from "../../utils/auth";
+import { isTaskExpired } from "../../utils/taskRelevance";
 
 export const TaskCard = ({
   task,
@@ -45,7 +46,7 @@ export const TaskCard = ({
   onMoveTask,
 }) => {
   const navigate = useNavigate();
-  const isClosed = typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
+  const isClosed = isTaskExpired(task);
   const taskId = task.id || task._id;
   const currentUser = auth.getCurrentUser();
   const rawRole = String(currentUser?.role || currentUser?.accountType || "").trim().toLowerCase();
@@ -73,16 +74,20 @@ export const TaskCard = ({
       onDrop={(e) => {
         if (onDrop) onDrop(e, task);
       }}
-      className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all relative overflow-hidden group flex flex-col h-full cursor-pointer ${
+      className={`rounded-2xl p-4 sm:p-5 border transition-all relative overflow-hidden group flex flex-col h-full cursor-pointer ${
         isDragging
           ? "opacity-35 scale-[0.98] border-dashed border-[#6D3DF5] shadow-lg bg-[#FAF7FF]"
           : isDropTarget
           ? "border-2 border-[#6D3DF5] ring-4 ring-[#6D3DF5]/15 shadow-md bg-[#FAF7FF]"
-          : "border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm"
+          : isClosed
+          ? "bg-slate-50/80 border-slate-200/90 hover:border-slate-300 shadow-2xs opacity-85"
+          : "bg-white border-[#E2E8F0] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm"
       }`}
     >
       {/* Decorative Gradient Blob */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#F3EEFF] rounded-full blur-2xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0 pointer-events-none" />
+      {!isClosed && (
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#F3EEFF] rounded-full blur-2xl group-hover:bg-[#EDE9FE] transition-colors duration-500 z-0 pointer-events-none" />
+      )}
 
       <div className="relative z-10 flex-1 flex flex-col">
         {/* Top Badges Row */}
@@ -131,7 +136,11 @@ export const TaskCard = ({
             )}
 
             {/* Category Badge */}
-            <div className="flex items-center gap-1.5 text-[#6D3DF5] bg-[#F3EEFF] px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border border-[#E9E1FF] shrink-0">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border shrink-0 ${
+              isClosed
+                ? "text-slate-600 bg-slate-100 border-slate-200"
+                : "text-[#6D3DF5] bg-[#F3EEFF] border-[#E9E1FF]"
+            }`}>
               {CATEGORY_ICONS[task.category] || <Briefcase size={11} />}
               <span className="truncate">{task.category || "Development"}</span>
             </div>
@@ -139,8 +148,20 @@ export const TaskCard = ({
 
           {/* Status & Meta Badges + Bookmark */}
           <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {/* Deadline Passed Badge */}
+            {isClosed && (
+              <span className="inline-flex items-center gap-1 text-rose-700 text-[11px] font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                <Clock size={11} className="text-rose-600" />
+                <span>Deadline Passed</span>
+              </span>
+            )}
+
             {/* Mode Badge */}
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-[#F3EEFF] text-[#6D3DF5] border-[#E9E1FF]">
+            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+              isClosed
+                ? "bg-slate-100 text-slate-600 border-slate-200"
+                : "bg-[#F3EEFF] text-[#6D3DF5] border-[#E9E1FF]"
+            }`}>
               {task.mode === "Remote" ? (
                 <Globe size={11} />
               ) : (
@@ -152,7 +173,9 @@ export const TaskCard = ({
             {/* Paid Badge */}
             <span
               className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                task.paid
+                isClosed
+                  ? "bg-slate-100 text-slate-500 border-slate-200"
+                  : task.paid
                   ? "bg-green-50 text-green-700 border-green-100"
                   : "bg-gray-50 text-gray-600 border-gray-100"
               }`}
@@ -257,9 +280,13 @@ export const TaskCard = ({
       <div className="border-t border-gray-100 pt-3 mt-auto">
         {/* Deadline */}
         <div className="flex items-center justify-between mb-2.5">
-          <div className="inline-flex items-center text-gray-500 text-[11px] font-medium bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-            <Calendar size={12} className="mr-1 text-[#94A3B8]" />
-            <span>Due {task.deadline}</span>
+          <div className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded border ${
+            isClosed
+              ? "text-rose-700 bg-rose-50 border-rose-200 font-semibold"
+              : "text-gray-500 bg-gray-50 border-gray-100"
+          }`}>
+            <Calendar size={12} className={`mr-1 ${isClosed ? "text-rose-600" : "text-[#94A3B8]"}`} />
+            <span>{isClosed ? "Deadline Passed: " : ""}Due {task.deadline}</span>
           </div>
         </div>
 
@@ -275,7 +302,11 @@ export const TaskCard = ({
                 navigate(`/tasks/${taskId}`);
               }
             }}
-            className="h-9 px-2 text-xs font-semibold text-[#6D3DF5] bg-white border border-[#E9E1FF] rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer shadow-2xs"
+            className={`h-9 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn cursor-pointer shadow-2xs ${
+              isClosed
+                ? "text-slate-700 bg-white border border-slate-200 hover:bg-slate-100"
+                : "text-[#6D3DF5] bg-white border border-[#E9E1FF] hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            }`}
           >
             <FileText
               size={14}
@@ -292,7 +323,11 @@ export const TaskCard = ({
                 onOpenMentorRequest(task);
               }
             }}
-            className="h-9 px-2 text-xs font-semibold text-[#6D3DF5] bg-white border border-[#E9E1FF] rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5] cursor-pointer shadow-2xs"
+            className={`h-9 px-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 group/btn cursor-pointer shadow-2xs ${
+              isClosed
+                ? "text-slate-700 bg-white border border-slate-200 hover:bg-slate-100"
+                : "text-[#6D3DF5] bg-white border border-[#E9E1FF] hover:bg-[#6D3DF5] hover:text-white hover:border-[#6D3DF5]"
+            }`}
           >
             <UserPlus
               size={14}
@@ -305,15 +340,37 @@ export const TaskCard = ({
         {/* Main CTA */}
         <div className="grid grid-cols-1">
           {isClosed ? (
-            <button
-              disabled
-              type="button"
-              onClick={(e) => e.stopPropagation()}
-              className="h-9 px-3 text-xs font-semibold text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-gray-200"
-            >
-              <Lock size={14} />
-              <span>Closed</span>
-            </button>
+            isSolutionSubmitted ? (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-emerald-200"
+              >
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <span>Solution Submitted</span>
+              </button>
+            ) : isAccepted ? (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200"
+              >
+                <Lock size={14} className="text-slate-400" />
+                <span>Submission Closed</span>
+              </button>
+            ) : (
+              <button
+                disabled
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-9 px-3 text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200"
+              >
+                <Lock size={14} className="text-slate-400" />
+                <span>Application Closed</span>
+              </button>
+            )
           ) : isSolutionSubmitted ? (
             <button
               disabled

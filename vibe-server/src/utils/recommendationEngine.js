@@ -5,6 +5,8 @@
  * explainable multi-signal relevance scoring, and deterministic task ranking.
  */
 
+import { isTaskExpired } from "./taskExpiry.js";
+
 // Canonical alias dictionary for developer tools, languages, and frameworks
 const SKILL_ALIASES = {
   // Languages
@@ -384,9 +386,13 @@ export const scoreTaskForStudent = (task, studentSkills, studentInterests) => {
 export const sortTasksByRelevance = (taskList) => {
   if (!Array.isArray(taskList)) return [];
 
-  const now = Date.now();
-
   return [...taskList].sort((a, b) => {
+    // 0. Active, non-expired tasks must always appear before expired tasks
+    const isAExpired = isTaskExpired(a);
+    const isBExpired = isTaskExpired(b);
+    if (!isAExpired && isBExpired) return -1;
+    if (isAExpired && !isBExpired) return 1;
+
     const scoreA = typeof a.matchScore === "number" ? a.matchScore : 0;
     const scoreB = typeof b.matchScore === "number" ? b.matchScore : 0;
 
@@ -402,7 +408,7 @@ export const sortTasksByRelevance = (taskList) => {
       return countB - countA;
     }
 
-    // 3. Upcoming deadline for active tasks
+    // 3. Upcoming deadline for tasks
     const tsA = typeof a.deadlineTs === "number"
       ? a.deadlineTs
       : a.lastDateToSubmit
@@ -414,14 +420,8 @@ export const sortTasksByRelevance = (taskList) => {
       ? new Date(b.lastDateToSubmit).getTime()
       : Infinity;
 
-    const isAActive = tsA >= now;
-    const isBActive = tsB >= now;
-
-    if (isAActive && !isBActive) return -1;
-    if (!isAActive && isBActive) return 1;
-
-    if (isAActive && isBActive && tsA !== tsB) {
-      return tsA - tsB; // Sooner active deadline ranks higher
+    if (tsA !== tsB) {
+      return tsA - tsB; // Sooner deadline ranks higher
     }
 
     // 4. Stable ID tie-breaker
@@ -434,16 +434,11 @@ export const sortTasksByRelevance = (taskList) => {
 /**
  * Ranks all eligible tasks for a student.
  * 
- * Conflict Resolution with Manual Priority Ordering:
- * If the student has saved a manual order (`manualOrderIds` is non-empty):
- * - Tasks explicitly ordered in `manualOrderIds` preserve their exact manual position.
- * - Any newly published or unranked tasks not in `manualOrderIds` are scored and sorted by relevance.
- * 
- * If `manualOrderIds` is empty or not provided:
- * - All tasks are ranked purely by skill recommendation:
- *   1. Best matching tasks
- *   2. Partial matching tasks
- *   3. All remaining eligible tasks
+ * Strict Ordering Rule:
+ * 1. Active, non-expired tasks appear first.
+ * 2. Expired tasks appear after all active tasks.
+ * 3. Preserves student's saved manual ordering within active and expired groups.
+ * 4. Preserves recommendation relevance ranking within each group.
  */
 export const rankTasksForStudent = (tasks, user, profile, manualOrderIds = null) => {
   if (!Array.isArray(tasks) || tasks.length === 0) return [];
@@ -461,40 +456,48 @@ export const rankTasksForStudent = (tasks, user, profile, manualOrderIds = null)
     };
   });
 
-  // If user has a saved manual order
-  if (Array.isArray(manualOrderIds) && manualOrderIds.length > 0) {
-    const orderMap = new Map();
-    manualOrderIds.forEach((id, idx) => {
-      orderMap.set(String(id), idx);
-    });
+  // Strict separation: Active tasks must always appear before expired tasks
+  const activeScored = scoredTasks.filter((t) => !isTaskExpired(t));
+  const expiredScored = scoredTasks.filter((t) => isTaskExpired(t));
 
-    const explicitlyOrdered = [];
-    const unranked = [];
+  const rankGroup = (group) => {
+    if (!Array.isArray(group) || group.length === 0) return [];
 
-    scoredTasks.forEach((task) => {
-      const taskId = String(task.id || task._id);
-      if (orderMap.has(taskId)) {
-        explicitlyOrdered.push(task);
-      } else {
-        unranked.push(task);
-      }
-    });
+    if (Array.isArray(manualOrderIds) && manualOrderIds.length > 0) {
+      const orderMap = new Map();
+      manualOrderIds.forEach((id, idx) => {
+        orderMap.set(String(id), idx);
+      });
 
-    // Sort explicitly ordered tasks by saved index
-    explicitlyOrdered.sort((a, b) => {
-      const idA = String(a.id || a._id);
-      const idB = String(b.id || b._id);
-      return orderMap.get(idA) - orderMap.get(idB);
-    });
+      const explicitlyOrdered = [];
+      const unranked = [];
 
-    // Sort unranked tasks by skill relevance
-    const sortedUnranked = sortTasksByRelevance(unranked);
+      group.forEach((task) => {
+        const taskId = String(task.id || task._id);
+        if (orderMap.has(taskId)) {
+          explicitlyOrdered.push(task);
+        } else {
+          unranked.push(task);
+        }
+      });
 
-    return [...explicitlyOrdered, ...sortedUnranked];
-  }
+      explicitlyOrdered.sort((a, b) => {
+        const idA = String(a.id || a._id);
+        const idB = String(b.id || b._id);
+        return orderMap.get(idA) - orderMap.get(idB);
+      });
 
-  // Pure skills-first ordering
-  return sortTasksByRelevance(scoredTasks);
+      const sortedUnranked = sortTasksByRelevance(unranked);
+      return [...explicitlyOrdered, ...sortedUnranked];
+    }
+
+    return sortTasksByRelevance(group);
+  };
+
+  const rankedActive = rankGroup(activeScored);
+  const rankedExpired = rankGroup(expiredScored);
+
+  return [...rankedActive, ...rankedExpired];
 };
 
 export default {

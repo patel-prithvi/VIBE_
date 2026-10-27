@@ -38,6 +38,7 @@ import {
 import Avatar from "../components/shared/Avatar";
 import { useScrollLock } from "../hooks/useScrollLock";
 import { auth } from "../utils/auth";
+import { isTaskExpired } from "../utils/taskRelevance";
 import SubmissionModal from "../components/industry/SubmissionModal";
 import api from "../services/api";
 import { useToast } from "../components/Toast";
@@ -468,6 +469,10 @@ export const TaskDetailsPage = () => {
 
   const handleAcceptTask = async () => {
     if (!taskId) return;
+    if (task && isTaskExpired(task)) {
+      toast.error("This task's submission deadline has passed. New applications and submissions are closed.");
+      return;
+    }
     try {
       setAcceptingTask(true);
       const res = await api.post(`/submissions/apply/${taskId}`);
@@ -514,7 +519,7 @@ export const TaskDetailsPage = () => {
     }
   };
 
-  const isClosed = task && typeof task.deadlineTs === "number" && Date.now() > task.deadlineTs;
+  const isClosed = task && isTaskExpired(task);
   const isTaskCreator =
     task &&
     currentUser &&
@@ -722,8 +727,9 @@ export const TaskDetailsPage = () => {
 
                   {/* Status Pill */}
                   {isClosed ? (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                      Closed
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                      <Clock size={11} className="text-rose-600" />
+                      <span>Deadline Passed</span>
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -735,6 +741,19 @@ export const TaskDetailsPage = () => {
                 <h1 className="text-2xl md:text-3xl font-extrabold text-[#0F172A] tracking-tight leading-tight mb-4">
                   {task.title}
                 </h1>
+
+                {/* Deadline Passed Notice */}
+                {isClosed && (
+                  <div className="mb-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3">
+                    <Clock size={20} className="text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-bold text-rose-900">Deadline Passed</h4>
+                      <p className="text-xs text-rose-700 mt-0.5 font-medium">
+                        This task's submission deadline has passed. New applications and submissions are closed.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Company Link and Metadata */}
                 <div className="flex flex-wrap items-center gap-4 pt-2 pb-6 border-b border-[#F1F5F9]">
@@ -1116,7 +1135,7 @@ export const TaskDetailsPage = () => {
                       isClosed ? (
                         <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-center">
                           <Lock size={18} className="text-slate-500 mx-auto mb-1.5" />
-                          <p className="text-xs font-bold text-slate-700">Submissions Closed</p>
+                          <p className="text-xs font-bold text-slate-700">Application Closed</p>
                           <p className="text-[11px] text-slate-500 mt-0.5">The deadline has passed.</p>
                         </div>
                       ) : (
@@ -1188,17 +1207,27 @@ export const TaskDetailsPage = () => {
                         )}
 
                         {/* Submit / Update Solution Button */}
-                        <button
-                          onClick={() => setIsApplicationOpen(true)}
-                          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                            isSolutionSubmitted
-                              ? "bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0]"
-                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                          }`}
-                        >
-                          <FileText size={14} className={isSolutionSubmitted ? "text-[#6D3DF5]" : "text-white"} />
-                          <span>{isSolutionSubmitted ? "Update Submitted Solution" : "Submit Solution / Project"}</span>
-                        </button>
+                        {isClosed && !isSolutionSubmitted ? (
+                          <button
+                            disabled
+                            className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            <Lock size={14} className="text-slate-400" />
+                            <span>Submission Closed</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setIsApplicationOpen(true)}
+                            className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                              isSolutionSubmitted
+                                ? "bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0]"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            }`}
+                          >
+                            <FileText size={14} className={isSolutionSubmitted ? "text-[#6D3DF5]" : "text-white"} />
+                            <span>{isClosed ? "View Submitted Solution" : isSolutionSubmitted ? "Update Submitted Solution" : "Submit Solution / Project"}</span>
+                          </button>
+                        )}
                       </div>
                     )}
 

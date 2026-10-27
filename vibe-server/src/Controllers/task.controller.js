@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { User }  from "../models/Users.js";
 import Profile from "../models/Profile.js";
 import { rankTasksForStudent } from "../utils/recommendationEngine.js";
+import { isTaskExpired } from "../utils/taskExpiry.js";
 import { ZipArchive } from "archiver";
 import axios from "axios";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
@@ -240,21 +241,9 @@ const createTask = asyncHandler(async (req, res) => {
 });
 
 
-//get all tasks
-
+// Get all tasks (includes both active and eligible expired tasks, always ordered active first)
 const getAllTasks = asyncHandler(async (req, res) => {
   const query = {};
-
-  // If the user is a student, hide tasks 2 days after the deadline has passed
-  if (req.user?.accountType === "student" && !req.user?.isAdmin) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 2);
-    cutoffDate.setHours(0, 0, 0, 0); // Normalize to start of day for consistent filtering
-    
-    // Task is visible if lastDateToSubmit >= cutoffDate
-    query.lastDateToSubmit = { $gte: cutoffDate };
-    console.log(`Filtering tasks for student ${req.user.name}. Showing tasks with deadline >= ${cutoffDate.toISOString()}`);
-  }
 
   const tasks = await TaskMania.find(query)
     .populate({
@@ -282,6 +271,11 @@ const getAllTasks = asyncHandler(async (req, res) => {
       .map((id) => id.toString());
 
     finalTasks = rankTasksForStudent(finalTasks, req.user, userProfile, manualOrder);
+  } else {
+    // For non-students: active tasks first, expired tasks last
+    const activeTasks = finalTasks.filter((t) => !isTaskExpired(t));
+    const expiredTasks = finalTasks.filter((t) => isTaskExpired(t));
+    finalTasks = [...activeTasks, ...expiredTasks];
   }
 
   return res.status(200).json(new ApiResponse(200, finalTasks, "Fetched all Task Mania challenges"));
@@ -355,9 +349,10 @@ const getTaskById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, taskObj, "Fetched task details successfully"));
 });
 
-// Get tasks created by the current user
+// Get tasks created by the current user (active tasks first, expired tasks last)
 const getMyTasks = asyncHandler(async (req, res) => {
-  const tasks = await TaskMania.find({ createdBy: req.user._id }).populate({
+  const tasks = await TaskMania.find({ createdBy: req.user._id })
+    .populate({
       path: "submissions",
       populate: {
         path: "createdBy",
@@ -375,25 +370,23 @@ const getMyTasks = asyncHandler(async (req, res) => {
         path: "Profile",
         model: "Profile"
       }
-    });
+    })
+    .sort({ createdAt: -1 });
+
+  const taskList = tasks || [];
+  const activeTasks = taskList.filter((t) => !isTaskExpired(t));
+  const expiredTasks = taskList.filter((t) => isTaskExpired(t));
 
   return res
     .status(200)
-    .json(new ApiResponse(200, tasks, "Fetched your created tasks"));
+    .json(new ApiResponse(200, [...activeTasks, ...expiredTasks], "Fetched your created tasks"));
 });
 
-// Get tasks created by a specific company/user or current user
+// Get tasks created by a specific company/user or current user (active tasks first, expired tasks last)
 const getTasksByCompany = asyncHandler(async (req, res) => {
   const companyId = req.params.userId || req.user._id;
-  const isOwner = req.user._id.toString() === companyId.toString();
 
   const query = { createdBy: companyId };
-  if (!isOwner && req.user?.accountType === "student" && !req.user?.isAdmin) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 2);
-    cutoffDate.setHours(0, 0, 0, 0);
-    query.lastDateToSubmit = { $gte: cutoffDate };
-  }
 
   const tasks = await TaskMania.find(query)
     .populate({
@@ -414,11 +407,16 @@ const getTasksByCompany = asyncHandler(async (req, res) => {
         path: "Profile",
         model: "Profile"
       }
-    });
+    })
+    .sort({ createdAt: -1 });
+
+  const taskList = tasks || [];
+  const activeTasks = taskList.filter((t) => !isTaskExpired(t));
+  const expiredTasks = taskList.filter((t) => isTaskExpired(t));
 
   return res
     .status(200)
-    .json(new ApiResponse(200, tasks || [], "Fetched company tasks"));
+    .json(new ApiResponse(200, [...activeTasks, ...expiredTasks], "Fetched company tasks"));
 });
 
 // Update a Task Mania Challenge
@@ -686,9 +684,13 @@ const getBookmarkedTasks = asyncHandler(async (req, res) => {
     })
     .sort({ createdAt: -1 });
 
+  const taskList = bookmarkedTasks || [];
+  const activeBookmarked = taskList.filter((t) => !isTaskExpired(t));
+  const expiredBookmarked = taskList.filter((t) => isTaskExpired(t));
+
   return res
     .status(200)
-    .json(new ApiResponse(200, bookmarkedTasks || [], "Fetched bookmarked tasks successfully"));
+    .json(new ApiResponse(200, [...activeBookmarked, ...expiredBookmarked], "Fetched bookmarked tasks successfully"));
 });
 
 
